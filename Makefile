@@ -6,7 +6,7 @@
 .DEFAULT_GOAL := all
 
 .PHONY: all
-all: tidy verify-copyright format lint cover
+all: tools tidy verify-copyright format lint cover
 
 SHELL := /bin/bash
 GO := go
