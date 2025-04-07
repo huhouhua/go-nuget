@@ -1,4 +1,4 @@
-name: Test and lint
+name: lint and Test
 
 on: [push, pull_request]
 
@@ -6,48 +6,39 @@ env:
   GO_VERSION: '1.23'
 
 jobs:
-  # Check if there is any dirty change for go mod tidy
-  go-mod:
-    runs-on: ubuntu-latest
+  lint_and_test:
+    name: Lint and Test - ${{ matrix.go-version }}
+    strategy:
+      matrix:
+        go-version: [1.22.x, 1.23.x, 1.x]
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
     steps:
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Install Go
+        uses: actions/setup-go@v5
         with:
-          # https://github.com/actions/setup-go#supported-version-syntax
-          # ex:
-          # - 1.18beta1 -> 1.18.0-beta.1
-          # - 1.18rc1 -> 1.18.0-rc.1
-          go-version: ${{ env.GO_VERSION }}
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Check go mod
-        run: |
-          go mod tidy
-#          git diff --exit-code go.mod
-#          git diff --exit-code go.sum
-  test:
-    name: Test and lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GO_VERSION }}
-        id: go
+          go-version: ${{ matrix.go-version }}
+          cache: false
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+
       - name: Install tools
         run: |
           make tools
+
       - name: Check copyright
         run: |
           make verify-copyright
+
       - name: Check syntax and styling of go sources
         run: |
           make lint
+
       - name: Run unit test and get test coverage
         run: |
           make cover
+
       - name: Collect Test Coverage File
         uses: actions/upload-artifact@v1.0.0
         with:
