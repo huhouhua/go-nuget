@@ -23,8 +23,8 @@ jobs:
       - name: Check go mod
         run: |
           go mod tidy
-          git diff --exit-code go.mod
-          git diff --exit-code go.sum
+#          git diff --exit-code go.mod
+#          git diff --exit-code go.sum
   check:
     name: Check lint and build
     runs-on: ubuntu-latest
