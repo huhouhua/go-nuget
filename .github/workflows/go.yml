@@ -37,7 +37,7 @@ jobs:
           make cover
 
       - name: Collect Test Coverage File
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: main-output
           path: _output/coverage.out
