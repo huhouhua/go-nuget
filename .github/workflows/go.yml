@@ -2,9 +2,6 @@ name: lint and Test
 
 on: [push, pull_request]
 
-env:
-  GO_VERSION: '1.23'
-
 jobs:
   lint_and_test:
     name: Lint and Test - ${{ matrix.go-version }}
@@ -40,7 +37,7 @@ jobs:
           make cover
 
       - name: Collect Test Coverage File
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v3
         with:
           name: main-output
           path: _output/coverage.out
