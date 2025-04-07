@@ -1,0 +1,63 @@
+name: lint and Test
+
+on: [push, pull_request]
+
+env:
+  GO_VERSION: '1.23'
+
+jobs:
+  # Check if there is any dirty change for go mod tidy
+  go-mod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          # https://github.com/actions/setup-go#supported-version-syntax
+          # ex:
+          # - 1.18beta1 -> 1.18.0-beta.1
+          # - 1.18rc1 -> 1.18.0-rc.1
+          go-version: ${{ env.GO_VERSION }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Check go mod
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod
+          git diff --exit-code go.sum
+  check:
+    name: Check lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+      - name: Check copyright
+        run: |
+          make verify-copyright
+      - name: Check syntax and styling of go sources
+        run: |
+          make lint
+  test:
+    name: Test cover
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - name: Set Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+      - name: Run unit test and get test coverage
+        run: |
+          make cover
+      - name: Collect Test Coverage File
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: main-output
+          path: _output/coverage.out
