@@ -49,7 +49,6 @@ linters:
     - whitespace
   disable:
     - errcheck
-    - goanalysis_metalinter
   disable-all: false
   fast: false
 
