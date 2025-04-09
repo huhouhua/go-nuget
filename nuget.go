@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-retryablehttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/time/rate"
 )
 

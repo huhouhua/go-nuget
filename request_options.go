@@ -7,7 +7,7 @@ package nuget
 import (
 	"context"
 
-	"github.com/hashicorp/go-retryablehttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 )
 
 // RequestOptionFunc can be passed to all API requests to customize the API request.
