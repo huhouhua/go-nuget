@@ -7,9 +7,6 @@ package nuget
 import (
 	"context"
 	"errors"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-retryablehttp"
-	"golang.org/x/time/rate"
 	"math"
 	"math/rand"
 	"net/http"
@@ -18,6 +15,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
+	"golang.org/x/time/rate"
 )
 
 const (
