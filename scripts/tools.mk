@@ -33,7 +33,7 @@ install.golines:
 	@$(GO) install github.com/segmentio/golines@latest
 
 .PHONY: install.licctl
-install.addlicense:
+install.licctl:
 	@$(GO) install github.com/seacraft/licctl@latest
 
 .PHONY: install.goimports
