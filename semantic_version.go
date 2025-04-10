@@ -4,12 +4,17 @@
 
 package nuget
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+	"unicode"
+)
 
 type SemanticVersion struct {
 	releaseLabels []string `json:"releaseLabels"`
 
 	metadata string `json:"metadata"`
+
 	// Major version X (X. y. z)
 	Major int `json:"major"`
 
@@ -18,6 +23,27 @@ type SemanticVersion struct {
 
 	// Patch version Z (x. y. Z)
 	Patch int `json:"patch"`
+}
+
+func NewSemanticVersion(version *Version, releaseLabels []string, metadata string) (*SemanticVersion, error) {
+	if version == nil {
+		return nil, fmt.Errorf("version is nil")
+	}
+	normalizedVersion, err := normalizeVersionValue(version)
+	if err != nil {
+		return nil, err
+	}
+	semantic := &SemanticVersion{
+		Major:         normalizedVersion.Major,
+		Minor:         normalizedVersion.Minor,
+		Patch:         normalizedVersion.Build,
+		metadata:      metadata,
+		releaseLabels: nil,
+	}
+	if releaseLabels != nil && len(releaseLabels) > 0 {
+		semantic.releaseLabels = releaseLabels
+	}
+	return semantic, nil
 }
 
 // ReleaseLabels A collection of pre-release labels attached to the version.
@@ -62,10 +88,10 @@ func (semantic *SemanticVersion) Metadata() string {
 	return semantic.metadata
 }
 
-// ParseSections Parse the version string into version/ release/ build The goal of
+// ParseSections Parse the version string into version/release/build The goal of
 // this code is to take the most direct and optimized path to parsing and validating a semver.
 // Regex would be much cleaner, but due to the number of versions created in NuGet Regex is too slow.
-func (semantic *SemanticVersion) ParseSections(value string) (versionString string,
+func parseSections(value string) (versionString string,
 	releaseLabels []string, buildMetadata string) {
 	num1, num2 := -1, -1
 	for index := 0; index < len(value); index++ {
@@ -100,4 +126,71 @@ func (semantic *SemanticVersion) ParseSections(value string) (versionString stri
 		}
 	}
 	return "", nil, ""
+}
+
+func isValidPart(s string, allowLeadingZeros bool) bool {
+	if len(s) == 0 {
+		// empty labels are not allowed
+		return false
+	}
+	// 0 is fine, but 00 is not.
+	// 0A counts as an alpha numeric string where zeros are not counted
+	if !allowLeadingZeros && len(s) > 1 && s[0] == '0' {
+		var allDigits = true
+
+		// Check if all characters are digits.
+		// The first is already checked above
+		for i := 1; i < len(s); i++ {
+			if !unicode.IsDigit(rune(s[i])) {
+				allDigits = false
+				break
+			}
+		}
+
+		if allDigits {
+			// leading zeros are not allowed in numeric labels
+			return false
+		}
+	}
+	for i := 0; i < len(s); i++ {
+		if !(unicode.IsLetter(rune(s[i])) || unicode.IsDigit(rune(s[i])) || s[i] == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+func isValid(s string, allowLeadingZeros bool) bool {
+	parts := strings.Split(s, ".")
+
+	// Check each part individually
+	for i := 0; i < len(parts); i++ {
+		if !isValidPart(parts[i], allowLeadingZeros) {
+			return false
+		}
+	}
+	return true
+}
+
+func normalizeVersionValue(version *Version) (*Version, error) {
+	var normalized = version
+	var err error
+	if version.Build < 0 || version.Revision < 0 {
+		normalized, err = NewVersion(
+			version.Major,
+			version.Minor,
+			mathMax(version.Build, 0),
+			mathMax(version.Revision, 0))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return normalized, nil
+}
+
+func mathMax(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
