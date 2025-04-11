@@ -1,8 +1,7 @@
 # go-nuget
 
 A NuGet API v3 client enabling Go programs to interact with NuGet repositories in a simple and uniform way.
-
-![workflow ci](https://github.com/huhouhua/go-nuget/actions/workflows/go.yml/badge.svg)
+![Workflow ci](https://github.com/huhouhua/go-nuget/actions/workflows/go.yml/badge.svg)
 [![Sourcegraph](https://sourcegraph.com/github.com/huhouhua/go-nuget/-/badge.svg)](https://sourcegraph.com/github.com/huhouhua/go-nuget?badge)
 [![GoDoc](https://godoc.org/github.com/huhouhua/go-nuget?status.svg)](https://godoc.org/github.com/huhouhua/go-nuget)
 [![Go Report Card](https://goreportcard.com/badge/github.com/huhouhua/go-nuget)](https://goreportcard.com/report/github.com/huhouhua/go-nuget)

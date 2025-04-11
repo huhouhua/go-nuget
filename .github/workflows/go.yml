@@ -37,9 +37,19 @@ jobs:
           make cover
 
       - name: Collect Test Coverage File
-        uses: actions/upload-artifact@v4
+        uses: ncruces/go-coverage-report@v0.3.0
         with:
-          name: main-output
-          path: _output/coverage.out
+          coverage-file: _output/coverage.out
+          report: 'true'
+          amend: 'true'
+          reuse-go: 'true'
         if: |
           matrix.go-version == '1.23.x'
+        continue-on-error: true
+#      - name: Collect Test Coverage File
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: main-output
+#          path: _output/coverage.out
+#        if: |
+#          matrix.go-version == '1.23.x'
