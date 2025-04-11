@@ -6,11 +6,16 @@ package nuget
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/google/go-querystring/query"
+	"io"
 	"math"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -248,4 +253,199 @@ func (c *Client) setBaseURL(urlStr string) error {
 	c.baseURL = baseURL
 
 	return nil
+}
+
+// NewRequest creates a new API request. The method expects a relative URL
+// path that will be resolved relative to the base URL of the Client.
+// Relative URL paths should always be specified without a preceding slash.
+// If specified, the value pointed to by body is JSON encoded and included
+// as the request body.
+func (c *Client) NewRequest(method, path string, opt interface{}, options []RequestOptionFunc) (*retryablehttp.Request, error) {
+	u := *c.baseURL
+	unescaped, err := url.PathUnescape(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the encoded path data
+	u.RawPath = c.baseURL.Path + path
+	u.Path = c.baseURL.Path + unescaped
+
+	// Create a request specific headers map.
+	reqHeaders := make(http.Header)
+	reqHeaders.Set("Accept", "application/json")
+
+	if c.UserAgent != "" {
+		reqHeaders.Set("User-Agent", c.UserAgent)
+	}
+
+	var body interface{}
+	switch {
+	case method == http.MethodPatch || method == http.MethodPost || method == http.MethodPut:
+		reqHeaders.Set("Content-Type", "application/json")
+
+		if opt != nil {
+			body, err = json.Marshal(opt)
+			if err != nil {
+				return nil, err
+			}
+		}
+	case opt != nil:
+		q, err := query.Values(opt)
+		if err != nil {
+			return nil, err
+		}
+		u.RawQuery = q.Encode()
+	}
+
+	req, err := retryablehttp.NewRequest(method, u.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fn := range append(c.defaultRequestOptions, options...) {
+		if fn == nil {
+			continue
+		}
+		if err := fn(req); err != nil {
+			return nil, err
+		}
+	}
+
+	// Set the request specific headers.
+	for k, v := range reqHeaders {
+		req.Header[k] = v
+	}
+
+	return req, nil
+}
+
+// Do sends an API request and returns the API response. The API response is
+// JSON decoded and stored in the value pointed to by v, or returned as an
+// error if an API error has occurred. If v implements the io.Writer
+// interface, the raw response body will be written to v, without attempting to
+// first decode it.
+func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*http.Response, error) {
+	// Wait will block until the limiter can obtain a new token.
+	err := c.limiter.Wait(req.Context())
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the correct authentication header. If using basic auth, then check
+	// if we already have a token and if not first authenticate and get one.
+	if values := req.Header.Values("X-NuGet-ApiKey"); len(values) == 0 {
+		req.Header.Set("JOB-TOKEN", c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	defer io.Copy(io.Discard, resp.Body)
+
+	// If not yet configured, try to configure the rate limiter
+	// using the response headers we just received. Fail silently
+	// so the limiter will remain disabled in case of an error.
+	c.configureLimiterOnce.Do(func() { c.configureLimiter(req.Context(), resp.Header) })
+
+	err = CheckResponse(resp)
+	if err != nil {
+		// Even though there was an error, we still return the response
+		// in case the caller wants to inspect it further.
+		return resp, err
+	}
+
+	if v != nil {
+		if w, ok := v.(io.Writer); ok {
+			_, err = io.Copy(w, resp.Body)
+		} else {
+			err = json.NewDecoder(resp.Body).Decode(v)
+		}
+	}
+
+	return resp, err
+}
+
+func parseID(id string) (string, error) {
+	if strings.TrimSpace(id) == "" {
+		return "", fmt.Errorf("id is null or empty")
+	}
+	return strings.ToLower(id), nil
+}
+
+// PathEscape Helper function to escape a packageId identifier.
+func PathEscape(s string) string {
+	return strings.ReplaceAll(url.PathEscape(s), ".", "%2E")
+}
+
+// An ErrorResponse reports one or more errors caused by an API request.
+type ErrorResponse struct {
+	Body     []byte
+	Response *http.Response
+	Message  string
+}
+
+func (e *ErrorResponse) Error() string {
+	path, _ := url.QueryUnescape(e.Response.Request.URL.Path)
+	url := fmt.Sprintf("%s://%s%s", e.Response.Request.URL.Scheme, e.Response.Request.URL.Host, path)
+
+	if e.Message == "" {
+		return fmt.Sprintf("%s %s: %d", e.Response.Request.Method, url, e.Response.StatusCode)
+	} else {
+		return fmt.Sprintf("%s %s: %d %s", e.Response.Request.Method, url, e.Response.StatusCode, e.Message)
+	}
+}
+
+// CheckResponse checks the API response for errors, and returns them if present.
+func CheckResponse(r *http.Response) error {
+	switch r.StatusCode {
+	case 200, 201, 202, 204, 304:
+		return nil
+	case 404:
+		return ErrNotFound
+	}
+
+	errorResponse := &ErrorResponse{Response: r}
+
+	data, err := io.ReadAll(r.Body)
+	if err == nil && strings.TrimSpace(string(data)) != "" {
+		errorResponse.Body = data
+
+		var raw interface{}
+		if err := json.Unmarshal(data, &raw); err != nil {
+			errorResponse.Message = fmt.Sprintf("failed to parse unknown error format: %s", data)
+		} else {
+			errorResponse.Message = parseError(raw)
+		}
+	}
+
+	return errorResponse
+}
+
+func parseError(raw interface{}) string {
+	switch raw := raw.(type) {
+	case string:
+		return raw
+
+	case []interface{}:
+		var errs []string
+		for _, v := range raw {
+			errs = append(errs, parseError(v))
+		}
+		return fmt.Sprintf("[%s]", strings.Join(errs, ", "))
+
+	case map[string]interface{}:
+		var errs []string
+		for k, v := range raw {
+			errs = append(errs, fmt.Sprintf("{%s: %s}", k, parseError(v)))
+		}
+		sort.Strings(errs)
+		return strings.Join(errs, ", ")
+
+	default:
+		return fmt.Sprintf("failed to parse unexpected error type: %T", raw)
+	}
 }
