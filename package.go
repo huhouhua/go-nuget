@@ -8,17 +8,52 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"strings"
 	"sync"
-	"unicode"
 )
 
 var (
 	rwMu                       sync.RWMutex
-	ParsedNuGetVersionsMapping map[string]*NuGetVersion
+	parsedNuGetVersionsMapping map[string]*NuGetVersion
 )
 
-type PackageResource struct {
+func init() {
+	parsedNuGetVersionsMapping = make(map[string]*NuGetVersion)
+}
+
+type FindPackageResource struct {
+	client *Client
+}
+
+// ListAllVersions gets all package versions for a package ID.
+func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptionFunc) ([]*NuGetVersion, *http.Response, error) {
+	packageId, err := parseID(id)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("-flatcontainer/%s/index.json", PathEscape(packageId))
+
+	req, err := f.client.NewRequest(http.MethodGet, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+	var version struct {
+		Versions []string `json:"versions"`
+	}
+	resp, err := f.client.Do(req, &version)
+	if err != nil {
+		return nil, resp, err
+	}
+	var versions []*NuGetVersion
+	for _, v := range version.Versions {
+		nugetVersion, err := Parse(v)
+		if err != nil {
+			return nil, resp, err
+		}
+		versions = append(versions, nugetVersion)
+	}
+	return versions, resp, nil
 }
 
 type NuGetVersion struct {
@@ -79,7 +114,7 @@ func TryParse(value string) (bool, *NuGetVersion, error) {
 	}
 	rwMu.RLock()
 	defer rwMu.RUnlock()
-	version, ok := ParsedNuGetVersionsMapping[value]
+	version, ok := parsedNuGetVersionsMapping[value]
 	if ok {
 		return ok, version, nil
 	}
@@ -99,20 +134,20 @@ func TryParse(value string) (bool, *NuGetVersion, error) {
 		if strings.TrimSpace(buildMetadata) != "" && !isValid(buildMetadata, true) {
 			return false, nil, nil
 		}
-		str := value
+		originalVersion := value
 		var err error
-		if strings.IndexAny(str, " ") > -1 {
-			str = strings.ReplaceAll(value, " ", "")
-			version, err = NewNuGetVersion(version1, releaseLabels, buildMetadata, str)
-			if err != nil {
-				return false, nil, err
-			}
-			if len(ParsedNuGetVersionsMapping) >= 500 {
-				ParsedNuGetVersionsMapping = make(map[string]*NuGetVersion)
-				ParsedNuGetVersionsMapping[value] = version
-			}
-			return true, version, nil
+		if strings.IndexAny(originalVersion, " ") > -1 {
+			originalVersion = strings.ReplaceAll(value, " ", "")
 		}
+		version, err = NewNuGetVersion(version1, releaseLabels, buildMetadata, originalVersion)
+		if err != nil {
+			return false, nil, err
+		}
+		if len(parsedNuGetVersionsMapping) >= 500 {
+			parsedNuGetVersionsMapping = make(map[string]*NuGetVersion)
+		}
+		parsedNuGetVersionsMapping[value] = version
+		return true, version, nil
 	}
 	return false, nil, nil
 }
@@ -123,76 +158,67 @@ func tryGetNormalizedVersion(str string) (*Version, bool) {
 		return nil, false
 	}
 
-	var versions [4]int
-	end := 0
-	var ok bool
+	lastParsedPosition, major, majorOk := parseSection(str, 0)
+	lastParsedPosition, minor, minorOk := parseSection(str, lastParsedPosition)
+	lastParsedPosition, build, buildOk := parseSection(str, lastParsedPosition)
+	lastParsedPosition, revision, revisionOk := parseSection(str, lastParsedPosition)
 
-	for i := 0; i < 4; i++ {
-		versions[i], end, ok = parseSection(str, end)
-		if !ok {
+	if majorOk && minorOk && buildOk && revisionOk && lastParsedPosition == len(str) {
+		v, err := NewVersion(major, minor, build, revision)
+		if err != nil {
+			_ = fmt.Errorf(err.Error())
 			return nil, false
 		}
+		return v, true
 	}
-	if strings.TrimSpace(str[end:]) != "" {
-		return nil, false
-	}
-	v, err := NewVersion(versions[0], versions[1], versions[2], versions[3])
-	if err != nil {
-		_ = fmt.Errorf(err.Error())
-		return nil, false
-	}
-	return v, true
+
+	return nil, false
 }
 
 func parseSection(str string, start int) (end, versionNumber int, ok bool) {
 	if start == len(str) {
-		return start, 0, false
+		return start, 0, true
 	}
-	end = start
-	for end < len(str) {
+	for end = start; end < len(str); end++ {
 		ch := str[end]
 		if ch != ' ' {
-			if !unicode.IsDigit(rune(ch)) {
+			if !isDigit(ch) {
 				return end, 0, false
 			}
 			break
 		}
-		end++
 	}
-	var flag1, flag2 = false, false
-	num := int64(0)
-	for end < len(str) {
+	var done, digitFound = false, false
+	intermediateVersionNumber := int64(0)
+	for ; end < len(str); end++ {
 		ch := str[end]
-		if unicode.IsDigit(rune(ch)) {
-			flag2 = true
-			num = num*10 + int64(ch-'0')
-			if num > math.MaxInt32 {
+		if isDigit(ch) {
+			digitFound = true
+			intermediateVersionNumber = intermediateVersionNumber*10 + int64(ch-'0')
+			if intermediateVersionNumber > math.MaxInt32 {
 				return end, 0, false
 			}
+		} else if ch == '.' {
 			end++
-		} else {
-			if ch == '.' {
-				end++
-				if end == len(str) {
-					return end, 0, false
-				}
-				flag1 = true
-				break
-			}
-			if ch != ' ' {
+			if end == len(str) {
 				return end, 0, false
 			}
+			done = true
 			break
+		} else if ch != ' ' {
+			break
+		} else {
+			return end, 0, false
 		}
 	}
-	if !flag2 {
+	if !digitFound {
 		return end, 0, false
 	}
 	if end == len(str) {
-		flag1 = true
+		done = true
 	}
-	if !flag1 {
-		for end < len(str) {
+	if !done {
+		for ; end < len(str); end++ {
 			ch := str[end]
 			if ch != ' ' {
 				if ch == '.' {
@@ -204,8 +230,12 @@ func parseSection(str string, start int) (end, versionNumber int, ok bool) {
 				}
 				return end, 0, false
 			}
-			end++
 		}
+
 	}
-	return end, int(num), true
+	return end, int(intermediateVersionNumber), true
+}
+
+func isDigit(c uint8) bool {
+	return c >= '0' && c <= '9'
 }

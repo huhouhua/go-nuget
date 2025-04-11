@@ -1,9 +1,15 @@
+// Copyright (c) 2025 Kevin Berger <huhouhuam@outlook.com>. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
 package nuget
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -32,6 +38,23 @@ func setup(t *testing.T) (*http.ServeMux, *Client) {
 	}
 
 	return mux, client
+}
+
+func testMethod(t *testing.T, r *http.Request, want string) {
+	if got := r.Method; got != want {
+		t.Errorf("Request method: %s, want %s", got, want)
+	}
+}
+
+func mustWriteHTTPResponse(t *testing.T, w io.Writer, fixturePath string) {
+	f, err := os.Open(fixturePath)
+	if err != nil {
+		t.Fatalf("error opening fixture file: %v", err)
+	}
+
+	if _, err = io.Copy(w, f); err != nil {
+		t.Fatalf("error writing response: %v", err)
+	}
 }
 
 func TestNewClient(t *testing.T) {

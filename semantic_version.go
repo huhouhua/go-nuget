@@ -7,7 +7,6 @@ package nuget
 import (
 	"fmt"
 	"strings"
-	"unicode"
 )
 
 type SemanticVersion struct {
@@ -93,39 +92,40 @@ func (semantic *SemanticVersion) Metadata() string {
 // Regex would be much cleaner, but due to the number of versions created in NuGet Regex is too slow.
 func parseSections(value string) (versionString string,
 	releaseLabels []string, buildMetadata string) {
-	num1, num2 := -1, -1
+	dashPos, plusPos := -1, -1
+	var end = false
 	for index := 0; index < len(value); index++ {
-		flag := index == len(value)-1
-		if num1 < 0 {
-			if flag || value[index] == '-' || value[index] == '+' {
-				length := index
-				if flag {
-					length += 1
+		end = index == len(value)-1
+		if dashPos < 0 {
+			if end || value[index] == '-' || value[index] == '+' {
+				endPos := index
+				if end {
+					endPos += 1
 				}
-				versionString = value[0:length]
-				num1 = index
+				versionString = value[0:endPos]
+				dashPos = index
 				if value[index] == '+' {
-					num2 = index
+					plusPos = index
 				}
 			}
-		} else if num2 < 0 {
-			if flag || value[index] == '+' {
-				startIndex := num1 + 1
-				num3 := index
-				if flag {
-					num3 += 1
+		} else if plusPos < 0 {
+			if end || value[index] == '+' {
+				start := dashPos + 1
+				endPos := index
+				if end {
+					endPos += 1
 				}
-				str := value[startIndex : num3-startIndex]
+				str := value[start:endPos]
 				releaseLabels = strings.Split(str, ".")
-				num2 = index
+				plusPos = index
 			}
-		} else if flag {
-			startIndex := num2 + 1
-			num4 := index + 1
-			buildMetadata = value[startIndex : num4-startIndex]
+		} else if end {
+			start := plusPos + 1
+			endPos := index + 1
+			buildMetadata = value[start:endPos]
 		}
 	}
-	return "", nil, ""
+	return versionString, releaseLabels, buildMetadata
 }
 
 func isValidPart(s string, allowLeadingZeros bool) bool {
@@ -141,7 +141,7 @@ func isValidPart(s string, allowLeadingZeros bool) bool {
 		// Check if all characters are digits.
 		// The first is already checked above
 		for i := 1; i < len(s); i++ {
-			if !unicode.IsDigit(rune(s[i])) {
+			if !isDigit(s[i]) {
 				allDigits = false
 				break
 			}
@@ -153,7 +153,7 @@ func isValidPart(s string, allowLeadingZeros bool) bool {
 		}
 	}
 	for i := 0; i < len(s); i++ {
-		if !(unicode.IsLetter(rune(s[i])) || unicode.IsDigit(rune(s[i])) || s[i] == '-') {
+		if !((s[i] >= 48 && s[i] <= 57) || (s[i] >= 65 && s[i] <= 90) || (s[i] >= 97 && s[i] <= 122) || s[i] == 45) {
 			return false
 		}
 	}
