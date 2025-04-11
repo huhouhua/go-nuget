@@ -26,6 +26,15 @@ type FindPackageResource struct {
 	client *Client
 }
 
+type NuGetVersion struct {
+	*SemanticVersion
+
+	Version *Version `json:"version"`
+	// Revision version R (x. y. z. R)
+	Revision        int    `json:"revision"`
+	OriginalVersion string `json:"originalVersion"`
+}
+
 // ListAllVersions gets all package versions for a package ID.
 func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptionFunc) ([]*NuGetVersion, *http.Response, error) {
 	packageId, err := parseID(id)
@@ -54,15 +63,6 @@ func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptio
 		versions = append(versions, nugetVersion)
 	}
 	return versions, resp, nil
-}
-
-type NuGetVersion struct {
-	*SemanticVersion
-
-	Version *Version `json:"version"`
-	// Revision version R (x. y. z. R)
-	Revision        int    `json:"revision"`
-	OriginalVersion string `json:"originalVersion"`
 }
 
 func NewNuGetVersion(version *Version, releaseLabels []string, metadata string, originalVersion string) (*NuGetVersion, error) {
