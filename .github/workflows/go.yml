@@ -36,16 +36,6 @@ jobs:
         run: |
           make cover
 
-      - name: Collect Test Coverage File
-        uses: ncruces/go-coverage-report@v0.3.0
-        with:
-          coverage-file: _output/coverage.out
-          report: 'true'
-          amend: 'true'
-          reuse-go: 'true'
-        if: |
-          matrix.go-version == '1.23.x'
-        continue-on-error: true
 #      - name: Collect Test Coverage File
 #        uses: actions/upload-artifact@v4
 #        with:
@@ -53,3 +43,12 @@ jobs:
 #          path: _output/coverage.out
 #        if: |
 #          matrix.go-version == '1.23.x'
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: huhouhua/go-nuget
+          files: _output/coverage.out
+        if: |
+          matrix.go-version == '1.23.x'
