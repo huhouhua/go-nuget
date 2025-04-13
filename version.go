@@ -4,7 +4,13 @@
 
 package nuget
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
+
+var emptyVersion = &Version{0, 0, 0, 0}
+var maxVersion = &Version{math.MaxInt, 0, 0, 0}
 
 type Version struct {
 	Major    int
