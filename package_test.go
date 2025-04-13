@@ -5,13 +5,8 @@
 package nuget
 
 import (
-	"archive/zip"
-	"encoding/xml"
-	"fmt"
 	"github.com/stretchr/testify/require"
-	"io"
 	"net/http"
-	"strings"
 	"testing"
 )
 
@@ -62,55 +57,4 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
-}
-
-type Nuspec struct {
-	XMLName  xml.Name `xml:"package"`
-	Metadata Metadata `xml:"metadata"`
-}
-
-type Metadata struct {
-	ID          string `xml:"id"`
-	Version     string `xml:"version"`
-	Authors     string `xml:"authors"`
-	Description string `xml:"description"`
-	LicenseURL  string `xml:"licenseUrl"`
-	ProjectURL  string `xml:"projectUrl"`
-}
-
-func TestReaderNupkg(t *testing.T) {
-	nupkgPath := "testdata/newtonsoft.json.6.0.1-beta1.nupkg" // 替换成你的 nupkg 路径
-	r, err := zip.OpenReader(nupkgPath)
-	if err != nil {
-		panic(err)
-	}
-	defer r.Close()
-
-	var nuspecFile io.ReadCloser
-	for _, f := range r.File {
-		if strings.HasSuffix(f.Name, ".nuspec") {
-			nuspecFile, err = f.Open()
-			if err != nil {
-				panic(err)
-			}
-			defer nuspecFile.Close()
-			break
-		}
-	}
-
-	if nuspecFile == nil {
-		panic("No .nuspec file found in .nupkg")
-	}
-
-	var nuspec Nuspec
-	decoder := xml.NewDecoder(nuspecFile)
-	err = decoder.Decode(&nuspec)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Package ID:", nuspec.Metadata.ID)
-	fmt.Println("Version:", nuspec.Metadata.Version)
-	fmt.Println("Authors:", nuspec.Metadata.Authors)
-	fmt.Println("Description:", nuspec.Metadata.Description)
 }

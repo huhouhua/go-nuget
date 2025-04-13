@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+      <id>MyTestLibrary</id>
+      <version>1.0.0</version>
+      <authors>Kevin Berger</authors>
+      <owners>Kevin Berger</owners>
+      <requireLicenseAcceptance>false</requireLicenseAcceptance>
+      <license type="expression">MIT</license>
+      <projectUrl>https://github.com/huhouhua/go-nuget</projectUrl>
+      <iconUrl>https://raw.githubusercontent.com/huhouhua/go-nuget/main/icon.png</iconUrl>
+      <description>A fantastic library that solves all your problems.</description>
+      <summary>Lightweight helper for building apps</summary>
+      <releaseNotes>Initial stable release</releaseNotes>
+      <copyright>Copyright © 2025 Kevin Berger</copyright>
+      <tags>utility helper tools awesome</tags>
+      <language>en-US</language>
+      <repository type="git" url="https://github.com/huhouhua/go-nuget.git" branch="main" commit="abc123" />
+
+    <dependencies>
+      <group targetFramework=".NETFramework4.8">
+        <dependency id="Newtonsoft.Json" version="12.0.3" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging" version="5.0.0" />
+      </group>
+      <group targetFramework=".NETCoreApp3.1">
+        <dependency id="Newtonsoft.Json" version="12.0.3" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net5.0">
+        <dependency id="Newtonsoft.Json" version="12.0.3" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="Newtonsoft.Json" version="12.0.3" exclude="Build,Analyzers" />
+      </group>
+      <dependency id="Castle.Core.AsyncInterceptor" version="2.1.0" exclude="Build,Analyzers" />
+      <dependency id="JetBrains.Annotations" version="2024.3.0" exclude="Build,Analyzers" />
+    </dependencies>
+
+     <references>
+          <group targetFramework=".NETStandard2.0">
+            <reference file="MyTestLibrary.dll" />
+          </group>
+     </references>
+
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System.Net.Http" targetFramework=".NETFramework4.8" />
+    </frameworkAssemblies>
+  </metadata>
+
+</package>
