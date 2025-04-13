@@ -7,17 +7,7 @@ package nuget
 import (
 	"fmt"
 	"net/http"
-	"sync"
 )
-
-var (
-	rwMu                       sync.RWMutex
-	parsedNuGetVersionsMapping map[string]*NuGetVersion
-)
-
-func init() {
-	parsedNuGetVersionsMapping = make(map[string]*NuGetVersion)
-}
 
 type FindPackageResource struct {
 	client *Client

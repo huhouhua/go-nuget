@@ -7,7 +7,17 @@ package nuget
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
+
+var (
+	rwMu                       sync.RWMutex
+	parsedNuGetVersionsMapping map[string]*NuGetVersion
+)
+
+func init() {
+	parsedNuGetVersionsMapping = make(map[string]*NuGetVersion)
+}
 
 type SemanticVersion struct {
 	releaseLabels []string `json:"releaseLabels"`
