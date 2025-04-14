@@ -7,34 +7,34 @@ package nuget
 import "encoding/xml"
 
 type Nuspec struct {
-	XMLName  xml.Name `xml:"package"`
-	Metadata Metadata `xml:"metadata"`
+	XMLName  xml.Name  `xml:"package"`
+	Metadata *Metadata `xml:"metadata"`
 }
 
 type PackageInfo struct {
-	ID                       string     `xml:"id"`
-	Version                  string     `xml:"version"`
-	Authors                  string     `xml:"authors"`
-	Owners                   string     `xml:"owners"`
-	RequireLicenseAcceptance bool       `xml:"requireLicenseAcceptance"`
-	License                  string     `xml:"license"`
-	LicenseURL               string     `xml:"licenseUrl"`
-	ProjectURL               string     `xml:"projectUrl"`
-	IconUrl                  string     `xml:"iconUrl"`
-	Description              string     `xml:"description"`
-	Summary                  string     `xml:"summary"`
-	ReleaseNotes             string     `xml:"releaseNotes"`
-	Copyright                string     `xml:"copyright"`
-	Tags                     string     `xml:"tags"`
-	Language                 string     `xml:"language"`
-	Repository               Repository `xml:"repository"`
+	ID                       string      `xml:"id"`
+	Version                  string      `xml:"version"`
+	Authors                  string      `xml:"authors"`
+	Owners                   string      `xml:"owners"`
+	RequireLicenseAcceptance bool        `xml:"requireLicenseAcceptance"`
+	License                  string      `xml:"license"`
+	LicenseURL               string      `xml:"licenseUrl"`
+	ProjectURL               string      `xml:"projectUrl"`
+	IconUrl                  string      `xml:"iconUrl"`
+	Description              string      `xml:"description"`
+	Summary                  string      `xml:"summary"`
+	ReleaseNotes             string      `xml:"releaseNotes"`
+	Copyright                string      `xml:"copyright"`
+	Tags                     string      `xml:"tags"`
+	Language                 string      `xml:"language"`
+	Repository               *Repository `xml:"repository"`
 }
 
 type Metadata struct {
 	PackageInfo
-	Dependencies        Dependencies        `xml:"dependencies"`
-	FrameworkAssemblies FrameworkAssemblies `xml:"frameworkAssemblies"`
-	References          References          `xml:"references"`
+	Dependencies        *Dependencies        `xml:"dependencies"`
+	FrameworkAssemblies *FrameworkAssemblies `xml:"frameworkAssemblies"`
+	References          *References          `xml:"references"`
 }
 
 type Repository struct {

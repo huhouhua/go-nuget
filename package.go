@@ -5,6 +5,7 @@
 package nuget
 
 import (
+	"encoding/xml"
 	"fmt"
 	"net/http"
 )
@@ -43,75 +44,34 @@ func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptio
 	return versions, resp, nil
 }
 
-type PackageDependencyInfo struct {
-	DependencyGroups         []PackageDependencyGroup
-	FrameworkReferenceGroups []FrameworkSpecificGroup
-}
-
-func NewPackageDependencyInfo(dependencyGroups []PackageDependencyGroup, frameworkReferenceGroups []FrameworkSpecificGroup) (*PackageDependencyInfo, error) {
-	if dependencyGroups == nil {
-		return nil, fmt.Errorf("dependencyGroups cannot be nil")
+// GetDependencyInfo gets dependency information for a specific package.
+func (f *FindPackageResource) GetDependencyInfo(id, version string, options ...RequestOptionFunc) (*PackageDependencyInfo, *http.Response, error) {
+	packageId, err := parseID(id)
+	if err != nil {
+		return nil, nil, err
 	}
-	if frameworkReferenceGroups == nil {
-		return nil, fmt.Errorf("frameworkReferenceGroups cannot be nil")
+	escapeId := PathEscape(packageId)
+	u := fmt.Sprintf("-flatcontainer/%s/%s/%s.nuspec", escapeId, PathEscape(version), escapeId)
+
+	req, err := f.client.NewRequest(http.MethodGet, u, nil, options)
+	if err != nil {
+		return nil, nil, err
 	}
-	return &PackageDependencyInfo{
-		DependencyGroups:         dependencyGroups,
-		FrameworkReferenceGroups: frameworkReferenceGroups,
-	}, nil
-}
-
-// PackageDependencyGroup  Package dependencies grouped to a target framework.
-type PackageDependencyGroup struct {
-	// TargetFramework Dependency group target framework
-	TargetFramework *NuGetFramework `json:"targetFramework,omitempty"`
-
-	// Packages Package dependencies
-	Packages []PackageDependency `json:"dependencies"`
-}
-
-// NewPackageDependencyGroup new Dependency group
-func NewPackageDependencyGroup(targetFramework *NuGetFramework, packages []PackageDependency) (*PackageDependencyGroup, error) {
-	if targetFramework == nil {
-		return nil, fmt.Errorf("targetFramework cannot be nil")
+	resp, err := f.client.Do(req, nil)
+	if err != nil {
+		return nil, resp, err
 	}
-	if packages == nil {
-		return nil, fmt.Errorf("packages cannot be nil")
+	var nuspec Nuspec
+	err = xml.NewDecoder(resp.Body).Decode(&nuspec)
+	if err != nil {
+		return nil, resp, err
 	}
-	return &PackageDependencyGroup{
-		TargetFramework: targetFramework,
-		Packages:        packages,
-	}, nil
-}
-
-// FrameworkSpecificGroup
-type FrameworkSpecificGroup struct {
-}
-
-// PackageDependency Represents a package dependency Id and allowed version range.
-type PackageDependency struct {
-	// Dependency package Id
-	Id string
-	// Include Types to include from the dependency package.
-	Include []string
-	// Exclude Types to exclude from the dependency package.
-	Exclude []string
-}
-
-// NuGetFramework
-type NuGetFramework struct {
-	// Framework Target framework
-	Framework string
-	// Version Target framework version
-	Version Version
-
-	// Platform Framework Platform (net5.0+)
-	Platform string
-
-	// PlatformVersion Framework Platform Version (net5.0+)
-	PlatformVersion Version
-}
-
-func NewNuGetFramework() {
-
+	dependencyInfo := &PackageDependencyInfo{
+		PackageIdentity: &PackageIdentity{},
+	}
+	err = ApplyPackageDependency(dependencyInfo, WithIdentity(nuspec.Metadata))
+	if err != nil {
+		return nil, resp, err
+	}
+	return dependencyInfo, resp, nil
 }
