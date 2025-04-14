@@ -11,21 +11,8 @@ import (
 
 type PackageDependencyInfo struct {
 	PackageIdentity          *PackageIdentity
-	DependencyGroups         []PackageDependencyGroup
-	FrameworkReferenceGroups []FrameworkSpecificGroup
-}
-
-func NewPackageDependencyInfo(dependencyGroups []PackageDependencyGroup, frameworkReferenceGroups []FrameworkSpecificGroup) (*PackageDependencyInfo, error) {
-	if dependencyGroups == nil {
-		return nil, fmt.Errorf("dependencyGroups cannot be nil")
-	}
-	if frameworkReferenceGroups == nil {
-		return nil, fmt.Errorf("frameworkReferenceGroups cannot be nil")
-	}
-	return &PackageDependencyInfo{
-		DependencyGroups:         dependencyGroups,
-		FrameworkReferenceGroups: frameworkReferenceGroups,
-	}, nil
+	DependencyGroups         []*PackageDependencyGroup
+	FrameworkReferenceGroups []*FrameworkSpecificGroup
 }
 
 // PackageDependencyGroup  Package dependencies grouped to a target framework.
@@ -34,11 +21,16 @@ type PackageDependencyGroup struct {
 	TargetFramework string `json:"targetFramework,omitempty"`
 
 	// Packages Package dependencies
-	Packages []PackageDependency `json:"dependencies"`
+	Packages []*Dependency `json:"dependencies"`
 }
 
 // NewPackageDependencyGroup new Dependency group
-func NewPackageDependencyGroup(targetFramework string, packages []PackageDependency) (*PackageDependencyGroup, error) {
+func NewPackageDependencyGroup(targetFramework string, packages []*Dependency) (*PackageDependencyGroup, error) {
+	for _, pkg := range packages {
+		if err := pkg.parse(); err != nil {
+			return nil, err
+		}
+	}
 	return &PackageDependencyGroup{
 		TargetFramework: targetFramework,
 		Packages:        packages,
@@ -81,21 +73,16 @@ func NewFrameworkSpecificGroup(TargetFramework string, items []string) (*Framewo
 	return f, nil
 }
 
-// PackageDependency Represents a package dependency Id and allowed version range.
-type PackageDependency struct {
-	// Dependency package Id
-	Id string
-	// Include Types to include from the dependency package.
-	Include []string
-	// Exclude Types to exclude from the dependency package.
-	Exclude []string
-
-	// todo handler range
-	Version string
-}
-
 // PackageDependencyInfoFunc can be used to customize a new PackageDependencyInfo.
 type PackageDependencyInfoFunc func(*PackageDependencyInfo) error
+
+// ConfigureDependencyInfo configures a PackageDependencyInfo from a Nuspec.
+func ConfigureDependencyInfo(info *PackageDependencyInfo, nuspec Nuspec) error {
+	return ApplyPackageDependency(info,
+		WithIdentity(nuspec.Metadata),
+		WithDependencyGroups(nuspec.Metadata.Dependencies),
+		WithFrameworkReferenceGroups(nuspec.Metadata.FrameworkAssemblies))
+}
 
 // ApplyPackageDependency applies a list of PackageDependencyInfoFunc to a PackageDependencyInfo.
 func ApplyPackageDependency(info *PackageDependencyInfo, options ...PackageDependencyInfoFunc) error {
@@ -121,8 +108,50 @@ func WithIdentity(meta *Metadata) PackageDependencyInfoFunc {
 }
 
 // WithDependencyGroups can be used to set the dependency groups for the PackageDependencyInfo.
-func WithDependencyGroups(meta *Metadata) PackageDependencyInfoFunc {
+func WithDependencyGroups(dependencies *Dependencies) PackageDependencyInfoFunc {
 	return func(info *PackageDependencyInfo) error {
+		if dependencies == nil {
+			return nil
+		}
+		groupFound := false
+		if dependencies.Groups != nil {
+			for _, groups := range dependencies.Groups {
+				groupFound = true
+				group, err := NewPackageDependencyGroup(groups.TargetFramework, groups.Dependencies)
+				if err != nil {
+					return err
+				}
+				info.DependencyGroups = append(info.DependencyGroups, group)
+			}
+		}
+		if !groupFound {
+			for _, dependency := range dependencies.Dependency {
+				group, err := NewPackageDependencyGroup("Any", []*Dependency{
+					dependency,
+				})
+				if err != nil {
+					return err
+				}
+				info.DependencyGroups = append(info.DependencyGroups, group)
+			}
+		}
+		return nil
+	}
+}
+
+// WithFrameworkReferenceGroups can be used to set the framework reference groups for the PackageDependencyInfo.
+func WithFrameworkReferenceGroups(framework *FrameworkAssemblies) PackageDependencyInfoFunc {
+	return func(info *PackageDependencyInfo) error {
+		if framework == nil || framework.FrameworkAssembly == nil {
+			return nil
+		}
+		for _, assembly := range framework.FrameworkAssembly {
+			group, err := NewFrameworkSpecificGroup(assembly.TargetFramework, assembly.AssemblyName)
+			if err != nil {
+				return err
+			}
+			info.FrameworkReferenceGroups = append(info.FrameworkReferenceGroups, group)
+		}
 		return nil
 	}
 }

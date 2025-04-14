@@ -4,7 +4,10 @@
 
 package nuget
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"strings"
+)
 
 type Nuspec struct {
 	XMLName  xml.Name  `xml:"package"`
@@ -45,34 +48,54 @@ type Repository struct {
 }
 
 type Dependencies struct {
-	Groups     []DependenciesGroup `xml:"group"`
-	Dependency []Dependency        `xml:"dependency"`
+	Groups     []*DependenciesGroup `xml:"group"`
+	Dependency []*Dependency        `xml:"dependency"`
 }
 
 type DependenciesGroup struct {
-	TargetFramework string       `xml:"targetFramework,attr"`
-	Dependencies    []Dependency `xml:"dependency"`
+	TargetFramework string        `xml:"targetFramework,attr"`
+	Dependencies    []*Dependency `xml:"dependency"`
 }
 
+// Dependency Represents a package dependency Id and allowed version range.
 type Dependency struct {
-	Id      string   `xml:"id,attr"`
-	Version string   `xml:"version,attr"`
-	Exclude []string `xml:"exclude,attr"`
-	Include string   `xml:"include,attr"`
+	Id         string        `xml:"id,attr"`
+	VersionRaw string        `xml:"version,attr"`
+	ExcludeRaw string        `xml:"exclude,attr"`
+	IncludeRaw string        `xml:"include,attr"`
+	Version    *NuGetVersion `xml:"-"`
+	Include    []string      `xml:"-"`
+	Exclude    []string      `xml:"-"`
+}
+
+// Parse parses the dependency version and splits the include/exclude strings into slices.
+func (d *Dependency) parse() error {
+	if d.ExcludeRaw != "" {
+		d.Exclude = strings.Split(d.ExcludeRaw, ",")
+	}
+	if d.IncludeRaw != "" {
+		d.Exclude = strings.Split(d.IncludeRaw, ",")
+	}
+	nugetVersion, err := Parse(d.VersionRaw)
+	if err != nil {
+		return err
+	}
+	d.Version = nugetVersion
+	return nil
 }
 
 type References struct {
-	Groups     []ReferenceGroup `xml:"group"`
-	References []Reference      `xml:"reference"`
+	Groups     []*ReferenceGroup `xml:"group"`
+	References []*Reference      `xml:"reference"`
 }
 
 type ReferenceGroup struct {
-	TargetFramework string      `xml:"targetFramework,attr"`
-	References      []Reference `xml:"reference"`
+	TargetFramework string       `xml:"targetFramework,attr"`
+	References      []*Reference `xml:"reference"`
 }
 
 type FrameworkAssemblies struct {
-	FrameworkAssembly []FrameworkAssembly `xml:"frameworkAssembly"`
+	FrameworkAssembly []*FrameworkAssembly `xml:"frameworkAssembly"`
 }
 
 type FrameworkAssembly struct {

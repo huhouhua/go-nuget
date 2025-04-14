@@ -5,6 +5,7 @@
 package nuget
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
@@ -57,4 +58,119 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
+}
+
+func TestPackageResource_GetDependencyInfo(t *testing.T) {
+	mux, client := setup(t)
+	url := fmt.Sprintf("/v3-flatcontainer/testdependency/%s/testdependency.nuspec", PathEscape("1.0.0"))
+	mux.HandleFunc(url, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		mustWriteHTTPResponse(t, w, "testdata/testDependency.nuspec")
+	})
+
+	want := &PackageDependencyInfo{
+		PackageIdentity: &PackageIdentity{
+			Id: "TestDependency",
+			Version: &NuGetVersion{
+				SemanticVersion: &SemanticVersion{
+					Major: 1,
+					Minor: 0,
+					Patch: 0,
+				},
+				Version: &Version{
+					Major:    1,
+					Minor:    0,
+					Build:    0,
+					Revision: 0,
+				},
+				Revision:        0,
+				OriginalVersion: "1.0.0",
+			},
+		},
+		DependencyGroups: []*PackageDependencyGroup{
+			{
+				TargetFramework: ".NETFramework4.8",
+				Packages: []*Dependency{
+					{
+						Id:         "Newtonsoft.Json",
+						VersionRaw: "12.0.3",
+						ExcludeRaw: "Build,Analyzers",
+						Version: &NuGetVersion{
+							SemanticVersion: &SemanticVersion{
+								Major: 12,
+								Minor: 0,
+								Patch: 3,
+							},
+							Version: &Version{
+								Major:    12,
+								Minor:    0,
+								Build:    3,
+								Revision: 0,
+							},
+							Revision:        0,
+							OriginalVersion: "12.0.3",
+						},
+						Exclude: []string{"Build", "Analyzers"},
+					},
+					{
+						Id:         "Microsoft.Extensions.Logging",
+						VersionRaw: "5.0.0",
+						Version: &NuGetVersion{
+							SemanticVersion: &SemanticVersion{
+								Major: 5,
+								Minor: 0,
+								Patch: 0,
+							},
+							Version: &Version{
+								Major:    5,
+								Minor:    0,
+								Build:    0,
+								Revision: 0,
+							},
+							Revision:        0,
+							OriginalVersion: "5.0.0",
+						},
+					},
+				},
+			},
+			{
+				TargetFramework: ".NETStandard2.0",
+				Packages: []*Dependency{
+					{
+						Id:         "Newtonsoft.Json",
+						VersionRaw: "12.0.3",
+						ExcludeRaw: "Build,Analyzers",
+						Version: &NuGetVersion{
+							SemanticVersion: &SemanticVersion{
+								Major: 12,
+								Minor: 0,
+								Patch: 3,
+							},
+							Version: &Version{
+								Major:    12,
+								Minor:    0,
+								Build:    3,
+								Revision: 0,
+							},
+							Revision:        0,
+							OriginalVersion: "12.0.3",
+						},
+						Exclude: []string{"Build", "Analyzers"},
+					},
+				},
+			},
+		},
+		FrameworkReferenceGroups: []*FrameworkSpecificGroup{
+			{
+				Items:           []string{"", "System.Net.Http"},
+				HasEmptyFolder:  false,
+				TargetFramework: ".NETFramework4.8",
+			},
+		},
+	}
+	b, resp, err := client.FindPackage.GetDependencyInfo("testdependency", "1.0.0", nil)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, want, b)
+
 }

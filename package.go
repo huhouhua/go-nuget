@@ -5,7 +5,6 @@
 package nuget
 
 import (
-	"encoding/xml"
 	"fmt"
 	"net/http"
 )
@@ -29,7 +28,7 @@ func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptio
 	var version struct {
 		Versions []string `json:"versions"`
 	}
-	resp, err := f.client.Do(req, &version)
+	resp, err := f.client.Do(req, &version, DecoderTypeJSON)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -57,20 +56,17 @@ func (f *FindPackageResource) GetDependencyInfo(id, version string, options ...R
 	if err != nil {
 		return nil, nil, err
 	}
-	resp, err := f.client.Do(req, nil)
-	if err != nil {
-		return nil, resp, err
-	}
 	var nuspec Nuspec
-	err = xml.NewDecoder(resp.Body).Decode(&nuspec)
+	resp, err := f.client.Do(req, &nuspec, DecoderTypeXML)
 	if err != nil {
 		return nil, resp, err
 	}
 	dependencyInfo := &PackageDependencyInfo{
-		PackageIdentity: &PackageIdentity{},
+		PackageIdentity:          &PackageIdentity{},
+		DependencyGroups:         make([]*PackageDependencyGroup, 0),
+		FrameworkReferenceGroups: make([]*FrameworkSpecificGroup, 0),
 	}
-	err = ApplyPackageDependency(dependencyInfo, WithIdentity(nuspec.Metadata))
-	if err != nil {
+	if err = ConfigureDependencyInfo(dependencyInfo, nuspec); err != nil {
 		return nil, resp, err
 	}
 	return dependencyInfo, resp, nil

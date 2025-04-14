@@ -7,6 +7,7 @@ package nuget
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"github.com/google/go-querystring/query"
@@ -31,9 +32,13 @@ const (
 	apiVersionPath = "v3"
 	userAgent      = "go-nuget"
 
-	headerRateLimit = "RateLimit-Limit"
-	headerRateReset = "RateLimit-Reset"
+	headerRateLimit             = "RateLimit-Limit"
+	headerRateReset             = "RateLimit-Reset"
+	DecoderTypeXML  DecoderType = "xml"
+	DecoderTypeJSON DecoderType = "json"
 )
+
+type DecoderType string
 
 var ErrNotFound = errors.New("404 Not Found")
 
@@ -84,6 +89,7 @@ func NewClient(options ...ClientOptionFunc) (*Client, error) {
 		return nil, err
 	}
 	return client, nil
+
 }
 
 // NewOAuthClient returns a new NuGet API client. To use API methods which
@@ -328,7 +334,7 @@ func (c *Client) NewRequest(method, path string, opt interface{}, options []Requ
 // error if an API error has occurred. If v implements the io.Writer
 // interface, the raw response body will be written to v, without attempting to
 // first decode it.
-func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*http.Response, error) {
+func (c *Client) Do(req *retryablehttp.Request, v interface{}, decoder DecoderType) (*http.Response, error) {
 	// Wait will block until the limiter can obtain a new token.
 	err := c.limiter.Wait(req.Context())
 	if err != nil {
@@ -365,13 +371,23 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*http.Response, 
 		if w, ok := v.(io.Writer); ok {
 			_, err = io.Copy(w, resp.Body)
 		} else {
-			err = json.NewDecoder(resp.Body).Decode(v)
+			err = decoder.Invoke(resp.Body, v)
 		}
 	}
 
 	return resp, err
 }
 
+func (d DecoderType) Invoke(r io.Reader, v interface{}) error {
+	switch d {
+	case DecoderTypeXML:
+		return xml.NewDecoder(r).Decode(v)
+	case DecoderTypeJSON:
+		return json.NewDecoder(r).Decode(v)
+	default:
+		return fmt.Errorf("unsupported decoder type: %s", d)
+	}
+}
 func parseID(id string) (string, error) {
 	if strings.TrimSpace(id) == "" {
 		return "", fmt.Errorf("id is null or empty")
