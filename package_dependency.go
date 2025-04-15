@@ -27,7 +27,7 @@ type PackageDependencyGroup struct {
 // NewPackageDependencyGroup new Dependency group
 func NewPackageDependencyGroup(targetFramework string, packages ...*Dependency) (*PackageDependencyGroup, error) {
 	for _, pkg := range packages {
-		if err := pkg.parse(); err != nil {
+		if err := pkg.Parse(); err != nil {
 			return nil, err
 		}
 	}

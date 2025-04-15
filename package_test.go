@@ -5,6 +5,7 @@
 package nuget
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -168,9 +169,39 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 			},
 		},
 	}
-	b, resp, err := client.FindPackage.GetDependencyInfo("testdependency", "1.0.0", nil)
+	b, resp, err := client.FindPackage.GetDependencyInfo("testdependency", "1.0.0")
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
 
+}
+
+func TestPackageResource_CopyNupkgToStream(t *testing.T) {
+	mux, client := setup(t)
+	opt := &CopyNupkgOptions{
+		Version: "6.0.1-beta1",
+		Writer:  &bytes.Buffer{},
+	}
+	packageID := "newtonsoft.json"
+	url := fmt.Sprintf("/v3-flatcontainer/%s/%s/%s.%s.nupkg",
+		PathEscape(packageID),
+		PathEscape(opt.Version),
+		PathEscape(packageID),
+		PathEscape(opt.Version))
+
+	mux.HandleFunc(url, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		mustWriteHTTPResponse(t, w, "testdata/newtonsoft.json.6.0.1-beta1.nupkg")
+	})
+
+	resp, err := client.FindPackage.CopyNupkgToStream(packageID, opt)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	reader, err := NewPackageArchiveReader(opt.Writer)
+	require.NoError(t, err)
+
+	spec, err := reader.Nuspec()
+	require.NoError(t, err)
+	require.NotNil(t, spec)
 }

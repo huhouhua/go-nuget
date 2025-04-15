@@ -5,8 +5,13 @@
 package nuget
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/xml"
+	"fmt"
+	"io"
 	"strings"
+	"sync"
 )
 
 type Nuspec struct {
@@ -68,8 +73,8 @@ type Dependency struct {
 	Exclude    []string      `xml:"-"`
 }
 
-// parse parses the dependency version and splits the include/exclude strings into slices.
-func (d *Dependency) parse() error {
+// Parse parses the dependency version and splits the include/exclude strings into slices.
+func (d *Dependency) Parse() error {
 	if d.ExcludeRaw != "" {
 		d.Exclude = strings.Split(d.ExcludeRaw, ",")
 	}
@@ -105,4 +110,76 @@ type FrameworkAssembly struct {
 
 type Reference struct {
 	File string `xml:"file,attr"`
+}
+
+type PackageArchiveReader struct {
+	nuspec     *Nuspec
+	writer     io.Writer
+	archive    *zip.Reader
+	nuspecFile io.ReadCloser
+	once       sync.Once
+}
+
+func NewPackageArchiveReader(r io.Writer) (*PackageArchiveReader, error) {
+	p := &PackageArchiveReader{
+		writer: r,
+	}
+	err := p.parse()
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (p *PackageArchiveReader) parse() error {
+	// Ensure p.writer is a *bytes.Buffer
+	buf, ok := p.writer.(*bytes.Buffer)
+	if !ok {
+		return fmt.Errorf("expected *bytes.Buffer, got %T", p.writer)
+	}
+
+	// Create a zip reader from the buffer
+	r := buf.Bytes()
+	archive := bytes.NewReader(r)
+	var err error
+	p.archive, err = zip.NewReader(archive, int64(len(r)))
+
+	if err != nil {
+		return err
+	}
+
+	// Extract the nuspec file
+	p.nuspecFile, err = p.extractNuspecFile()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
+	if p.nuspec != nil {
+		return p.nuspec, nil
+	}
+	var err error
+	p.once.Do(func() {
+		defer p.nuspecFile.Close()
+		// Decode the XML content into the Nuspec struct
+		decoder := xml.NewDecoder(p.nuspecFile)
+		err = decoder.Decode(&p.nuspec)
+	})
+
+	return p.nuspec, err
+}
+
+func (p *PackageArchiveReader) extractNuspecFile() (io.ReadCloser, error) {
+	for _, file := range p.archive.File {
+		if strings.HasSuffix(file.Name, ".nuspec") {
+			nuspecFile, err := file.Open()
+			if err != nil {
+				return nil, err
+			}
+			return nuspecFile, nil
+		}
+	}
+	return nil, fmt.Errorf("no .nuspec file found in the .nupkg archive")
 }

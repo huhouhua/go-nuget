@@ -29,4 +29,5 @@ func main() {
 	for _, v := range versions {
 		fmt.Printf("%s", v.OriginalVersion)
 	}
+
 }

@@ -36,6 +36,7 @@ const (
 	headerRateReset             = "RateLimit-Reset"
 	DecoderTypeXML  DecoderType = "xml"
 	DecoderTypeJSON DecoderType = "json"
+	DecoderEmpty    DecoderType = ""
 )
 
 type DecoderType string

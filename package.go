@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -70,4 +71,36 @@ func (f *FindPackageResource) GetDependencyInfo(id, version string, options ...R
 		return nil, resp, err
 	}
 	return dependencyInfo, resp, nil
+}
+
+type CopyNupkgOptions struct {
+	Version string
+	Writer  io.Writer
+}
+
+// CopyNupkgToStream downloads a specific package version and copies it to the provided writer.
+func (f *FindPackageResource) CopyNupkgToStream(packageID string, opt *CopyNupkgOptions, options ...RequestOptionFunc) (*http.Response, error) {
+	// Parse package ID
+	id, err := parseID(packageID)
+	if err != nil {
+		return nil, err
+	}
+	// Construct the download URL
+	u := fmt.Sprintf("-flatcontainer/%s/%s/%s.%s.nupkg",
+		PathEscape(id),
+		PathEscape(opt.Version),
+		PathEscape(id),
+		PathEscape(opt.Version))
+
+	// Create request
+	req, err := f.client.NewRequest(http.MethodGet, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+	// Execute request
+	resp, err := f.client.Do(req, opt.Writer, DecoderEmpty)
+	if err != nil {
+		return resp, err
+	}
+	return resp, err
 }
