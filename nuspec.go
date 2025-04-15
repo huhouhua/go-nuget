@@ -68,7 +68,7 @@ type Dependency struct {
 	Exclude    []string      `xml:"-"`
 }
 
-// Parse parses the dependency version and splits the include/exclude strings into slices.
+// parse parses the dependency version and splits the include/exclude strings into slices.
 func (d *Dependency) parse() error {
 	if d.ExcludeRaw != "" {
 		d.Exclude = strings.Split(d.ExcludeRaw, ",")

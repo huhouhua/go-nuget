@@ -25,7 +25,7 @@ type PackageDependencyGroup struct {
 }
 
 // NewPackageDependencyGroup new Dependency group
-func NewPackageDependencyGroup(targetFramework string, packages []*Dependency) (*PackageDependencyGroup, error) {
+func NewPackageDependencyGroup(targetFramework string, packages ...*Dependency) (*PackageDependencyGroup, error) {
 	for _, pkg := range packages {
 		if err := pkg.parse(); err != nil {
 			return nil, err
@@ -55,7 +55,7 @@ type FrameworkSpecificGroup struct {
 }
 
 // NewFrameworkSpecificGroup New a Framework specific group
-func NewFrameworkSpecificGroup(TargetFramework string, items []string) (*FrameworkSpecificGroup, error) {
+func NewFrameworkSpecificGroup(TargetFramework string, items ...string) (*FrameworkSpecificGroup, error) {
 	if items == nil {
 		return nil, fmt.Errorf("items cannot be nil")
 	}
@@ -117,7 +117,7 @@ func WithDependencyGroups(dependencies *Dependencies) PackageDependencyInfoFunc 
 		if dependencies.Groups != nil {
 			for _, groups := range dependencies.Groups {
 				groupFound = true
-				group, err := NewPackageDependencyGroup(groups.TargetFramework, groups.Dependencies)
+				group, err := NewPackageDependencyGroup(groups.TargetFramework, groups.Dependencies...)
 				if err != nil {
 					return err
 				}
@@ -126,9 +126,7 @@ func WithDependencyGroups(dependencies *Dependencies) PackageDependencyInfoFunc 
 		}
 		if !groupFound {
 			for _, dependency := range dependencies.Dependency {
-				group, err := NewPackageDependencyGroup("Any", []*Dependency{
-					dependency,
-				})
+				group, err := NewPackageDependencyGroup("Any", dependency)
 				if err != nil {
 					return err
 				}
@@ -146,7 +144,7 @@ func WithFrameworkReferenceGroups(framework *FrameworkAssemblies) PackageDepende
 			return nil
 		}
 		for _, assembly := range framework.FrameworkAssembly {
-			group, err := NewFrameworkSpecificGroup(assembly.TargetFramework, assembly.AssemblyName)
+			group, err := NewFrameworkSpecificGroup(assembly.TargetFramework, assembly.AssemblyName...)
 			if err != nil {
 				return err
 			}
