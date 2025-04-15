@@ -137,17 +137,14 @@ func (p *PackageArchiveReader) parse() error {
 	if !ok {
 		return fmt.Errorf("expected *bytes.Buffer, got %T", p.writer)
 	}
-
 	// Create a zip reader from the buffer
 	r := buf.Bytes()
 	archive := bytes.NewReader(r)
 	var err error
 	p.archive, err = zip.NewReader(archive, int64(len(r)))
-
 	if err != nil {
 		return err
 	}
-
 	// Extract the nuspec file
 	p.nuspecFile, err = p.extractNuspecFile()
 	if err != nil {
