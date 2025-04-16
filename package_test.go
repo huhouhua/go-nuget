@@ -182,19 +182,21 @@ func TestPackageResource_CopyNupkgToStream(t *testing.T) {
 		Version: "6.0.1-beta1",
 		Writer:  &bytes.Buffer{},
 	}
-	packageID := "newtonsoft.json"
+	id := "newtonsoft.json"
+	packageId, version := PathEscape(id), PathEscape(opt.Version)
+
 	url := fmt.Sprintf("/v3-flatcontainer/%s/%s/%s.%s.nupkg",
-		PathEscape(packageID),
-		PathEscape(opt.Version),
-		PathEscape(packageID),
-		PathEscape(opt.Version))
+		packageId,
+		version,
+		packageId,
+		version)
 
 	mux.HandleFunc(url, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		mustWriteHTTPResponse(t, w, "testdata/newtonsoft.json.6.0.1-beta1.nupkg")
 	})
 
-	resp, err := client.FindPackage.CopyNupkgToStream(packageID, opt)
+	resp, err := client.FindPackage.CopyNupkgToStream(id, opt)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 

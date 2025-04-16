@@ -86,7 +86,7 @@ func (f *FindPackageResource) CopyNupkgToStream(id string, opt *CopyNupkgOptions
 		return nil, err
 	}
 
-	version, packageId := PathEscape(packageId), PathEscape(opt.Version)
+	packageId, version := PathEscape(packageId), PathEscape(opt.Version)
 	// Construct the download URL
 	u := fmt.Sprintf("-flatcontainer/%s/%s/%s.%s.nupkg", packageId, version, packageId, version)
 
