@@ -50,8 +50,8 @@ func (f *FindPackageResource) GetDependencyInfo(id, version string, options ...R
 	if err != nil {
 		return nil, nil, err
 	}
-	escapeId := PathEscape(packageId)
-	u := fmt.Sprintf("-flatcontainer/%s/%s/%s.nuspec", escapeId, PathEscape(version), escapeId)
+	packageId = PathEscape(packageId)
+	u := fmt.Sprintf("-flatcontainer/%s/%s/%s.nuspec", packageId, PathEscape(version), packageId)
 
 	req, err := f.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -79,18 +79,16 @@ type CopyNupkgOptions struct {
 }
 
 // CopyNupkgToStream downloads a specific package version and copies it to the provided writer.
-func (f *FindPackageResource) CopyNupkgToStream(packageID string, opt *CopyNupkgOptions, options ...RequestOptionFunc) (*http.Response, error) {
+func (f *FindPackageResource) CopyNupkgToStream(id string, opt *CopyNupkgOptions, options ...RequestOptionFunc) (*http.Response, error) {
 	// Parse package ID
-	id, err := parseID(packageID)
+	packageId, err := parseID(id)
 	if err != nil {
 		return nil, err
 	}
+
+	version, packageId := PathEscape(packageId), PathEscape(opt.Version)
 	// Construct the download URL
-	u := fmt.Sprintf("-flatcontainer/%s/%s/%s.%s.nupkg",
-		PathEscape(id),
-		PathEscape(opt.Version),
-		PathEscape(id),
-		PathEscape(opt.Version))
+	u := fmt.Sprintf("-flatcontainer/%s/%s/%s.%s.nupkg", packageId, version, packageId, version)
 
 	// Create request
 	req, err := f.client.NewRequest(http.MethodGet, u, nil, options)
