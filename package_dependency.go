@@ -42,12 +42,23 @@ type PackageIdentity struct {
 	Version *NuGetVersion `json:"version,omitempty"`
 }
 
+func NewPackageIdentity(id, version string) (*PackageIdentity, error) {
+	nugetVersion, err := Parse(version)
+	if err != nil {
+		return nil, err
+	}
+	return &PackageIdentity{
+		Id:      id,
+		Version: nugetVersion,
+	}, err
+}
+
 // HasVersion True if the version is non-null
 func (p *PackageIdentity) HasVersion() bool {
 	return p.Version != nil
 }
 
-// FrameworkSpecificGroup
+// FrameworkSpecificGroup Framework specific group
 type FrameworkSpecificGroup struct {
 	Items           []string
 	HasEmptyFolder  bool
@@ -97,12 +108,11 @@ func ApplyPackageDependency(info *PackageDependencyInfo, options ...PackageDepen
 // WithIdentity can be used to set a package identity for the PackageDependencyInfo.
 func WithIdentity(meta *Metadata) PackageDependencyInfoFunc {
 	return func(info *PackageDependencyInfo) error {
-		nugetVersion, err := Parse(meta.Version)
+		identity, err := NewPackageIdentity(meta.ID, meta.Version)
 		if err != nil {
 			return err
 		}
-		info.PackageIdentity.Id = meta.ID
-		info.PackageIdentity.Version = nugetVersion
+		info.PackageIdentity = identity
 		return nil
 	}
 }

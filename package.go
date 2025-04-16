@@ -63,7 +63,6 @@ func (f *FindPackageResource) GetDependencyInfo(id, version string, options ...R
 		return nil, resp, err
 	}
 	dependencyInfo := &PackageDependencyInfo{
-		PackageIdentity:          &PackageIdentity{},
 		DependencyGroups:         make([]*PackageDependencyGroup, 0),
 		FrameworkReferenceGroups: make([]*FrameworkSpecificGroup, 0),
 	}

@@ -55,7 +55,7 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 		OriginalVersion: "6.0.1",
 	}}
 
-	b, resp, err := client.FindPackage.ListAllVersions("newtonsoft.json", nil)
+	b, resp, err := client.FindPackageResource.ListAllVersions("newtonsoft.json", nil)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
@@ -169,7 +169,7 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 			},
 		},
 	}
-	b, resp, err := client.FindPackage.GetDependencyInfo("testdependency", "1.0.0")
+	b, resp, err := client.FindPackageResource.GetDependencyInfo("testdependency", "1.0.0")
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
@@ -196,7 +196,7 @@ func TestPackageResource_CopyNupkgToStream(t *testing.T) {
 		mustWriteHTTPResponse(t, w, "testdata/newtonsoft.json.6.0.1-beta1.nupkg")
 	})
 
-	resp, err := client.FindPackage.CopyNupkgToStream(id, opt)
+	resp, err := client.FindPackageResource.CopyNupkgToStream(id, opt)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 

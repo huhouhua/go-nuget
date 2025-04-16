@@ -76,7 +76,9 @@ type Client struct {
 	// User agent used when communicating with the NuGet API.
 	UserAgent string
 
-	FindPackage *FindPackageResource
+	FindPackageResource *FindPackageResource
+
+	MetadataResource *PackageMetadataResource
 }
 
 // RateLimiter describes the interface that all (custom) rate limiters must implement.
@@ -139,7 +141,8 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	if c.limiter == nil {
 		c.limiter = rate.NewLimiter(rate.Inf, 0)
 	}
-	c.FindPackage = &FindPackageResource{client: c}
+	c.FindPackageResource = &FindPackageResource{client: c}
+	c.MetadataResource = &PackageMetadataResource{client: c}
 	return c, nil
 }
 
