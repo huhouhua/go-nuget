@@ -79,6 +79,8 @@ type Client struct {
 	FindPackageResource *FindPackageResource
 
 	MetadataResource *PackageMetadataResource
+
+	IndexResource *ServiceResource
 }
 
 // RateLimiter describes the interface that all (custom) rate limiters must implement.
@@ -143,6 +145,8 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	}
 	c.FindPackageResource = &FindPackageResource{client: c}
 	c.MetadataResource = &PackageMetadataResource{client: c}
+	c.IndexResource = &ServiceResource{client: c}
+
 	return c, nil
 }
 
