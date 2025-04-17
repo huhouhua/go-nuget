@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"io"
 	"net/http"
 )
@@ -33,13 +34,16 @@ func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptio
 	if err != nil {
 		return nil, resp, err
 	}
+
 	var versions []*NuGetVersion
 	for _, v := range version.Versions {
-		nugetVersion, err := Parse(v)
+		nugetVersion, err := semver.NewVersion(v)
 		if err != nil {
 			return nil, resp, err
 		}
-		versions = append(versions, nugetVersion)
+		versions = append(versions, &NuGetVersion{
+			Version: nugetVersion,
+		})
 	}
 	return versions, resp, nil
 }

@@ -8,7 +8,6 @@ package nuget
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -19,7 +18,7 @@ type PackageMetadataResource struct {
 
 type PackageSearchMetadataRegistration struct {
 	*PackageSearchMetadata
-	CatalogUri url.URL `json:"@id"`
+	CatalogUri string `json:"@id"`
 }
 
 // PackageSearchMetadata Package metadata only containing select fields relevant to search results processing and presenting.
@@ -52,12 +51,6 @@ type PackageSearchMetadata struct {
 	ProjectUrl string `json:"projectUrl"`
 
 	ReadmeUrl string `json:"readmeUrl"`
-
-	ReadmeFileUrl string `json:"-"`
-
-	ReportAbuseUrl string `json:"-"`
-
-	PackageDetailsUrl string `json:"-"`
 
 	Published time.Time `json:"published"`
 
@@ -135,23 +128,12 @@ type registrationLeafItem struct {
 	PackageContent string                             `json:"packageContent"`
 }
 
-func ConfigureMetadataRegistration(metadataRegistration *PackageSearchMetadataRegistration) {
-	//if metadataRegistration == nil {
-	//	return fmt.Errorf(" leafItem is nil")
-	//}
-
-	// TODO: set ReportAbuseUrl PackageDetailsUrl ReadmeFileUrl
-	//for _, item := range metadataRegistration.Items {
-	//	item.CatalogEntry.ReportAbuseUrl =
-	//}
-}
-
 func (p *PackageMetadataResource) GetMetadata(id string, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("/registration5-gz-semver2/%s/index.json", PathEscape(packageId))
+	u := fmt.Sprintf("-registration5-gz-semver2/%s/index.json", PathEscape(packageId))
 	req, err := p.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
@@ -165,7 +147,6 @@ func (p *PackageMetadataResource) GetMetadata(id string, options ...RequestOptio
 	packages := make([]*PackageSearchMetadata, len(index.Items))
 	for _, item := range index.Items {
 		for _, leafItem := range item.Items {
-			ConfigureMetadataRegistration(leafItem.CatalogEntry)
 			packages = append(packages, leafItem.CatalogEntry.PackageSearchMetadata)
 		}
 	}

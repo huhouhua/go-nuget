@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"strings"
 )
 
@@ -43,13 +44,15 @@ type PackageIdentity struct {
 }
 
 func NewPackageIdentity(id, version string) (*PackageIdentity, error) {
-	nugetVersion, err := Parse(version)
+	nugetVersion, err := semver.NewVersion(version)
 	if err != nil {
 		return nil, err
 	}
 	return &PackageIdentity{
-		Id:      id,
-		Version: nugetVersion,
+		Id: id,
+		Version: &NuGetVersion{
+			nugetVersion,
+		},
 	}, err
 }
 

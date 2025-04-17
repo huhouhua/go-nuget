@@ -7,6 +7,7 @@ package nuget
 import (
 	"bytes"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
@@ -22,37 +23,9 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 	})
 
 	want := []*NuGetVersion{{
-		Version: &Version{
-			Major:    6,
-			Minor:    0,
-			Build:    1,
-			Revision: 0,
-		},
-		SemanticVersion: &SemanticVersion{
-			releaseLabels: []string{"beta1"},
-			metadata:      "",
-			Major:         6,
-			Minor:         0,
-			Patch:         1,
-		},
-		Revision:        0,
-		OriginalVersion: "6.0.1-beta1",
+		semver.New(6, 0, 1, "beta1", ""),
 	}, {
-		Version: &Version{
-			Major:    6,
-			Minor:    0,
-			Build:    1,
-			Revision: 0,
-		},
-		SemanticVersion: &SemanticVersion{
-			releaseLabels: nil,
-			metadata:      "",
-			Major:         6,
-			Minor:         0,
-			Patch:         1,
-		},
-		Revision:        0,
-		OriginalVersion: "6.0.1",
+		semver.New(6, 0, 1, "", ""),
 	}}
 
 	b, resp, err := client.FindPackageResource.ListAllVersions("newtonsoft.json", nil)
@@ -71,22 +44,8 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
-			Id: "TestDependency",
-			Version: &NuGetVersion{
-				SemanticVersion: &SemanticVersion{
-					Major: 1,
-					Minor: 0,
-					Patch: 0,
-				},
-				Version: &Version{
-					Major:    1,
-					Minor:    0,
-					Build:    0,
-					Revision: 0,
-				},
-				Revision:        0,
-				OriginalVersion: "1.0.0",
-			},
+			Id:      "TestDependency",
+			Version: &NuGetVersion{semver.New(1, 0, 0, "", "")},
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{
@@ -96,41 +55,13 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 						Id:         "Newtonsoft.Json",
 						VersionRaw: "12.0.3",
 						ExcludeRaw: "Build,Analyzers",
-						Version: &NuGetVersion{
-							SemanticVersion: &SemanticVersion{
-								Major: 12,
-								Minor: 0,
-								Patch: 3,
-							},
-							Version: &Version{
-								Major:    12,
-								Minor:    0,
-								Build:    3,
-								Revision: 0,
-							},
-							Revision:        0,
-							OriginalVersion: "12.0.3",
-						},
-						Exclude: []string{"Build", "Analyzers"},
+						Version:    &NuGetVersion{semver.New(12, 0, 3, "", "")},
+						Exclude:    []string{"Build", "Analyzers"},
 					},
 					{
 						Id:         "Microsoft.Extensions.Logging",
 						VersionRaw: "5.0.0",
-						Version: &NuGetVersion{
-							SemanticVersion: &SemanticVersion{
-								Major: 5,
-								Minor: 0,
-								Patch: 0,
-							},
-							Version: &Version{
-								Major:    5,
-								Minor:    0,
-								Build:    0,
-								Revision: 0,
-							},
-							Revision:        0,
-							OriginalVersion: "5.0.0",
-						},
+						Version:    &NuGetVersion{semver.New(5, 0, 0, "", "")},
 					},
 				},
 			},
@@ -141,22 +72,8 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 						Id:         "Newtonsoft.Json",
 						VersionRaw: "12.0.3",
 						ExcludeRaw: "Build,Analyzers",
-						Version: &NuGetVersion{
-							SemanticVersion: &SemanticVersion{
-								Major: 12,
-								Minor: 0,
-								Patch: 3,
-							},
-							Version: &Version{
-								Major:    12,
-								Minor:    0,
-								Build:    3,
-								Revision: 0,
-							},
-							Revision:        0,
-							OriginalVersion: "12.0.3",
-						},
-						Exclude: []string{"Build", "Analyzers"},
+						Version:    &NuGetVersion{semver.New(12, 0, 3, "", "")},
+						Exclude:    []string{"Build", "Analyzers"},
 					},
 				},
 			},

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"io"
 	"strings"
 	"sync"
@@ -64,13 +65,14 @@ type DependenciesGroup struct {
 
 // Dependency Represents a package dependency Id and allowed version range.
 type Dependency struct {
-	Id         string        `xml:"id,attr"`
-	VersionRaw string        `xml:"version,attr"`
-	ExcludeRaw string        `xml:"exclude,attr"`
-	IncludeRaw string        `xml:"include,attr"`
-	Version    *NuGetVersion `xml:"-"`
-	Include    []string      `xml:"-"`
-	Exclude    []string      `xml:"-"`
+	Id         string `xml:"id,attr"`
+	VersionRaw string `xml:"version,attr"`
+	ExcludeRaw string `xml:"exclude,attr"`
+	IncludeRaw string `xml:"include,attr"`
+
+	Version *NuGetVersion `xml:"-"`
+	Include []string      `xml:"-"`
+	Exclude []string      `xml:"-"`
 }
 
 // Parse parses the dependency version and splits the include/exclude strings into slices.
@@ -81,11 +83,11 @@ func (d *Dependency) Parse() error {
 	if d.IncludeRaw != "" {
 		d.Exclude = strings.Split(d.IncludeRaw, ",")
 	}
-	nugetVersion, err := Parse(d.VersionRaw)
+	nugetVersion, err := semver.NewVersion(d.VersionRaw)
 	if err != nil {
 		return err
 	}
-	d.Version = nugetVersion
+	d.Version = &NuGetVersion{nugetVersion}
 	return nil
 }
 
