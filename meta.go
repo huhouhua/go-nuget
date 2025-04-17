@@ -128,7 +128,7 @@ type registrationLeafItem struct {
 	PackageContent string                             `json:"packageContent"`
 }
 
-func (p *PackageMetadataResource) GetMetadata(id string, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
+func (p *PackageMetadataResource) ListMetadata(id string, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err

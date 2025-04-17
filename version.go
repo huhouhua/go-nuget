@@ -187,6 +187,7 @@ func NewVersionRange(min, max *semver.Version, includeMin, includeMax bool) *Ver
 	if max != nil {
 		v.MaxVersion = &NuGetVersion{max}
 	}
+
 	return v
 }
 
