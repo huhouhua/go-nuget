@@ -17,7 +17,10 @@ import (
 func TestPackageResource_ListAllVersions(t *testing.T) {
 	mux, client := setup(t, "testdata/index.json")
 
-	mux.HandleFunc("/v3-flatcontainer/newtonsoft.json/index.json", func(w http.ResponseWriter, r *http.Request) {
+	baseURL := client.getResourceUrl(PackageBaseAddress)
+	u := fmt.Sprintf("%s/newtonsoft.json/index.json", baseURL.Path)
+
+	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		mustWriteHTTPResponse(t, w, "testdata/list_all_versions.json")
 	})
@@ -36,7 +39,10 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 
 func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	mux, client := setup(t, "testdata/index.json")
-	url := fmt.Sprintf("/v3-flatcontainer/testdependency/%s/testdependency.nuspec", PathEscape("1.0.0"))
+
+	baseURL := client.getResourceUrl(PackageBaseAddress)
+	url := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape("1.0.0"))
+
 	mux.HandleFunc(url, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		mustWriteHTTPResponse(t, w, "testdata/testDependency.nuspec")
@@ -101,8 +107,9 @@ func TestPackageResource_CopyNupkgToStream(t *testing.T) {
 	}
 	id := "newtonsoft.json"
 	packageId, version := PathEscape(id), PathEscape(opt.Version)
-
-	url := fmt.Sprintf("/v3-flatcontainer/%s/%s/%s.%s.nupkg",
+	baseURL := client.getResourceUrl(PackageBaseAddress)
+	url := fmt.Sprintf("%s/%s/%s/%s.%s.nupkg",
+		baseURL.Path,
 		packageId,
 		version,
 		packageId,

@@ -213,9 +213,9 @@ func (p *PackageMetadataResource) configureMetadataUrl(catalogEntry *PackageSear
 type MetadataRegistrationFunc func(catalogEntry *PackageSearchMetadataRegistration) error
 
 // ApplyMetadataRegistration applies a list of MetadataRegistrationFunc to a PackageSearchMetadataRegistration.
-func ApplyMetadataRegistration(info *PackageSearchMetadataRegistration, options ...MetadataRegistrationFunc) error {
+func ApplyMetadataRegistration(page *PackageSearchMetadataRegistration, options ...MetadataRegistrationFunc) error {
 	for _, opt := range options {
-		if err := opt(info); err != nil {
+		if err := opt(page); err != nil {
 			return err
 		}
 	}
@@ -224,7 +224,6 @@ func ApplyMetadataRegistration(info *PackageSearchMetadataRegistration, options 
 
 func WithReportAbuseUrl(urlTemplate string) MetadataRegistrationFunc {
 	return func(catalogEntry *PackageSearchMetadataRegistration) error {
-
 		ut := strings.ReplaceAll(urlTemplate, "{id}", strings.ToLower(catalogEntry.PackageId))
 		ut = strings.ReplaceAll(urlTemplate, "{version}", catalogEntry.Version)
 
