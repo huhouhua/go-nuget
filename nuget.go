@@ -70,6 +70,9 @@ type Client struct {
 	// Protects the apiKey field from concurrent read/write accesses.
 	apiKeyLock sync.RWMutex
 
+	// serviceUrls is used to store the service Resource of the NuGet API.
+	serviceUrls map[ServiceType]*url.URL
+
 	// Default request options applied to every request.
 	defaultRequestOptions []RequestOptionFunc
 
@@ -147,6 +150,11 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.MetadataResource = &PackageMetadataResource{client: c}
 	c.IndexResource = &ServiceResource{client: c}
 
+	c.serviceUrls = make(map[ServiceType]*url.URL)
+	err := c.loadResource()
+	if err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
@@ -253,18 +261,18 @@ func (c *Client) configureLimiter(ctx context.Context, headers http.Header) {
 // setBaseURL sets the base URL for API requests to a custom endpoint.
 func (c *Client) setBaseURL(urlStr string) error {
 	// Make sure the given URL end with a slash
-	if !strings.HasSuffix(urlStr, "/") {
-		urlStr += "/"
-	}
+	//if !strings.HasSuffix(urlStr, "/") {
+	//	urlStr += "/"
+	//}
 
 	baseURL, err := url.Parse(urlStr)
 	if err != nil {
 		return err
 	}
 
-	if !strings.HasSuffix(baseURL.Path, apiVersionPath) {
-		baseURL.Path += apiVersionPath
-	}
+	//if !strings.HasSuffix(baseURL.Path, apiVersionPath) {
+	//	baseURL.Path += apiVersionPath
+	//}
 
 	// Update the base URL of the client.
 	c.baseURL = baseURL
@@ -384,6 +392,44 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}, decoder DecoderTy
 	}
 
 	return resp, err
+}
+
+// loadResource loads the service index resource.
+func (c *Client) loadResource() error {
+	if c.IndexResource == nil {
+		return fmt.Errorf("IndexResource is null")
+	}
+	index, _, err := c.IndexResource.GetIndex()
+	if err != nil {
+		return err
+	}
+	resourceMap := make(map[string]string)
+	for _, resource := range index.Resources {
+		if resource.Type != "" && resource.Id != "" {
+			resourceMap[resource.Type] = resource.Id
+		}
+	}
+	for t, typeVariants := range typesMap {
+		for _, variant := range typeVariants {
+			if id, ok := resourceMap[variant]; ok {
+				u, err := url.Parse(strings.TrimSuffix(id, "/"))
+				if err != nil {
+					return err
+				}
+				c.serviceUrls[t] = u
+				break
+			}
+		}
+	}
+	return nil
+}
+
+// getResourceUrl returns the resource URL for the given resource value.
+func (c *Client) getResourceUrl(value ServiceType) *url.URL {
+	if u, ok := c.serviceUrls[value]; ok {
+		return u
+	}
+	return nil
 }
 
 func (d DecoderType) Invoke(r io.Reader, v interface{}) error {

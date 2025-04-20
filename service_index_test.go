@@ -7,18 +7,12 @@ package nuget
 import (
 	"encoding/json"
 	"github.com/stretchr/testify/require"
-	"net/http"
 	"os"
 	"testing"
 )
 
 func TestServiceResource_GetIndex(t *testing.T) {
-	mux, client := setup(t)
-
-	mux.HandleFunc("/v3/index.json", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		mustWriteHTTPResponse(t, w, "testdata/index.json")
-	})
+	_, client := setup(t)
 
 	data, err := os.ReadFile("testdata/index.json")
 	require.NoError(t, err)

@@ -21,6 +21,11 @@ func setup(t *testing.T) (*http.ServeMux, *Client) {
 	// mux is the HTTP request multiplexer used with the test server.
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/v3/index.json", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		mustWriteHTTPResponse(t, w, "testdata/index.json")
+	})
+
 	// server is a test HTTP server used to provide mock API responses.
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
@@ -61,6 +66,9 @@ func TestNewClient(t *testing.T) {
 	c, err := NewClient()
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
+	}
+	for serviceType, url := range c.serviceUrls {
+		t.Logf("type:%s url:%s", serviceType.String(), url.String())
 	}
 
 	expectedBaseURL := defaultBaseURL + apiVersionPath
@@ -119,3 +127,15 @@ func TestRequestWithContext(t *testing.T) {
 		t.Fatal("Context was not set correctly")
 	}
 }
+
+//func TestServiceUrls(t *testing.T) {
+//	tests := []struct {
+//		name   string
+//		range1 string
+//		want   string
+//		want   bool
+//	}{}
+//
+//	c, err := NewClient()
+//
+//}

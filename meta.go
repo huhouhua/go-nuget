@@ -2,7 +2,6 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-// https://api.nuget.org/v3/registration5-gz-semver2/gitlabapiclient/index.json
 package nuget
 
 import (
@@ -128,12 +127,16 @@ type registrationLeafItem struct {
 	PackageContent string                             `json:"packageContent"`
 }
 
+// func ConfigureDependencyInfo() {
+//
+// }
 func (p *PackageMetadataResource) ListMetadata(id string, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("-registration5-gz-semver2/%s/index.json", PathEscape(packageId))
+	baseURL := p.client.getResourceUrl(RegistrationsBaseUrl)
+	u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, PathEscape(packageId))
 	req, err := p.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
