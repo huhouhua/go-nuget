@@ -1,0 +1,54 @@
+
+{
+  "version": "3.0.0",
+  "resources": [
+    {
+      "@id": "http://localhost:5000/api/v2/package",
+      "@type": "PackagePublish/2.0.0"
+    },
+    {
+      "@id": "http://localhost:5000/api/v2/symbol",
+      "@type": "SymbolPackagePublish/4.9.0"
+    },
+    {
+      "@id": "http://localhost:5000/v3/search",
+      "@type": "SearchQueryService"
+    },
+    {
+      "@id": "http://localhost:5000/v3/search",
+      "@type": "SearchQueryService/3.0.0-beta"
+    },
+    {
+      "@id": "http://localhost:5000/v3/search",
+      "@type": "SearchQueryService/3.0.0-rc"
+    },
+    {
+      "@id": "http://localhost:5000/v3/registration",
+      "@type": "RegistrationsBaseUrl"
+    },
+    {
+      "@id": "http://localhost:5000/v3/registration",
+      "@type": "RegistrationsBaseUrl/3.0.0-rc"
+    },
+    {
+      "@id": "http://localhost:5000/v3/registration",
+      "@type": "RegistrationsBaseUrl/3.0.0-beta"
+    },
+    {
+      "@id": "http://localhost:5000/v3/package",
+      "@type": "PackageBaseAddress/3.0.0"
+    },
+    {
+      "@id": "http://localhost:5000/v3/autocomplete",
+      "@type": "SearchAutocompleteService"
+    },
+    {
+      "@id": "http://localhost:5000/v3/autocomplete",
+      "@type": "SearchAutocompleteService/3.0.0-rc"
+    },
+    {
+      "@id": "http://localhost:5000/v3/autocomplete",
+      "@type": "SearchAutocompleteService/3.0.0-beta"
+    }
+  ]
+}

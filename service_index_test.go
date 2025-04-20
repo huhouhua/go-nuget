@@ -12,7 +12,7 @@ import (
 )
 
 func TestServiceResource_GetIndex(t *testing.T) {
-	_, client := setup(t)
+	_, client := setup(t, "testdata/index.json")
 
 	data, err := os.ReadFile("testdata/index.json")
 	require.NoError(t, err)

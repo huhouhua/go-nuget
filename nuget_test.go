@@ -6,9 +6,11 @@ package nuget
 
 import (
 	"context"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -17,18 +19,9 @@ import (
 // setup sets up a test HTTP server along with a NuGet.Client that is
 // configured to talk to that test server.  Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
-func setup(t *testing.T) (*http.ServeMux, *Client) {
-	// mux is the HTTP request multiplexer used with the test server.
-	mux := http.NewServeMux()
+func setup(t *testing.T, indexPath string) (*http.ServeMux, *Client) {
 
-	mux.HandleFunc("/v3/index.json", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		mustWriteHTTPResponse(t, w, "testdata/index.json")
-	})
-
-	// server is a test HTTP server used to provide mock API responses.
-	server := httptest.NewServer(mux)
-	t.Cleanup(server.Close)
+	mux, server := createHttpServer(t, indexPath)
 
 	// client is the NuGet client being tested.
 	client, err := NewOAuthClient("",
@@ -43,6 +36,21 @@ func setup(t *testing.T) (*http.ServeMux, *Client) {
 	}
 
 	return mux, client
+}
+
+func createHttpServer(t *testing.T, indexPath string) (*http.ServeMux, *httptest.Server) {
+	// mux is the HTTP request multiplexer used with the test server.
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/v3/index.json", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		mustWriteHTTPResponse(t, w, indexPath)
+	})
+
+	// server is a test HTTP server used to provide mock API responses.
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	return mux, server
 }
 
 func testMethod(t *testing.T, r *http.Request, want string) {
@@ -63,18 +71,19 @@ func mustWriteHTTPResponse(t *testing.T, w io.Writer, fixturePath string) {
 }
 
 func TestNewClient(t *testing.T) {
-	c, err := NewClient()
+	_, server := createHttpServer(t, "testdata/index.json")
+	c, err := NewClient(WithBaseURL(server.URL))
+
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 	for serviceType, url := range c.serviceUrls {
 		t.Logf("type:%s url:%s", serviceType.String(), url.String())
 	}
+	//expectedBaseURL := defaultBaseURL+apiVersionPath
 
-	expectedBaseURL := defaultBaseURL + apiVersionPath
-
-	if c.BaseURL().String() != expectedBaseURL {
-		t.Errorf("NewClient BaseURL is %s, want %s", c.BaseURL().String(), expectedBaseURL)
+	if c.BaseURL().String() != server.URL {
+		t.Errorf("NewClient BaseURL is %s, want %s", c.BaseURL().String(), server.URL)
 	}
 	if c.UserAgent != userAgent {
 		t.Errorf("NewClient UserAgent is %s, want %s", c.UserAgent, userAgent)
@@ -82,7 +91,9 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestCheckResponseOnHeadRequestError(t *testing.T) {
-	c, err := NewClient()
+	_, server := createHttpServer(t, "testdata/index.json")
+	c, err := NewClient(WithBaseURL(server.URL))
+
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -111,7 +122,8 @@ func TestCheckResponseOnHeadRequestError(t *testing.T) {
 }
 
 func TestRequestWithContext(t *testing.T) {
-	c, err := NewClient()
+	_, server := createHttpServer(t, "testdata/index.json")
+	c, err := NewClient(WithBaseURL(server.URL))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -128,14 +140,73 @@ func TestRequestWithContext(t *testing.T) {
 	}
 }
 
-//func TestServiceUrls(t *testing.T) {
-//	tests := []struct {
-//		name   string
-//		range1 string
-//		want   string
-//		want   bool
-//	}{}
-//
-//	c, err := NewClient()
-//
-//}
+func TestServiceUrls(t *testing.T) {
+	tests := []struct {
+		name          string
+		indexDataPath string
+		wantData      map[ServiceType]string
+		want          bool
+	}{
+		{
+			name:          "https://api.nuget.org/ index urls",
+			indexDataPath: "testdata/index.json",
+			wantData: map[ServiceType]string{
+				SearchQueryService:        "https://azuresearch-ussc.nuget.org/query",
+				RegistrationsBaseUrl:      "https://api.nuget.org/v3/registration5-gz-semver2",
+				SearchAutocompleteService: "https://azuresearch-ussc.nuget.org/autocomplete",
+				ReportAbuseUriTemplate:    "",
+				ReadmeUriTemplate:         "https://api.nuget.org/v3-flatcontainer/{lower_id}/{lower_version}/readme",
+				PackageDetailsUriTemplate: "https://www.nuget.org/packages/{id}/{version}?_src=template",
+				LegacyGallery:             "https://www.nuget.org/api/v2",
+				PackagePublish:            "https://www.nuget.org/api/v2/package",
+				PackageBaseAddress:        "https://api.nuget.org/v3-flatcontainer",
+				RepositorySignatures:      "https://api.nuget.org/v3-index/repository-signatures/5.0.0/index.json",
+				SymbolPackagePublish:      "https://www.nuget.org/api/v2/symbolpackage",
+				VulnerabilityInfo:         "https://api.nuget.org/v3/vulnerabilities/index.json",
+				OwnerDetailsUriTemplate:   "https://www.nuget.org/profiles/{owner}?_src=template",
+			},
+			want: true,
+		},
+		{
+			name:          "baget index urls",
+			indexDataPath: "testdata/index_2.json",
+			wantData: map[ServiceType]string{
+				SearchQueryService:        "http://localhost:5000/v3/search",
+				RegistrationsBaseUrl:      "http://localhost:5000/v3/registration",
+				SearchAutocompleteService: "http://localhost:5000/v3/autocomplete",
+				ReportAbuseUriTemplate:    "",
+				ReadmeUriTemplate:         "",
+				PackageDetailsUriTemplate: "",
+				LegacyGallery:             "",
+				PackagePublish:            "http://localhost:5000/api/v2/package",
+				PackageBaseAddress:        "http://localhost:5000/v3/package",
+				RepositorySignatures:      "",
+				SymbolPackagePublish:      "http://localhost:5000/api/v2/symbol",
+				VulnerabilityInfo:         "",
+				OwnerDetailsUriTemplate:   "",
+			},
+			want: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, client := setup(t, tc.indexDataPath)
+			urls := make(map[ServiceType]*url.URL, len(tc.wantData))
+			for st, item := range tc.wantData {
+				if item == "" {
+					continue
+				}
+				u, err := url.Parse(item)
+				require.NoError(t, err)
+				urls[st] = u
+			}
+			if tc.want {
+				require.Equal(t, urls, client.serviceUrls)
+			} else {
+				require.NotEqual(t, urls, client.serviceUrls)
+			}
+		})
+	}
+
+}
