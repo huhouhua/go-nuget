@@ -1,0 +1,94 @@
+{
+  "@id": "http://localhost:5000/v3/registration/gitlabapiclient/index.json",
+  "@type": [
+    "catalog:CatalogRoot",
+    "PackageRegistration",
+    "catalog:Permalink"
+  ],
+  "count": 1,
+  "items": [
+    {
+      "@id": "http://localhost:5000/v3/registration/gitlabapiclient/index.json",
+      "count": 1,
+      "lower": "1.8.1-beta.5",
+      "upper": "1.8.1-beta.5",
+      "items": [
+        {
+          "@id": "http://localhost:5000/v3/registration/gitlabapiclient/1.8.1-beta.5.json",
+          "packageContent": "http://localhost:5000/v3/package/gitlabapiclient/1.8.1-beta.5/gitlabapiclient.1.8.1-beta.5.nupkg",
+          "catalogEntry": {
+            "downloads": 2,
+            "hasReadme": false,
+            "packageTypes": [
+              "Dependency"
+            ],
+            "releaseNotes": "",
+            "repositoryUrl": "https://github.com/nmklotas/GitLabApiClient",
+            "repositoryType": "git",
+            "id": "GitLabApiClient",
+            "version": "1.8.1-beta.5",
+            "authors": "nmklotas",
+            "dependencyGroups": [
+              {
+                "targetFramework": "net48",
+                "dependencies": [
+                  {
+                    "id": "Newtonsoft.Json",
+                    "range": "[12.0.3, )"
+                  }
+                ]
+              },
+              {
+                "targetFramework": "netcoreapp3.1",
+                "dependencies": [
+                  {
+                    "id": "Newtonsoft.Json",
+                    "range": "[12.0.3, )"
+                  }
+                ]
+              },
+              {
+                "targetFramework": "net5.0",
+                "dependencies": [
+                  {
+                    "id": "Newtonsoft.Json",
+                    "range": "[12.0.3, )"
+                  }
+                ]
+              },
+              {
+                "targetFramework": "netstandard2.0",
+                "dependencies": [
+                  {
+                    "id": "Newtonsoft.Json",
+                    "range": "[12.0.3, )"
+                  }
+                ]
+              }
+            ],
+            "description": "GitLabApiClient is a .NET rest client for GitLab API v4.",
+            "iconUrl": "",
+            "language": "",
+            "licenseUrl": "https://licenses.nuget.org/MIT",
+            "listed": true,
+            "minClientVersion": "",
+            "packageContent": "http://localhost:5000/v3/package/gitlabapiclient/1.8.1-beta.5/gitlabapiclient.1.8.1-beta.5.nupkg",
+            "projectUrl": "https://github.com/nmklotas/GitLabApiClient",
+            "published": "2025-04-18T09:41:56.5124797Z",
+            "requireLicenseAcceptance": false,
+            "summary": "",
+            "tags": [
+              "GitLab",
+              "REST",
+              "API",
+              "CI",
+              "Client"
+            ],
+            "title": ""
+          }
+        }
+      ]
+    }
+  ],
+  "totalDownloads": 2
+}

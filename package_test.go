@@ -48,6 +48,12 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 		mustWriteHTTPResponse(t, w, "testdata/testDependency.nuspec")
 	})
 
+	versionrange1203, err := ParseVersionRange("12.0.3")
+	require.NoError(t, err)
+
+	versionrange500, err := ParseVersionRange("5.0.0")
+	require.NoError(t, err)
+
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestDependency",
@@ -58,16 +64,18 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 				TargetFramework: ".NETFramework4.8",
 				Packages: []*Dependency{
 					{
-						Id:         "Newtonsoft.Json",
-						VersionRaw: "12.0.3",
-						ExcludeRaw: "Build,Analyzers",
-						Version:    &NuGetVersion{semver.New(12, 0, 3, "", "")},
-						Exclude:    []string{"Build", "Analyzers"},
+						Id:           "Newtonsoft.Json",
+						VersionRaw:   "12.0.3",
+						ExcludeRaw:   "Build,Analyzers",
+						VersionRange: versionrange1203,
+						//Version:    &NuGetVersion{semver.New(12, 0, 3, "", "")},
+						Exclude: []string{"Build", "Analyzers"},
 					},
 					{
-						Id:         "Microsoft.Extensions.Logging",
-						VersionRaw: "5.0.0",
-						Version:    &NuGetVersion{semver.New(5, 0, 0, "", "")},
+						Id:           "Microsoft.Extensions.Logging",
+						VersionRaw:   "5.0.0",
+						VersionRange: versionrange500,
+						//Version:    &NuGetVersion{semver.New(5, 0, 0, "", "")},
 					},
 				},
 			},
@@ -75,11 +83,12 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 				TargetFramework: ".NETStandard2.0",
 				Packages: []*Dependency{
 					{
-						Id:         "Newtonsoft.Json",
-						VersionRaw: "12.0.3",
-						ExcludeRaw: "Build,Analyzers",
-						Version:    &NuGetVersion{semver.New(12, 0, 3, "", "")},
-						Exclude:    []string{"Build", "Analyzers"},
+						Id:           "Newtonsoft.Json",
+						VersionRaw:   "12.0.3",
+						ExcludeRaw:   "Build,Analyzers",
+						VersionRange: versionrange1203,
+						//Version:    &NuGetVersion{semver.New(12, 0, 3, "", "")},
+						Exclude: []string{"Build", "Analyzers"},
 					},
 				},
 			},

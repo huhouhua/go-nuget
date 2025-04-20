@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"io"
 	"strings"
 	"sync"
@@ -55,24 +54,24 @@ type Repository struct {
 
 type Dependencies struct {
 	Groups     []*DependenciesGroup `xml:"group"`
-	Dependency []*Dependency        `xml:"dependency"`
+	Dependency []*Dependency        `xml:"dependency" `
 }
 
 type DependenciesGroup struct {
 	TargetFramework string        `xml:"targetFramework,attr"`
-	Dependencies    []*Dependency `xml:"dependency"`
+	Dependencies    []*Dependency `xml:"dependency" `
 }
 
 // Dependency Represents a package dependency Id and allowed version range.
 type Dependency struct {
-	Id         string `xml:"id,attr"`
-	VersionRaw string `xml:"version,attr"`
-	ExcludeRaw string `xml:"exclude,attr"`
-	IncludeRaw string `xml:"include,attr"`
-
-	Version *NuGetVersion `xml:"-"`
-	Include []string      `xml:"-"`
-	Exclude []string      `xml:"-"`
+	Id              string        `xml:"id,attr" json:"id"`
+	VersionRaw      string        `xml:"version,attr" json:"version"`
+	ExcludeRaw      string        `xml:"exclude,attr" json:"exclude"`
+	IncludeRaw      string        `xml:"include,attr" json:"include"`
+	VersionRangeRaw string        `json:"range"`
+	VersionRange    *VersionRange `xml:"-"`
+	Include         []string      `xml:"-"`
+	Exclude         []string      `xml:"-"`
 }
 
 // Parse parses the dependency version and splits the include/exclude strings into slices.
@@ -83,11 +82,21 @@ func (d *Dependency) Parse() error {
 	if d.IncludeRaw != "" {
 		d.Exclude = strings.Split(d.IncludeRaw, ",")
 	}
-	nugetVersion, err := semver.NewVersion(d.VersionRaw)
+	if d.VersionRaw != "" {
+		return d.parseRange(d.VersionRaw)
+	}
+	if d.VersionRangeRaw != "" {
+		return d.parseRange(d.VersionRangeRaw)
+	}
+	return nil
+}
+
+func (d *Dependency) parseRange(rangeVersion string) error {
+	versionRanger, err := ParseVersionRange(rangeVersion)
 	if err != nil {
 		return err
 	}
-	d.Version = &NuGetVersion{nugetVersion}
+	d.VersionRange = versionRanger
 	return nil
 }
 
