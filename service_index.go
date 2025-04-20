@@ -114,24 +114,36 @@ var (
 	OwnerDetailsUriTemplateTypes = ServiceTypes{
 		string(OwnerDetailsUriTemplate + Version6110),
 	}
-	typesMap map[ServiceType]ServiceTypes
+	typesMap map[ServiceType]*ServiceTypeOptions
 )
 
+type ServiceTypeOptions struct {
+	Types      ServiceTypes
+	DefaultUrl string
+}
+
 func init() {
-	typesMap = map[ServiceType]ServiceTypes{
-		SearchQueryService:        SearchQueryServiceTypes,
-		RegistrationsBaseUrl:      RegistrationsBaseUrlTypes,
-		SearchAutocompleteService: SearchAutocompleteServiceTypes,
-		ReportAbuseUriTemplate:    ReportAbuseTypes,
-		ReadmeUriTemplate:         ReadmeFileUrlTypes,
-		PackageDetailsUriTemplate: PackageDetailsUriTemplateTypes,
-		LegacyGallery:             LegacyGalleryTypes,
-		PackagePublish:            PackagePublishTypes,
-		PackageBaseAddress:        PackageBaseAddressTypes,
-		RepositorySignatures:      RepositorySignaturesTypes,
-		SymbolPackagePublish:      SymbolPackagePublishTypes,
-		VulnerabilityInfo:         VulnerabilityInfoTypes,
-		OwnerDetailsUriTemplate:   OwnerDetailsUriTemplateTypes,
+	typesMap = map[ServiceType]*ServiceTypeOptions{
+		SearchQueryService:        newTypeOptions(SearchQueryServiceTypes, ""),
+		RegistrationsBaseUrl:      newTypeOptions(RegistrationsBaseUrlTypes, ""),
+		SearchAutocompleteService: newTypeOptions(SearchAutocompleteServiceTypes, ""),
+		ReportAbuseUriTemplate:    newTypeOptions(ReportAbuseTypes, "https://www.nuget.org/packages/{id}/{version}/ReportAbuse"),
+		ReadmeUriTemplate:         newTypeOptions(ReadmeFileUrlTypes, ""),
+		PackageDetailsUriTemplate: newTypeOptions(PackageDetailsUriTemplateTypes, ""),
+		LegacyGallery:             newTypeOptions(LegacyGalleryTypes, ""),
+		PackagePublish:            newTypeOptions(PackagePublishTypes, ""),
+		PackageBaseAddress:        newTypeOptions(PackageBaseAddressTypes, ""),
+		RepositorySignatures:      newTypeOptions(RepositorySignaturesTypes, ""),
+		SymbolPackagePublish:      newTypeOptions(SymbolPackagePublishTypes, ""),
+		VulnerabilityInfo:         newTypeOptions(VulnerabilityInfoTypes, ""),
+		OwnerDetailsUriTemplate:   newTypeOptions(OwnerDetailsUriTemplateTypes, ""),
+	}
+}
+
+func newTypeOptions(types ServiceTypes, defaultUrl string) *ServiceTypeOptions {
+	return &ServiceTypeOptions{
+		Types:      types,
+		DefaultUrl: defaultUrl,
 	}
 }
 

@@ -410,15 +410,24 @@ func (c *Client) loadResource() error {
 		}
 	}
 	for t, typeVariants := range typesMap {
-		for _, variant := range typeVariants {
+		var find bool
+		for _, variant := range typeVariants.Types {
 			if id, ok := resourceMap[variant]; ok {
 				u, err := url.Parse(strings.TrimSuffix(id, "/"))
 				if err != nil {
 					return err
 				}
 				c.serviceUrls[t] = u
+				find = true
 				break
 			}
+		}
+		if !find && typeVariants.DefaultUrl != "" {
+			u, err := url.Parse(strings.TrimSuffix(typeVariants.DefaultUrl, "/"))
+			if err != nil {
+				return err
+			}
+			c.serviceUrls[t] = u
 		}
 	}
 	return nil

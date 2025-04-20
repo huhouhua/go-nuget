@@ -6,7 +6,9 @@ package nuget
 
 import (
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -50,6 +52,12 @@ type PackageSearchMetadata struct {
 	ProjectUrl string `json:"projectUrl"`
 
 	ReadmeUrl string `json:"readmeUrl"`
+
+	ReadmeFileUrl *url.URL `json:"-"`
+
+	ReportAbuseUrl *url.URL `json:"-"`
+
+	PackageDetailsUrl *url.URL `json:"-"`
 
 	Published time.Time `json:"published"`
 
@@ -127,10 +135,12 @@ type registrationLeafItem struct {
 	PackageContent string                             `json:"packageContent"`
 }
 
-// func ConfigureDependencyInfo() {
-//
-// }
-func (p *PackageMetadataResource) ListMetadata(id string, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
+type ListMetadataOptions struct {
+	IncludePrerelease bool
+	IncludeUnlisted   bool
+}
+
+func (p *PackageMetadataResource) ListMetadata(id string, opt *ListMetadataOptions, options ...RequestOptionFunc) ([]*PackageSearchMetadataRegistration, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -142,16 +152,115 @@ func (p *PackageMetadataResource) ListMetadata(id string, options ...RequestOpti
 		return nil, nil, err
 	}
 	index := registrationIndex{}
-
 	resp, err := p.client.Do(req, &index, DecoderTypeJSON)
 	if err != nil {
 		return nil, resp, err
 	}
-	packages := make([]*PackageSearchMetadata, len(index.Items))
+	packages := make([]*PackageSearchMetadataRegistration, len(index.Items))
+	versionRange := All
 	for _, item := range index.Items {
-		for _, leafItem := range item.Items {
-			packages = append(packages, leafItem.CatalogEntry.PackageSearchMetadata)
+		if item == nil {
+			return nil, resp, fmt.Errorf("invalid %s", baseURL.String())
+		}
+		err = p.addMetadataToPackages(packages, item, opt, versionRange)
+		if err != nil {
+			return nil, nil, err
 		}
 	}
 	return packages, resp, nil
+}
+
+func (p *PackageMetadataResource) addMetadataToPackages(packages []*PackageSearchMetadataRegistration, page *registrationPage, opt *ListMetadataOptions, versionRange *VersionRange) error {
+	Lower, err := semver.NewVersion(page.Lower)
+	if err != nil {
+		return err
+	}
+	upper, err := semver.NewVersion(page.Upper)
+	if err != nil {
+		return err
+	}
+	catalogItemVersionRange := NewVersionRange(Lower, upper, true, true)
+	if !versionRange.DoesRangeSatisfy(catalogItemVersionRange) {
+		return nil
+	}
+	for _, leafItem := range page.Items {
+		v := &NuGetVersion{}
+		v.Version, err = semver.NewVersion(leafItem.CatalogEntry.Version)
+		if err != nil {
+			return err
+		}
+		if versionRange.Satisfies(v.Version) && (opt.IncludePrerelease || v.IsPrerelease()) && (opt.IncludeUnlisted || leafItem.CatalogEntry.IsListed) {
+			if err = p.configureMetadataUrl(leafItem.CatalogEntry); err != nil {
+				return err
+			} else {
+				packages = append(packages, leafItem.CatalogEntry)
+			}
+		}
+	}
+	return nil
+}
+
+func (p *PackageMetadataResource) configureMetadataUrl(catalogEntry *PackageSearchMetadataRegistration) error {
+	reportAbuseUrl := p.client.getResourceUrl(ReportAbuseUriTemplate)
+	detailUrl := p.client.getResourceUrl(PackageDetailsUriTemplate)
+	readmeUrl := p.client.getResourceUrl(ReportAbuseUriTemplate)
+	return ApplyMetadataRegistration(catalogEntry,
+		WithReportAbuseUrl(reportAbuseUrl.Path),
+		WithPackageDetailsUrl(detailUrl.Path),
+		WithReadmeFileUrl(readmeUrl.Path))
+}
+
+type MetadataRegistrationFunc func(catalogEntry *PackageSearchMetadataRegistration) error
+
+// ApplyMetadataRegistration applies a list of MetadataRegistrationFunc to a PackageSearchMetadataRegistration.
+func ApplyMetadataRegistration(info *PackageSearchMetadataRegistration, options ...MetadataRegistrationFunc) error {
+	for _, opt := range options {
+		if err := opt(info); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func WithReportAbuseUrl(urlTemplate string) MetadataRegistrationFunc {
+	return func(catalogEntry *PackageSearchMetadataRegistration) error {
+
+		ut := strings.ReplaceAll(urlTemplate, "{id}", strings.ToLower(catalogEntry.PackageId))
+		ut = strings.ReplaceAll(urlTemplate, "{version}", catalogEntry.Version)
+
+		if u, err := url.Parse(ut); err != nil {
+			return err
+		} else {
+			catalogEntry.ReportAbuseUrl = u
+		}
+		return nil
+	}
+}
+
+func WithPackageDetailsUrl(urlTemplate string) MetadataRegistrationFunc {
+	return func(catalogEntry *PackageSearchMetadataRegistration) error {
+		ut := strings.ReplaceAll(urlTemplate, "{id}", strings.ToLower(catalogEntry.PackageId))
+		ut = strings.ReplaceAll(urlTemplate, "{version}", catalogEntry.Version)
+
+		if u, err := url.Parse(ut); err != nil {
+			return err
+		} else {
+			catalogEntry.PackageDetailsUrl = u
+		}
+		return nil
+	}
+}
+
+func WithReadmeFileUrl(urlTemplate string) MetadataRegistrationFunc {
+	return func(catalogEntry *PackageSearchMetadataRegistration) error {
+		ut := strings.ReplaceAll(urlTemplate, "{lower_id}", strings.ToLower(catalogEntry.PackageId))
+		ut = strings.ReplaceAll(urlTemplate, "{lower_version}", strings.ToLower(catalogEntry.Version))
+
+		if u, err := url.Parse(ut); err != nil {
+			return err
+		} else {
+			catalogEntry.ReadmeFileUrl = u
+		}
+		return nil
+	}
 }

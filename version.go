@@ -10,6 +10,10 @@ import (
 	"strings"
 )
 
+var (
+	All = NewVersionRange(nil, nil, true, true)
+)
+
 type NuGetVersion struct {
 	*semver.Version
 }
