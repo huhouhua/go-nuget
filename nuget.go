@@ -83,6 +83,8 @@ type Client struct {
 
 	MetadataResource *PackageMetadataResource
 
+	SearchResource *PackageSearchResource
+
 	IndexResource *ServiceResource
 }
 
@@ -148,6 +150,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	}
 	c.FindPackageResource = &FindPackageResource{client: c}
 	c.MetadataResource = &PackageMetadataResource{client: c}
+	c.SearchResource = &PackageSearchResource{client: c}
 	c.IndexResource = &ServiceResource{client: c}
 
 	c.serviceUrls = make(map[ServiceType]*url.URL)
