@@ -19,6 +19,11 @@ type PackageMetadataResource struct {
 
 type PackageSearchMetadataRegistration struct {
 	*SearchMetadata
+	qwnersList []string `json:"-"`
+
+	Authors string `json:"authors"`
+
+	Owners string `json:"owners"`
 
 	CatalogUri string `json:"@id"`
 
@@ -31,14 +36,11 @@ type PackageSearchMetadataRegistration struct {
 
 // SearchMetadata Package metadata only containing select fields relevant to search results processing and presenting.
 type SearchMetadata struct {
-	qwnersList []string         `json:"-"`
-	identity   *PackageIdentity `json:"-"`
+	identity *PackageIdentity `json:"-"`
 
 	PackageId string `json:"id"`
 
 	Version string `json:"version"`
-
-	Authors string `json:"authors"`
 
 	DependencySets []*PackageDependencyGroup `json:"dependencyGroups"`
 
@@ -61,8 +63,6 @@ type SearchMetadata struct {
 	ReadmeUrl string `json:"readmeUrl"`
 
 	Published time.Time `json:"published"`
-
-	Owners string `json:"owners"`
 
 	RequireLicenseAcceptance bool `json:"requireLicenseAcceptance"`
 
@@ -108,7 +108,7 @@ func (p *SearchMetadata) Identity() (*PackageIdentity, error) {
 	return p.identity, nil
 }
 
-func (p *SearchMetadata) OwnersList() []string {
+func (p *PackageSearchMetadataRegistration) OwnersList() []string {
 	if p.qwnersList == nil && p.Owners != "" {
 		p.qwnersList = strings.Split(p.Owners, ",")
 	}

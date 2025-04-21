@@ -36,11 +36,10 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 	want := []*PackageSearchMetadataRegistration{
 		{
 			ReportAbuseUrl: reportUrl,
+			Authors:        "nmklotas",
 			SearchMetadata: &SearchMetadata{
-
 				PackageId: "GitLabApiClient",
 				Version:   "1.8.1-beta.5",
-				Authors:   "nmklotas",
 				DependencySets: []*PackageDependencyGroup{
 					{
 						TargetFramework: "net48",
@@ -132,10 +131,10 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 
 	want := &PackageSearchMetadataRegistration{
 		ReportAbuseUrl: reportUrl,
+		Authors:        "nmklotas",
 		SearchMetadata: &SearchMetadata{
 			PackageId: "GitLabApiClient",
 			Version:   "1.8.1-beta.5",
-			Authors:   "nmklotas",
 			DependencySets: []*PackageDependencyGroup{
 				{
 					TargetFramework: "net48",
