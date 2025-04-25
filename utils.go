@@ -50,71 +50,77 @@ func wildcardToRegex(wildcard string) *regexp.Regexp {
 	return re
 }
 
-// PerformWildcardSearch searches for files and optionally empty directories
-// matching the wildcard pattern.
-//func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirectories bool) ([]SearchPathResult, string, error) {
-//	flag1 := false
-//	if isDirectoryPath(searchPath) {
-//		searchPath = filepath.Join(searchPath, "**", "*")
-//		flag1 = true
-//	}
-//
-//	basePath, searchPath = normalizeBasePath(basePath, searchPath)
-//	normalizedBasePath := GetPathToEnumerateFrom(basePath, searchPath)
-//	searchRegex := WildcardToRegex(filepath.Join(basePath, searchPath))
-//
-//	searchOption := filepath.Walk
-//	if !strings.Contains(searchPath, "**") && !strings.Contains(filepath.Dir(searchPath), "*") {
-//		// Only top directory
-//		searchOption = func(root string, walkFn filepath.WalkFunc) error {
-//			entries, err := os.ReadDir(root)
-//			if err != nil {
-//				return err
-//			}
-//			for _, entry := range entries {
-//				info, err := entry.Info()
-//				if err != nil {
-//					return err
-//				}
-//				err = walkFn(filepath.Join(root, entry.Name()), info, nil)
-//				if err != nil {
-//					return err
-//				}
-//			}
-//			return nil
-//		}
-//	}
-//
-//	var results []SearchPathResult
-//	err := searchOption(normalizedBasePath, func(path string, info os.FileInfo, err error) error {
-//		if err != nil {
-//			return err
-//		}
-//		relPath, err := filepath.Rel(basePath, path)
-//		if err != nil {
-//			return err
-//		}
-//		if searchRegex.MatchString(filepath.Join(basePath, relPath)) {
-//			if info.IsDir() {
-//				if includeEmptyDirectories && IsEmptyDirectory(path) {
-//					results = append(results, SearchPathResult{Path: path, IsFile: false})
-//				}
-//			} else {
-//				results = append(results, SearchPathResult{Path: path, IsFile: true})
-//			}
-//		}
-//		return nil
-//	})
-//	if err != nil {
-//		return nil, "", err
-//	}
-//
-//	if flag1 && isDirectoryPath(normalizedBasePath) {
-//		results = append(results, SearchPathResult{Path: normalizedBasePath, IsFile: false})
-//	}
-//
-//	return results, normalizedBasePath, nil
-//}
+// PerformWildcardSearch searches for files or directories based on a wildcard search pattern.
+func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) ([]SearchPathResult, string, error) {
+	// Flag to check if the search pattern should include directories recursively
+	flag1 := false
+
+	// Check if the search path is a directory, modify it to include '**/*'
+	if isDirectoryPath(searchPath) {
+		searchPath = filepath.Join(searchPath, "**", "*")
+		flag1 = true
+	}
+
+	// Normalize the base path and search path
+	basePath = normalizeBasePath(basePath, &searchPath)
+	normalizedBasePath, err := getPathToEnumerateFrom(basePath, searchPath)
+	if err != nil {
+		return nil, "", err
+	}
+	searchPattern := filepath.Join(basePath, searchPath)
+
+	// Convert wildcard search pattern to regex
+	searchRegex := wildcardToRegex(searchPattern)
+
+	searchRecursively := strings.Contains(searchPath, "**") || strings.Contains(filepath.Dir(searchPath), "*")
+
+	var results []SearchPathResult
+
+	// Search for files matching the search pattern
+	err = filepath.WalkDir(normalizedBasePath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories if not searching recursively
+		if !searchRecursively && path != normalizedBasePath && filepath.Dir(path) != normalizedBasePath {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Match file or directory path with regex
+		if searchRegex.MatchString(path) {
+			if d.IsDir() {
+				// If it's a directory, check if we should include empty directories
+				if includeEmptyDirs {
+					if ok, _ := isEmptyDirectory(path); ok {
+						results = append(results, SearchPathResult{Path: path, IsFile: false})
+					}
+				}
+			} else {
+				// If it's a file, include it in the results
+				results = append(results, SearchPathResult{Path: path, IsFile: true})
+			}
+		}
+
+		return nil
+	})
+
+	// Handle error during WalkDir
+	if err != nil {
+		return nil, "", err
+	}
+
+	// If flag1 is true and the normalized base path is empty, include the base path as a result
+	if flag1 {
+		if ok, _ := isEmptyDirectory(normalizedBasePath); ok {
+			results = append(results, SearchPathResult{Path: normalizedBasePath, IsFile: false})
+		}
+	}
+	return results, normalizedBasePath, nil
+}
 
 // getPathToEnumerateFrom determines the path to enumerate from based on the base path and search path.
 func getPathToEnumerateFrom(basePath, searchPath string) (string, error) {
@@ -201,7 +207,7 @@ func isDirectoryPath(path string) bool {
 	return lastChar == '/' || lastChar == '\\'
 }
 
-// IsEmptyDirectory checks if the given directory is empty.
+// isEmptyDirectory checks if the given directory is empty.
 func isEmptyDirectory(directory string) (bool, error) {
 	// Open the directory
 	dir, err := os.Open(directory)

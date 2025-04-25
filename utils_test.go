@@ -11,6 +11,113 @@ import (
 	"testing"
 )
 
+func TestPerformWildcardSearch(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup structure
+	createFile(t, filepath.Join(tmpDir, "file1.txt"))
+	createFile(t, filepath.Join(tmpDir, "file2.log"))
+	createFile(t, filepath.Join(tmpDir, "data.json"))
+	createFile(t, filepath.Join(tmpDir, "a1.txt"))
+	createFile(t, filepath.Join(tmpDir, "sub1", "b.txt"))
+	createFile(t, filepath.Join(tmpDir, "sub2", "c.md"))
+	createEmptyDir(t, filepath.Join(tmpDir, "empty"))
+	createEmptyDir(t, filepath.Join(tmpDir, "sub2", "innerempty"))
+
+	tests := []struct {
+		name              string
+		basePath          string
+		searchPath        string
+		includeEmptyDirs  bool
+		expectedFiles     []string
+		expectedEmptyDirs []string
+	}{
+		{
+			name:             "match *.txt at top-level only",
+			basePath:         tmpDir,
+			searchPath:       "*.txt",
+			includeEmptyDirs: false,
+			expectedFiles:    []string{"file1.txt", "a1.txt"},
+		},
+		{
+			name:             "match **/*.txt recursively",
+			basePath:         tmpDir,
+			searchPath:       "**/*.txt",
+			includeEmptyDirs: false,
+			expectedFiles:    []string{"file1.txt", "a1.txt", filepath.Join("sub1", "b.txt")},
+		},
+		{
+			name:             "match *.md in any folder",
+			basePath:         tmpDir,
+			searchPath:       "**/*.md",
+			includeEmptyDirs: false,
+			expectedFiles:    []string{filepath.Join("sub2", "c.md")},
+		},
+		{
+			name:             "no matching files",
+			basePath:         tmpDir,
+			searchPath:       "*.go",
+			includeEmptyDirs: false,
+			expectedFiles:    []string{},
+		},
+		{
+			name:              "match empty directories",
+			basePath:          tmpDir,
+			searchPath:        "**",
+			includeEmptyDirs:  true,
+			expectedFiles:     []string{"file1.txt", "file2.log", "data.json", "a1.txt", filepath.Join("sub1", "b.txt"), filepath.Join("sub2", "c.md")},
+			expectedEmptyDirs: []string{"empty", filepath.Join("sub2", "innerempty")},
+		},
+		{
+			name:             "match ? wildcard in filename",
+			basePath:         tmpDir,
+			searchPath:       "a?.txt",
+			includeEmptyDirs: false,
+			expectedFiles:    []string{"a1.txt"},
+		},
+		{
+			name:             "directory wildcard like sub*",
+			basePath:         tmpDir,
+			searchPath:       "sub*/**/*.txt",
+			includeEmptyDirs: false,
+			expectedFiles:    []string{filepath.Join("sub1", "b.txt")},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			results, normBase, err := PerformWildcardSearch(tt.basePath, tt.searchPath, tt.includeEmptyDirs)
+			require.NoErrorf(t, err, "error in PerformWildcardSearch: %v", err)
+
+			foundFiles := map[string]bool{}
+			foundDirs := map[string]bool{}
+
+			for _, res := range results {
+				relPath, _ := filepath.Rel(normBase, res.Path)
+				if res.IsFile {
+					foundFiles[filepath.ToSlash(relPath)] = true
+				} else {
+					foundDirs[filepath.ToSlash(relPath)] = true
+				}
+			}
+
+			for _, f := range tt.expectedFiles {
+				f = filepath.ToSlash(f)
+				if !foundFiles[f] {
+					t.Errorf("expected file %q not found", f)
+				}
+			}
+
+			for _, d := range tt.expectedEmptyDirs {
+				d = filepath.ToSlash(d)
+				if !foundDirs[d] {
+					t.Errorf("expected empty dir %q not found", d)
+				}
+			}
+		})
+	}
+}
+
 func TestEnsurePackageExtension(t *testing.T) {
 	tests := []struct {
 		packagePath string
@@ -313,22 +420,28 @@ func mustAbs(path string) string {
 // Helper function to create a temporary directory and files for testing
 func createTestDirectory(t *testing.T, dirName string, files []string) string {
 	dirPath := filepath.Join(t.TempDir(), dirName)
-
-	// Create the directory
-	err := os.MkdirAll(dirPath, 0755)
-	if err != nil {
-		t.Fatalf("Failed to create test directory: %v", err)
-	}
+	createEmptyDir(t, dirPath)
 
 	// Create the files in the directory
 	for _, file := range files {
 		filePath := filepath.Join(dirPath, file)
 		f, err := os.Create(filePath)
-		if err != nil {
-			t.Fatalf("Failed to create file in test directory: %v", err)
-		}
+		require.NoErrorf(t, err, "Failed to create file in test directory: %v", err)
 		f.Close()
 	}
 
 	return dirPath
+}
+
+func createFile(t *testing.T, path string) {
+	err := os.MkdirAll(filepath.Dir(path), 0755)
+	require.NoError(t, err)
+
+	err = os.WriteFile(path, []byte("test TestPerformWildcardSearch "), 0644)
+	require.NoError(t, err)
+}
+
+func createEmptyDir(t *testing.T, path string) {
+	err := os.MkdirAll(path, 0755)
+	require.NoError(t, err)
 }
