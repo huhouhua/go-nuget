@@ -51,76 +51,55 @@ func TestEnsurePackageExtension(t *testing.T) {
 	}
 }
 
-//func TestWildcardToRegex(t *testing.T) {
-//	tests := []struct {
-//		name        string
-//		wildcard    string
-//		expected    string
-//		expectError bool
-//	}{
-//		{
-//			name:        "Simple asterisk match",
-//			wildcard:    "*.go",
-//			expected:    `^.*\.go$`,
-//			expectError: false,
-//		},
-//		{
-//			name:        "Double asterisk match",
-//			wildcard:    "**/*.go",
-//			expected:    `^/?([^/]+/)*?[^/]*\.go$`,
-//			expectError: false,
-//		},
-//		{
-//			name:        "Question mark match",
-//			wildcard:    "src/?.go",
-//			expected:    `^src/.go$`,
-//			expectError: false,
-//		},
-//		{
-//			name:        "Backslash replacement (Windows)",
-//			wildcard:    "src\\*.go",
-//			expected:    `^src\\[^\\]*\.go$`,
-//			expectError: false,
-//		},
-//		{
-//			name:        "Double asterisk match in Windows",
-//			wildcard:    "src\\**\\*.go",
-//			expected:    `^src\\(?:\\?([^\\]+\\)*?)?[^\\]*\.go$`,
-//			expectError: false,
-//		},
-//		{
-//			name:        "Invalid wildcard pattern",
-//			wildcard:    "**/src/*\\",
-//			expected:    "",
-//			expectError: true,
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			// Call the function
-//			result, err := wildcardToRegex(tt.wildcard)
-//
-//			if tt.expectError {
-//				if err == nil {
-//					t.Errorf("Expected error, but got none")
-//				}
-//			} else {
-//				if err != nil {
-//					t.Fatalf("Unexpected error: %v", err)
-//				}
-//
-//				// Check if the regex matches the expected pattern
-//				expectedRegex := tt.expected
-//				actualRegex := result.String()
-//
-//				if actualRegex != expectedRegex {
-//					t.Errorf("Expected regex: %s, but got: %s", expectedRegex, actualRegex)
-//				}
-//			}
-//		})
-//	}
-//}
+func TestWildcardToRegex(t *testing.T) {
+	tests := []struct {
+		wildcard string
+		match    []string
+		nomatch  []string
+	}{
+		{
+			wildcard: "*.txt",
+			match:    []string{"notes.txt", "README.TXT"},
+			nomatch:  []string{"image.png", "notes.txt.bak"},
+		},
+		{
+			wildcard: "data/*.csv",
+			match:    []string{"data/file.csv", "data/test.CSV"},
+			nomatch:  []string{"data/file.csvx", "databack/file.csv"},
+		},
+		{
+			wildcard: "**/*.go",
+			match:    []string{"main.go", "src/util/main.go", "lib/test/hello.go"},
+			nomatch:  []string{"main.go.old", "main.go.bak"},
+		},
+		{
+			wildcard: "config?.json",
+			match:    []string{"config1.json", "configA.json"},
+			nomatch:  []string{"config10.json", "conf.json"},
+		},
+		{
+			wildcard: "**/test?.*",
+			match:    []string{"test1.py", "src/test2.go", "lib/testA.java"},
+			nomatch:  []string{"test10.py", "test.py", "lib/test.py"},
+		},
+	}
+
+	for _, tc := range tests {
+		re := wildcardToRegex(tc.wildcard)
+
+		for _, input := range tc.match {
+			if !re.MatchString(input) {
+				t.Errorf("Expected match: pattern=%q input=%q", tc.wildcard, input)
+			}
+		}
+
+		for _, input := range tc.nomatch {
+			if re.MatchString(input) {
+				t.Errorf("Expected no match: pattern=%q input=%q", tc.wildcard, input)
+			}
+		}
+	}
+}
 
 func TestGetPathToEnumerateFrom(t *testing.T) {
 	tests := []struct {

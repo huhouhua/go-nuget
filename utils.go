@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -23,30 +24,30 @@ type SearchPathResult struct {
 }
 
 // wildcardToRegex converts a wildcard string to a regular expression.
-func wildcardToRegex(wildcard string) (*regexp.Regexp, error) {
-	// Escape all special characters in the wildcard
-	str := regexp.QuoteMeta(wildcard)
+func wildcardToRegex(wildcard string) *regexp.Regexp {
+	// 转义所有正则特殊字符
+	escaped := regexp.QuoteMeta(wildcard)
 
-	// Replace the wildcard patterns with appropriate regex equivalents
-	if string(filepath.Separator) != "/" {
-		// For non-unix-like file systems (Windows)
-		str = "^" + strings.ReplaceAll(str, "/", "\\\\")
-		str = strings.Replace(str, "\\.\\*\\*", "\\.[^\\\\.]*", -1)
-		str = strings.Replace(str, "\\*\\*\\\\", "(\\\\\\\\)?([^\\\\]+\\\\)*?", -1)
-		str = strings.Replace(str, "\\*\\*", ".*", -1)
-		str = strings.Replace(str, "\\*", "[^\\\\]*(\\\\)?", -1)
-		str = strings.Replace(str, "\\?", ".", -1)
+	var pattern string
+	if os.PathSeparator != '/' {
+		pattern = strings.ReplaceAll(escaped, "/", "\\\\")
+		pattern = strings.ReplaceAll(pattern, "\\.\\*\\*", "\\.[^\\\\.]*")
+		pattern = strings.ReplaceAll(pattern, "\\*\\*\\\\", `(\\\\)?([^\\\\]+\\\\)*?`)
+		pattern = strings.ReplaceAll(pattern, "\\*\\*", ".*")
+		pattern = strings.ReplaceAll(pattern, "\\*", `[^\\\\]*(\\\\)?`)
+		pattern = strings.ReplaceAll(pattern, "\\?", ".")
 	} else {
-		// For unix-like file systems
-		str = "^" + strings.ReplaceAll(str, "/", "/?([^/]+/)*?")
-		str = strings.Replace(str, "\\.\\*\\*", "\\.[^/.]*", -1)
-		str = strings.Replace(str, "\\*\\*", ".*", -1)
-		str = strings.Replace(str, "\\*", "[^/]*(/)?", -1)
-		str = strings.Replace(str, "\\?", ".", -1) + "$"
+		pattern = strings.ReplaceAll(escaped, "\\.\\*\\*", "\\.[^/.]*")
+		pattern = strings.ReplaceAll(pattern, "\\*\\*/", "/?([^/]+/)*?")
+		pattern = strings.ReplaceAll(pattern, "\\*\\*", ".*")
+		pattern = strings.ReplaceAll(pattern, "\\*", `[^/]*(/)?`)
+		pattern = strings.ReplaceAll(pattern, "\\?", ".")
 	}
 
-	// Compile the regular expression with appropriate options
-	return regexp.MustCompile(str), nil
+	finalPattern := "^" + pattern + "$"
+	// 编译正则表达式，使用 `(?i)` 前缀实现不区分大小写（等效于 RegexOptions.IgnoreCase）
+	re := regexp.MustCompile(`(?i)` + finalPattern)
+	return re
 }
 
 // getPathToEnumerateFrom determines the path to enumerate from based on the base path and search path.
