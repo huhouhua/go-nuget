@@ -50,6 +50,72 @@ func wildcardToRegex(wildcard string) *regexp.Regexp {
 	return re
 }
 
+// PerformWildcardSearch searches for files and optionally empty directories
+// matching the wildcard pattern.
+//func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirectories bool) ([]SearchPathResult, string, error) {
+//	flag1 := false
+//	if isDirectoryPath(searchPath) {
+//		searchPath = filepath.Join(searchPath, "**", "*")
+//		flag1 = true
+//	}
+//
+//	basePath, searchPath = normalizeBasePath(basePath, searchPath)
+//	normalizedBasePath := GetPathToEnumerateFrom(basePath, searchPath)
+//	searchRegex := WildcardToRegex(filepath.Join(basePath, searchPath))
+//
+//	searchOption := filepath.Walk
+//	if !strings.Contains(searchPath, "**") && !strings.Contains(filepath.Dir(searchPath), "*") {
+//		// Only top directory
+//		searchOption = func(root string, walkFn filepath.WalkFunc) error {
+//			entries, err := os.ReadDir(root)
+//			if err != nil {
+//				return err
+//			}
+//			for _, entry := range entries {
+//				info, err := entry.Info()
+//				if err != nil {
+//					return err
+//				}
+//				err = walkFn(filepath.Join(root, entry.Name()), info, nil)
+//				if err != nil {
+//					return err
+//				}
+//			}
+//			return nil
+//		}
+//	}
+//
+//	var results []SearchPathResult
+//	err := searchOption(normalizedBasePath, func(path string, info os.FileInfo, err error) error {
+//		if err != nil {
+//			return err
+//		}
+//		relPath, err := filepath.Rel(basePath, path)
+//		if err != nil {
+//			return err
+//		}
+//		if searchRegex.MatchString(filepath.Join(basePath, relPath)) {
+//			if info.IsDir() {
+//				if includeEmptyDirectories && IsEmptyDirectory(path) {
+//					results = append(results, SearchPathResult{Path: path, IsFile: false})
+//				}
+//			} else {
+//				results = append(results, SearchPathResult{Path: path, IsFile: true})
+//			}
+//		}
+//		return nil
+//	})
+//	if err != nil {
+//		return nil, "", err
+//	}
+//
+//	if flag1 && isDirectoryPath(normalizedBasePath) {
+//		results = append(results, SearchPathResult{Path: normalizedBasePath, IsFile: false})
+//	}
+//
+//	return results, normalizedBasePath, nil
+//}
+
 // getPathToEnumerateFrom determines the path to enumerate from based on the base path and search path.
 func getPathToEnumerateFrom(basePath, searchPath string) (string, error) {
 	// Find the index of the first '*' character, which indicates the wildcard
@@ -125,4 +191,31 @@ func EnsurePackageExtension(packagePath string, isSnupkg bool) string {
 	}
 
 	return packagePath
+}
+
+func isDirectoryPath(path string) bool {
+	if len(path) <= 1 {
+		return path == "/" || path == "\\"
+	}
+	lastChar := path[len(path)-1]
+	return lastChar == '/' || lastChar == '\\'
+}
+
+// IsEmptyDirectory checks if the given directory is empty.
+func isEmptyDirectory(directory string) (bool, error) {
+	// Open the directory
+	dir, err := os.Open(directory)
+	if err != nil {
+		return false, err
+	}
+	defer dir.Close()
+
+	// Read the directory entries
+	entries, err := dir.Readdirnames(0) // 0 means read all entries
+	if err != nil {
+		return false, err
+	}
+
+	// If the length of entries is 0, then the directory is empty
+	return len(entries) == 0, nil
 }

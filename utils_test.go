@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"github.com/stretchr/testify/require"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -200,6 +201,106 @@ func TestNormalizeBasePath(t *testing.T) {
 	}
 }
 
+func TestIsDirectoryPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected bool
+	}{
+		{
+			name:     "Unix-style directory",
+			path:     "/usr/local/",
+			expected: true,
+		},
+		{
+			name:     "Unix-style file",
+			path:     "/usr/local",
+			expected: false,
+		},
+		{
+			name:     "Windows-style directory",
+			path:     "C:\\Program Files\\",
+			expected: true,
+		},
+		{
+			name:     "Windows-style file",
+			path:     "C:\\Program Files",
+			expected: false,
+		},
+		{
+			name:     "empty string",
+			path:     "",
+			expected: false,
+		},
+		{
+			name:     "root directory",
+			path:     "/",
+			expected: true,
+		},
+		{
+			name:     "mixed Windows path with forward slashes",
+			path:     "C:/Windows/System32/",
+			expected: true,
+		},
+		{
+			name:     "no trailing slash",
+			path:     "C:/Windows/System32",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isDirectoryPath(tt.path)
+			if result != tt.expected {
+				t.Errorf("isDirectoryPath(%q) = %v; expected %v", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIsEmptyDirectory(t *testing.T) {
+	// Test 1: Empty directory
+	emptyDir := createTestDirectory(t, "emptyDir", []string{})
+	defer os.RemoveAll(emptyDir)
+
+	t.Run("Empty directory", func(t *testing.T) {
+		empty, err := isEmptyDirectory(emptyDir)
+		if err != nil {
+			t.Fatalf("Error occurred: %v", err)
+		}
+		if !empty {
+			t.Errorf("Expected directory to be empty, but it was not")
+		}
+	})
+
+	// Test 2: Directory with files
+	dirWithFiles := createTestDirectory(t, "dirWithFiles", []string{"file1.txt", "file2.txt"})
+	defer os.RemoveAll(dirWithFiles)
+
+	t.Run("Directory with files", func(t *testing.T) {
+		empty, err := isEmptyDirectory(dirWithFiles)
+		if err != nil {
+			t.Fatalf("Error occurred: %v", err)
+		}
+		if empty {
+			t.Errorf("Expected directory to have files, but it was empty")
+		}
+	})
+
+	// Test 3: Non-existent directory
+	t.Run("Non-existent directory", func(t *testing.T) {
+		nonExistentDir := "/path/to/nonexistent/directory"
+		empty, err := isEmptyDirectory(nonExistentDir)
+		if err == nil {
+			t.Fatalf("Expected error for non-existent directory, but got nil")
+		}
+		if empty {
+			t.Errorf("Expected error, but directory was considered empty")
+		}
+	})
+}
+
 // Helper to make absolute path in test cases
 func mustAbs(path string) string {
 	abs, err := filepath.Abs(path)
@@ -207,4 +308,27 @@ func mustAbs(path string) string {
 		panic(err)
 	}
 	return abs
+}
+
+// Helper function to create a temporary directory and files for testing
+func createTestDirectory(t *testing.T, dirName string, files []string) string {
+	dirPath := filepath.Join(t.TempDir(), dirName)
+
+	// Create the directory
+	err := os.MkdirAll(dirPath, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
+
+	// Create the files in the directory
+	for _, file := range files {
+		filePath := filepath.Join(dirPath, file)
+		f, err := os.Create(filePath)
+		if err != nil {
+			t.Fatalf("Failed to create file in test directory: %v", err)
+		}
+		f.Close()
+	}
+
+	return dirPath
 }
