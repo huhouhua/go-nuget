@@ -10,10 +10,6 @@ import (
 	"strings"
 )
 
-var (
-	All = NewVersionRange(nil, nil, true, true)
-)
-
 type NuGetVersion struct {
 	*semver.Version
 }
@@ -40,22 +36,6 @@ type VersionRange struct {
 	// Float indicates the floating behavior of the version range
 	Float FloatBehavior
 }
-
-// FloatBehavior represents how version floating should behave
-type FloatBehavior int
-
-const (
-	// None means no floating behavior
-	None FloatBehavior = iota
-	// Prerelease allows floating to prerelease versions
-	Prerelease
-	// Patch allows floating to patch versions
-	Patch
-	// Minor allows floating to minor versions
-	Minor
-	// Major allows floating to major versions
-	Major
-)
 
 // ParseVersionRange parses a version range string into a VersionRange
 // Examples:

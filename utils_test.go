@@ -372,10 +372,8 @@ func TestIsEmptyDirectory(t *testing.T) {
 	defer os.RemoveAll(emptyDir)
 
 	t.Run("Empty directory", func(t *testing.T) {
-		empty, err := isEmptyDirectory(emptyDir)
-		if err != nil {
-			t.Fatalf("Error occurred: %v", err)
-		}
+		empty := isEmptyDirectory(emptyDir)
+
 		if !empty {
 			t.Errorf("Expected directory to be empty, but it was not")
 		}
@@ -386,10 +384,7 @@ func TestIsEmptyDirectory(t *testing.T) {
 	defer os.RemoveAll(dirWithFiles)
 
 	t.Run("Directory with files", func(t *testing.T) {
-		empty, err := isEmptyDirectory(dirWithFiles)
-		if err != nil {
-			t.Fatalf("Error occurred: %v", err)
-		}
+		empty := isEmptyDirectory(dirWithFiles)
 		if empty {
 			t.Errorf("Expected directory to have files, but it was empty")
 		}
@@ -398,10 +393,8 @@ func TestIsEmptyDirectory(t *testing.T) {
 	// Test 3: Non-existent directory
 	t.Run("Non-existent directory", func(t *testing.T) {
 		nonExistentDir := "/path/to/nonexistent/directory"
-		empty, err := isEmptyDirectory(nonExistentDir)
-		if err == nil {
-			t.Fatalf("Expected error for non-existent directory, but got nil")
-		}
+		empty := isEmptyDirectory(nonExistentDir)
+
 		if empty {
 			t.Errorf("Expected error, but directory was considered empty")
 		}

@@ -10,25 +10,6 @@ import (
 	"net/http"
 )
 
-// SearchFilterType The type of filter to apply to the search.
-type SearchFilterType int
-
-type SearchOrderBy int
-
-const (
-	// IsLatestVersion Only select the latest stable version of a package per package ID. Given the server supports IsAbsoluteLatestVersion,
-	//a package that is IsLatestVersion should never be prerelease. Also, it does not make sense to
-	//look for a IsLatestVersion package when also including prerelease.
-	IsLatestVersion SearchFilterType = iota
-
-	// IsAbsoluteLatestVersion Only select the absolute latest version of a package per package ID.
-	// It does not make sense to look for a IsAbsoluteLatestVersion when excluding prerelease.
-	IsAbsoluteLatestVersion SearchFilterType = iota
-
-	// Id Order the resulting packages by package ID.
-	Id SearchOrderBy = 3
-)
-
 type PackageSearchResource struct {
 	client *Client
 }

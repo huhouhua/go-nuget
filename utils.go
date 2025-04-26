@@ -6,15 +6,12 @@ package nuget
 
 import (
 	"errors"
+	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-)
-
-const (
-	PackageExtension = ".nupkg"
-	SnupkgExtension  = ".snupkg"
 )
 
 // SearchPathResult stores the result of a search, including the file path and whether it is a file
@@ -25,7 +22,7 @@ type SearchPathResult struct {
 
 // wildcardToRegex converts a wildcard string to a regular expression.
 func wildcardToRegex(wildcard string) *regexp.Regexp {
-	// 转义所有正则特殊字符
+	// Escape all regular special characters
 	escaped := regexp.QuoteMeta(wildcard)
 
 	var pattern string
@@ -45,7 +42,7 @@ func wildcardToRegex(wildcard string) *regexp.Regexp {
 	}
 
 	finalPattern := "^" + pattern + "$"
-	// 编译正则表达式，使用 `(?i)` 前缀实现不区分大小写（等效于 RegexOptions.IgnoreCase）
+	// Compile regular expressions to be case-insensitive using the `(?i)` prefix (equivalent to RegexOptions.IgnoreCase)
 	re := regexp.MustCompile(`(?i)` + finalPattern)
 	return re
 }
@@ -94,10 +91,8 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 		if searchRegex.MatchString(path) {
 			if d.IsDir() {
 				// If it's a directory, check if we should include empty directories
-				if includeEmptyDirs {
-					if ok, _ := isEmptyDirectory(path); ok {
-						results = append(results, SearchPathResult{Path: path, IsFile: false})
-					}
+				if ok := isEmptyDirectory(path); ok && includeEmptyDirs {
+					results = append(results, SearchPathResult{Path: path, IsFile: false})
 				}
 			} else {
 				// If it's a file, include it in the results
@@ -114,10 +109,8 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 	}
 
 	// If flag1 is true and the normalized base path is empty, include the base path as a result
-	if flag1 {
-		if ok, _ := isEmptyDirectory(normalizedBasePath); ok {
-			results = append(results, SearchPathResult{Path: normalizedBasePath, IsFile: false})
-		}
+	if ok := isEmptyDirectory(normalizedBasePath); ok && flag1 {
+		results = append(results, SearchPathResult{Path: normalizedBasePath, IsFile: false})
 	}
 	return results, normalizedBasePath, nil
 }
@@ -170,6 +163,25 @@ func normalizeBasePath(basePath string, searchPath *string) string {
 
 }
 
+// resolvePackageFromPath Resolves a package path into a list of paths.
+// If the path contains wildcards then the path is expanded to all matching entries.
+func resolvePackageFromPath(packagePath string, isSnupkg bool) ([]string, error) {
+	packagePath = EnsurePackageExtension(packagePath, isSnupkg)
+	dir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	results, _, err := PerformWildcardSearch(dir, packagePath, false)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, cap(results))
+	for _, item := range results {
+		paths = append(paths, item.Path)
+	}
+	return paths, nil
+}
+
 // EnsurePackageExtension Ensure any wildcards in packagePath end with *.nupkg or *.snupkg.
 func EnsurePackageExtension(packagePath string, isSnupkg bool) string {
 	// If packagePath doesn't contain '*' and already ends with .nupkg or .snupkg, return the path as is
@@ -208,20 +220,39 @@ func isDirectoryPath(path string) bool {
 }
 
 // isEmptyDirectory checks if the given directory is empty.
-func isEmptyDirectory(directory string) (bool, error) {
+func isEmptyDirectory(directory string) bool {
 	// Open the directory
 	dir, err := os.Open(directory)
 	if err != nil {
-		return false, err
+		log.Printf("open this %s fatal ", directory)
+		return false
 	}
 	defer dir.Close()
 
 	// Read the directory entries
 	entries, err := dir.Readdirnames(0) // 0 means read all entries
 	if err != nil {
-		return false, err
+		log.Printf("Read the %s directory entries fatal ", directory)
+		return false
 	}
 
 	// If the length of entries is 0, then the directory is empty
-	return len(entries) == 0, nil
+	return len(entries) == 0
+}
+
+// createSourceUri Same as "new Uri" except that it can handle UNIX style paths that start with '/'
+func createSourceUri(source string) (*url.URL, error) {
+	source = fixSourceURI(source)
+	return url.Parse(source)
+}
+
+func fixSourceURI(source string) string {
+	if filepath.Separator == '/' && source != "" && strings.HasPrefix(source, "/") {
+		source = "file://" + source
+	}
+	return source
+}
+
+func isSourceNuGetSymbolServer(source *url.URL) bool {
+	return source.Host == NuGetSymbolHostName
 }
