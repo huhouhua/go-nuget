@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+// PackageUpdateResource Contains logics to push or delete packages in Http server or file system
 type PackageUpdateResource struct {
 	client *Client
 }

@@ -16,8 +16,10 @@ import (
 
 // SearchPathResult stores the result of a search, including the file path and whether it is a file
 type SearchPathResult struct {
-	Path   string // Path to the file or directory
-	IsFile bool   // True if it's a file, false if it's a directory
+	// Path to the file or directory
+	Path string
+	// IsFile True if it's a file, false if it's a directory
+	IsFile bool
 }
 
 // wildcardToRegex converts a wildcard string to a regular expression.
