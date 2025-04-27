@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -195,20 +196,19 @@ func EnsurePackageExtension(packagePath string, isSnupkg bool) string {
 
 	// If packagePath ends with "**", we modify it by adding "*"
 	if strings.HasSuffix(packagePath, "**") {
-
 		// Add directory separator and wildcard
-		packagePath = packagePath + string(filepath.Separator) + "*"
+		packagePath = fmt.Sprintf("%s%s%s", packagePath, string(filepath.Separator), "*")
 
 	} else if !strings.HasSuffix(packagePath, "*") {
 		// If it doesn't end with "*", append "*" at the end
-		packagePath += "*"
+		packagePath = fmt.Sprintf("%s%s", packagePath, "*")
 	}
 
 	// Add the appropriate extension based on isSnupkg
 	if isSnupkg {
-		packagePath += SnupkgExtension
+		packagePath = fmt.Sprintf("%s%s", packagePath, SnupkgExtension)
 	} else {
-		packagePath += PackageExtension
+		packagePath = fmt.Sprintf("%s%s", packagePath, PackageExtension)
 	}
 
 	return packagePath
@@ -260,6 +260,7 @@ func isSourceNuGetSymbolServer(source *url.URL) bool {
 	return source.Host == NuGetSymbolHostName
 }
 
+// pathCombine combines an array of strings into a path.
 func pathCombine(paths ...string) string {
 	if len(paths) == 0 {
 		return ""
@@ -283,4 +284,33 @@ func pathCombine(paths ...string) string {
 		}
 	}
 	return combinedPath
+}
+
+// getFileNameWithoutExtension returns the file name of the specified path string without the extension.
+func getFileNameWithoutExtension(path string) string {
+	newPath := path
+	if strings.Contains(newPath, ":\\") {
+		p := strings.Split(newPath, "\\")
+		newPath = p[len(p)-1]
+	} else if strings.Contains(newPath, ":/") {
+		p := strings.Split(newPath, "/")
+		newPath = p[len(p)-1]
+	}
+	// Get the file name
+	fileName := filepath.Base(newPath)
+	// Remove the extension name
+	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
+}
+
+// GetSymbolsPath Get the symbols package from the original package. Removes the .nupkg and adds .snupkg or .symbols. nupkg.
+func GetSymbolsPath(packagePath string, isSnupkg bool) string {
+	symbolPath := getFileNameWithoutExtension(packagePath)
+	if isSnupkg {
+		symbolPath = fmt.Sprintf("%s%s", symbolPath, SnupkgExtension)
+	} else {
+		symbolPath = fmt.Sprintf("%s%s", symbolPath, SymbolsExtension)
+	}
+	packageDir := filepath.Dir(packagePath)
+
+	return pathCombine(packageDir, symbolPath)
 }

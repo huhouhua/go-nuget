@@ -51,14 +51,17 @@ func (p *PackageUpdateResource) Push(opt *PushOptions, options ...RequestOptionF
 	if err != nil {
 		return nil, err
 	}
-	symbolUrl, err := p.getResourceUrl(SymbolPackagePublish)
-	if err != nil {
-		return nil, err
+	symbolUrl := &url.URL{}
+	if opt.SymbolSource != "" {
+		symbolUrl, err = createSourceUri(opt.SymbolSource)
+		if err != nil {
+			return nil, err
+		}
 	}
 	go func() {
 		for _, path := range opt.PackagePaths {
 			if !strings.HasSuffix(path, SnupkgExtension) {
-				resp, err := p.pushPackagePath(opt, path, packageUrl, options...)
+				resp, err := p.pushPackagePath(opt, path, packageUrl, symbolUrl, options...)
 				if err != nil {
 					resultChan <- &resultContext{
 						Resp:  resp,
@@ -70,8 +73,15 @@ func (p *PackageUpdateResource) Push(opt *PushOptions, options ...RequestOptionF
 				// symbolSource is only set when:
 				// - The user specified it on the command line
 				// - The endpoint for main package supports pushing snupkgs
-
-				fmt.Println(symbolUrl.Host)
+				if strings.TrimSpace(opt.SymbolSource) != "" {
+					resp, err := p.pushWithSymbol(opt, path, symbolUrl, options...)
+					if err != nil {
+						resultChan <- &resultContext{
+							Resp:  resp,
+							Error: err,
+						}
+					}
+				}
 			}
 		}
 		// execution completed
@@ -100,7 +110,7 @@ func (p *PackageUpdateResource) getResourceUrl(value ServiceType) (*url.URL, err
 }
 
 // pushPackagePath Push nupkgs, and if successful, push any corresponding symbols.
-func (p *PackageUpdateResource) pushPackagePath(opt *PushOptions, path string, sourceUri *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) pushPackagePath(opt *PushOptions, path string, sourceUri, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
 	paths, err := resolvePackageFromPath(path, false)
 	if err != nil {
 		return nil, err
@@ -112,9 +122,21 @@ func (p *PackageUpdateResource) pushPackagePath(opt *PushOptions, path string, s
 	if p.client.apiKey == "" && sourceUri.Scheme != "file" {
 		return nil, fmt.Errorf("api key is required")
 	}
-	//var alreadyWarnedSymbolServerNotConfigured, warnForHttpSources = false, true
 	for _, nupkgToPush := range paths {
 		resp, err := p.pushPackageCore(nupkgToPush, sourceUri, opt, options...)
+		if err != nil {
+			return resp, err
+		}
+		// If the package was pushed successfully, push the symbol package.
+		if strings.TrimSpace(opt.SymbolSource) == "" {
+			continue
+		}
+		symbolPackagePath := GetSymbolsPath(nupkgToPush, opt.IsSnupkg)
+		_, err = os.Stat(symbolPackagePath)
+		if !os.IsNotExist(err) {
+			continue
+		}
+		resp, err = p.pushPackageCore(symbolPackagePath, symbolUrl, opt, options...)
 		if err != nil {
 			return resp, err
 		}
@@ -123,10 +145,6 @@ func (p *PackageUpdateResource) pushPackagePath(opt *PushOptions, path string, s
 }
 
 func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri *url.URL, opt *PushOptions, options ...RequestOptionFunc) (*http.Response, error) {
-	//sourceUri, err := createSourceUri(sourceUri.String())
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	log.Printf("push package %s to %s", filepath.Base(packageToPush), sourceUri.Path)
 
@@ -140,15 +158,39 @@ func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri 
 func (p *PackageUpdateResource) pushPackageToServer(sourceUri *url.URL, packageToPush string, options ...RequestOptionFunc) (*http.Response, error) {
 	if isSourceNuGetSymbolServer(sourceUri) {
 		// TODO: push to symbol server
+		// https://nuget.smbsrc.net/
 		return nil, nil
 	}
 	return p.push(sourceUri.Path, packageToPush, options...)
 }
 
 // https://nuget.smbsrc.net/
-func (p *PackageUpdateResource) pushWithSymbol() {
+func (p *PackageUpdateResource) pushWithSymbol(opt *PushOptions, path string, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
 
+	// Get the symbol package for this package
+	symbolPackagePath := GetSymbolsPath(path, opt.IsSnupkg)
+
+	paths, err := resolvePackageFromPath(symbolPackagePath, opt.IsSnupkg)
+	if err != nil {
+		return nil, err
+	}
+	// No files were resolved.
+	if paths == nil || len(paths) == 0 {
+		return nil, fmt.Errorf("unable to find file %s", path)
+	}
+	// See if the api key exists
+	if p.client.apiKey == "" && symbolUrl.Scheme != "file" {
+		log.Printf("warning symbol server not configured %s", filepath.Base(symbolPackagePath))
+	}
+	for _, packageToPush := range paths {
+		resp, err := p.pushPackageCore(packageToPush, symbolUrl, opt, options...)
+		if err != nil {
+			return resp, err
+		}
+	}
+	return nil, nil
 }
+
 func (p *PackageUpdateResource) push(sourcePath, pathToPackage string, options ...RequestOptionFunc) (*http.Response, error) {
 	file, err := os.Open(pathToPackage)
 	if err != nil {
