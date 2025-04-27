@@ -3,3 +3,46 @@
 // license that can be found in the LICENSE file.
 
 package nuget
+
+import (
+	"fmt"
+	"github.com/stretchr/testify/require"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestPackageUpdateResource_AllowsApiKeyWhenPushing(t *testing.T) {
+	mux, client := setup(t, "testdata/index.json")
+	baseURL := client.getResourceUrl(PackagePublish)
+	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPut)
+
+		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data;") {
+			t.Fatalf("PackageUpdateResource.Push request content-type %+v want multipart/form-data;", r.Header.Get("Content-Type"))
+		}
+		if r.ContentLength == -1 {
+			t.Fatalf("PackageUpdateResource.Push request content-length is -1")
+		}
+		_, err := fmt.Fprint(w, `{}`)
+		require.NoError(t, err)
+	})
+	tmpDir := t.TempDir()
+	nupkgPath := filepath.Join(tmpDir, "mynuget.nupkg")
+	createFile(t, nupkgPath, "TestPackageUpdateResource_AllowsApiKeyWhenPushing")
+
+	var opt = &PushOptions{
+		PackagePaths:      []string{nupkgPath},
+		TimeoutInDuration: time.Second * 5,
+		DisableBuffering:  false,
+		NoServiceEndpoint: false,
+		SkipDuplicate:     false,
+		SymbolSource:      "",
+	}
+	_, err := client.UpdateResource.Push(opt)
+	if err != nil {
+		t.Fatalf("PackageUpdateResource.Push returns an error: %v", err)
+	}
+}

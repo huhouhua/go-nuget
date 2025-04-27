@@ -56,7 +56,7 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 
 	// Check if the search path is a directory, modify it to include '**/*'
 	if isDirectoryPath(searchPath) {
-		searchPath = filepath.Join(searchPath, "**", "*")
+		searchPath = pathCombine(searchPath, "**", "*")
 		flag1 = true
 	}
 
@@ -66,7 +66,7 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 	if err != nil {
 		return nil, "", err
 	}
-	searchPattern := filepath.Join(basePath, searchPath)
+	searchPattern := pathCombine(basePath, searchPath)
 
 	// Convert wildcard search pattern to regex
 	searchRegex := wildcardToRegex(searchPattern)
@@ -129,7 +129,8 @@ func getPathToEnumerateFrom(basePath, searchPath string) (string, error) {
 		if dirName == "" {
 			return "", errors.New("filepath.Dir(searchPath) returned null")
 		}
-		pathToEnumerateFrom = filepath.Join(basePath, dirName)
+
+		pathToEnumerateFrom = pathCombine(basePath, dirName)
 	} else {
 		// Find the last directory separator before the wildcard
 		lastIndex := strings.LastIndex(searchPath[:startIndex], string(filepath.Separator))
@@ -139,7 +140,7 @@ func getPathToEnumerateFrom(basePath, searchPath string) (string, error) {
 		} else {
 			// Get the part of the path before the wildcard
 			pathPart := searchPath[:lastIndex]
-			pathToEnumerateFrom = filepath.Join(basePath, pathPart)
+			pathToEnumerateFrom = pathCombine(basePath, pathPart)
 		}
 	}
 	return pathToEnumerateFrom, nil
@@ -153,7 +154,7 @@ func normalizeBasePath(basePath string, searchPath *string) string {
 		basePath = str
 	}
 	for strings.HasPrefix(*searchPath, path2) {
-		basePath = filepath.Join(basePath, path2)
+		basePath = pathCombine(basePath, path2)
 		*searchPath = (*searchPath)[len(path2):]
 	}
 	absBasePath, err := filepath.Abs(basePath)
@@ -177,7 +178,7 @@ func resolvePackageFromPath(packagePath string, isSnupkg bool) ([]string, error)
 	if err != nil {
 		return nil, err
 	}
-	paths := make([]string, cap(results))
+	paths := make([]string, 0, len(results))
 	for _, item := range results {
 		paths = append(paths, item.Path)
 	}
@@ -257,4 +258,29 @@ func fixSourceURI(source string) string {
 
 func isSourceNuGetSymbolServer(source *url.URL) bool {
 	return source.Host == NuGetSymbolHostName
+}
+
+func pathCombine(paths ...string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+
+	var combinedPath string
+	for _, path := range paths {
+		// Skip empty paths
+		if path == "" {
+			continue
+		}
+
+		// Detect if the current path is an absolute path
+		isWindowsAbsolute := strings.Contains(path, ":\\") || strings.Contains(path, ":/")
+		if filepath.IsAbs(path) || isWindowsAbsolute {
+			// If it's an absolute path, reset the combinedPath
+			combinedPath = path
+		} else {
+			// Otherwise, join it with the current combined path
+			combinedPath = filepath.Join(combinedPath, path)
+		}
+	}
+	return combinedPath
 }

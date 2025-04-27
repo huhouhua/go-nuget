@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -24,7 +25,7 @@ func setup(t *testing.T, indexPath string) (*http.ServeMux, *Client) {
 	mux, server := createHttpServer(t, indexPath)
 
 	// client is the NuGet client being tested.
-	client, err := NewOAuthClient("",
+	client, err := NewOAuthClient("test_go_nuget_key",
 		WithBaseURL(server.URL),
 		// Disable backoff to speed up tests that expect errors.
 		WithCustomBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
@@ -68,6 +69,44 @@ func mustWriteHTTPResponse(t *testing.T, w io.Writer, fixturePath string) {
 	if _, err = io.Copy(w, f); err != nil {
 		t.Fatalf("error writing response: %v", err)
 	}
+}
+
+// Helper to make absolute path in test cases
+func mustAbs(path string) string {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		panic(err)
+	}
+	return abs
+}
+
+// Helper function to create a temporary directory and files for testing
+func createTestDirectory(t *testing.T, dirName string, files []string) string {
+	dirPath := filepath.Join(t.TempDir(), dirName)
+	createEmptyDir(t, dirPath)
+
+	// Create the files in the directory
+	for _, file := range files {
+		filePath := filepath.Join(dirPath, file)
+		f, err := os.Create(filePath)
+		require.NoErrorf(t, err, "Failed to create file in test directory: %v", err)
+		f.Close()
+	}
+
+	return dirPath
+}
+
+func createFile(t *testing.T, path, data string) {
+	err := os.MkdirAll(filepath.Dir(path), 0755)
+	require.NoError(t, err)
+
+	err = os.WriteFile(path, []byte(data), 0644)
+	require.NoError(t, err)
+}
+
+func createEmptyDir(t *testing.T, path string) {
+	err := os.MkdirAll(path, 0755)
+	require.NoError(t, err)
 }
 
 func TestNewClient(t *testing.T) {

@@ -15,12 +15,12 @@ func TestPerformWildcardSearch(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Setup structure
-	createFile(t, filepath.Join(tmpDir, "file1.txt"))
-	createFile(t, filepath.Join(tmpDir, "file2.log"))
-	createFile(t, filepath.Join(tmpDir, "data.json"))
-	createFile(t, filepath.Join(tmpDir, "a1.txt"))
-	createFile(t, filepath.Join(tmpDir, "sub1", "b.txt"))
-	createFile(t, filepath.Join(tmpDir, "sub2", "c.md"))
+	createFile(t, filepath.Join(tmpDir, "file1.txt"), "file1.txt")
+	createFile(t, filepath.Join(tmpDir, "file2.log"), "file2.log")
+	createFile(t, filepath.Join(tmpDir, "data.json"), "data.json")
+	createFile(t, filepath.Join(tmpDir, "a1.txt"), "a1.txt")
+	createFile(t, filepath.Join(tmpDir, "sub1", "b.txt"), "sub1")
+	createFile(t, filepath.Join(tmpDir, "sub2", "c.md"), "sub2")
 	createEmptyDir(t, filepath.Join(tmpDir, "empty"))
 	createEmptyDir(t, filepath.Join(tmpDir, "sub2", "innerempty"))
 
@@ -399,42 +399,4 @@ func TestIsEmptyDirectory(t *testing.T) {
 			t.Errorf("Expected error, but directory was considered empty")
 		}
 	})
-}
-
-// Helper to make absolute path in test cases
-func mustAbs(path string) string {
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		panic(err)
-	}
-	return abs
-}
-
-// Helper function to create a temporary directory and files for testing
-func createTestDirectory(t *testing.T, dirName string, files []string) string {
-	dirPath := filepath.Join(t.TempDir(), dirName)
-	createEmptyDir(t, dirPath)
-
-	// Create the files in the directory
-	for _, file := range files {
-		filePath := filepath.Join(dirPath, file)
-		f, err := os.Create(filePath)
-		require.NoErrorf(t, err, "Failed to create file in test directory: %v", err)
-		f.Close()
-	}
-
-	return dirPath
-}
-
-func createFile(t *testing.T, path string) {
-	err := os.MkdirAll(filepath.Dir(path), 0755)
-	require.NoError(t, err)
-
-	err = os.WriteFile(path, []byte("test TestPerformWildcardSearch "), 0644)
-	require.NoError(t, err)
-}
-
-func createEmptyDir(t *testing.T, path string) {
-	err := os.MkdirAll(path, 0755)
-	require.NoError(t, err)
 }

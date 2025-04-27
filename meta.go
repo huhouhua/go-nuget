@@ -240,6 +240,7 @@ func (p *PackageMetadataResource) configureMetadataUrl(catalogEntry *PackageSear
 	reportAbuseUrl := p.client.getResourceUrl(ReportAbuseUriTemplate)
 	detailUrl := p.client.getResourceUrl(PackageDetailsUriTemplate)
 	readmeUrl := p.client.getResourceUrl(ReadmeUriTemplate)
+
 	return ApplyMetadataRegistration(catalogEntry,
 		WithReportAbuseUrl(reportAbuseUrl),
 		WithPackageDetailsUrl(detailUrl),
