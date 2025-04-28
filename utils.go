@@ -314,3 +314,30 @@ func GetSymbolsPath(packagePath string, isSnupkg bool) string {
 
 	return pathCombine(packageDir, symbolPath)
 }
+
+// getServiceEndpointUrl Calculates the URL to the package to.
+func getServiceEndpointUrl(source, path string, noServiceEndpoint bool) (*url.URL, error) {
+	baseUri, err := ensureTrailingSlash(source)
+	if err != nil {
+		return nil, err
+	}
+	requestUri := ""
+	if strings.TrimSpace(strings.TrimPrefix(baseUri.Path, "/")) != "" && !noServiceEndpoint {
+		if path != "" {
+			requestUri = pathCombine(baseUri.String(), ServiceEndpoint, "/", path)
+		} else {
+			requestUri = pathCombine(baseUri.String(), ServiceEndpoint)
+		}
+	} else {
+		requestUri = pathCombine(baseUri.String(), path)
+	}
+	return url.Parse(requestUri)
+}
+
+// ensureTrailingSlash Ensure a trailing slash at the end
+func ensureTrailingSlash(value string) (*url.URL, error) {
+	if !strings.HasSuffix(value, "/") {
+		value = fmt.Sprintf("%s%s", value, "/")
+	}
+	return createSourceUri(value)
+}

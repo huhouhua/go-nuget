@@ -7,11 +7,13 @@ package nuget
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -21,28 +23,72 @@ type PackageUpdateResource struct {
 	client *Client
 }
 
-type PushOptions struct {
-	PackagePaths []string `json:"packagePaths,omitempty"`
-
-	SymbolSource string `json:"symbolSource,omitempty"`
-
-	TimeoutInDuration time.Duration `json:"TimeoutInDuration"`
-
-	DisableBuffering bool `json:"disableBuffering,omitempty"`
-
-	NoServiceEndpoint bool `json:"noServiceEndpoint"`
-
-	SkipDuplicate bool `json:"skipDuplicate"`
-
-	IsSnupkg bool `json:"isSnupkg"`
-}
-
 type resultContext struct {
 	Resp  *http.Response
 	Error error
 }
 
-func (p *PackageUpdateResource) Push(opt *PushOptions, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOptionFunc) (*http.Response, error) {
+	baseURL, err := p.getResourceUrl(PackagePublish)
+	if err != nil {
+		return nil, err
+	}
+	sourceUri, err := getServiceEndpointUrl(baseURL.String(), "", false)
+	if err != nil {
+		return nil, err
+	}
+	if sourceUri.Scheme == "file" {
+		return nil, fmt.Errorf("no support file system delete")
+	}
+	u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape(id), PathEscape(version))
+	req, err := p.client.NewRequest(http.MethodDelete, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+	return p.client.Do(req, nil, DecoderEmpty)
+}
+
+type PushPackageOptions struct {
+	SymbolSource string `json:"symbolSource,omitempty"`
+
+	TimeoutInDuration time.Duration `json:"TimeoutInDuration"`
+
+	IsSnupkg bool `json:"isSnupkg"`
+}
+
+func (p *PackageUpdateResource) PushWithStream(packageStream io.Reader, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
+	tempDir := os.TempDir()
+	extension := PackageExtension
+	if opt.IsSnupkg {
+		extension = SnupkgExtension
+	}
+	millis := time.Now().UnixNano() / int64(time.Millisecond)
+	fileName := fmt.Sprintf("%s%s", "package", extension)
+	tempFilePath := filepath.Join(tempDir, "_nuget", strconv.FormatInt(millis, 10), fileName)
+
+	err := os.MkdirAll(filepath.Dir(tempFilePath), 0755)
+	if err != nil {
+		return nil, err
+	}
+	fileInfo, err := os.Create(tempFilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = fileInfo.Close()
+		_ = os.RemoveAll(filepath.Dir(tempFilePath))
+	}()
+	if _, err = io.Copy(fileInfo, packageStream); err != nil {
+		return nil, err
+	}
+	return p.Push([]string{tempFilePath}, opt, options...)
+}
+
+func (p *PackageUpdateResource) PushSingle(packagePath string, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
+	return p.Push([]string{packagePath}, opt, options...)
+}
+
+func (p *PackageUpdateResource) Push(packagePaths []string, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), opt.TimeoutInDuration)
 	defer cancel()
 	resultChan := make(chan *resultContext)
@@ -59,7 +105,7 @@ func (p *PackageUpdateResource) Push(opt *PushOptions, options ...RequestOptionF
 		}
 	}
 	go func() {
-		for _, path := range opt.PackagePaths {
+		for _, path := range packagePaths {
 			if !strings.HasSuffix(path, SnupkgExtension) {
 				resp, err := p.pushPackagePath(opt, path, packageUrl, symbolUrl, options...)
 				if err != nil {
@@ -69,7 +115,6 @@ func (p *PackageUpdateResource) Push(opt *PushOptions, options ...RequestOptionF
 					}
 				}
 			} else {
-				// TODO: explicit snupkg push
 				// symbolSource is only set when:
 				// - The user specified it on the command line
 				// - The endpoint for main package supports pushing snupkgs
@@ -110,7 +155,7 @@ func (p *PackageUpdateResource) getResourceUrl(value ServiceType) (*url.URL, err
 }
 
 // pushPackagePath Push nupkgs, and if successful, push any corresponding symbols.
-func (p *PackageUpdateResource) pushPackagePath(opt *PushOptions, path string, sourceUri, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) pushPackagePath(opt *PushPackageOptions, path string, sourceUri, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
 	paths, err := resolvePackageFromPath(path, false)
 	if err != nil {
 		return nil, err
@@ -132,8 +177,7 @@ func (p *PackageUpdateResource) pushPackagePath(opt *PushOptions, path string, s
 			continue
 		}
 		symbolPackagePath := GetSymbolsPath(nupkgToPush, opt.IsSnupkg)
-		_, err = os.Stat(symbolPackagePath)
-		if !os.IsNotExist(err) {
+		if _, err = os.Stat(symbolPackagePath); !os.IsNotExist(err) {
 			continue
 		}
 		resp, err = p.pushPackageCore(symbolPackagePath, symbolUrl, opt, options...)
@@ -144,28 +188,18 @@ func (p *PackageUpdateResource) pushPackagePath(opt *PushOptions, path string, s
 	return nil, nil
 }
 
-func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri *url.URL, opt *PushOptions, options ...RequestOptionFunc) (*http.Response, error) {
-
+func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri *url.URL, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
 	log.Printf("push package %s to %s", filepath.Base(packageToPush), sourceUri.Path)
 
+	// TODO: file system push
 	if sourceUri.Scheme == "file" {
-		// TODO: file system push
-		return nil, nil
-	}
-	return p.pushPackageToServer(sourceUri, packageToPush, options...)
-}
-
-func (p *PackageUpdateResource) pushPackageToServer(sourceUri *url.URL, packageToPush string, options ...RequestOptionFunc) (*http.Response, error) {
-	if isSourceNuGetSymbolServer(sourceUri) {
-		// TODO: push to symbol server
-		// https://nuget.smbsrc.net/
-		return nil, nil
+		return nil, fmt.Errorf("no support file system push")
 	}
 	return p.push(sourceUri.Path, packageToPush, options...)
 }
 
 // https://nuget.smbsrc.net/
-func (p *PackageUpdateResource) pushWithSymbol(opt *PushOptions, path string, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path string, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
 
 	// Get the symbol package for this package
 	symbolPackagePath := GetSymbolsPath(path, opt.IsSnupkg)
