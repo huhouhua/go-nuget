@@ -305,7 +305,7 @@ func (c *Client) NewRequest(method, path string, baseUrl *url.URL, opt interface
 
 	// Set the encoded path data
 	u.RawPath = c.baseURL.Path + path
-	u.Path = c.baseURL.Path + unescaped
+	u.Path = pathCombine(c.baseURL.Path, unescaped)
 
 	// Create a request specific headers map.
 	reqHeaders := make(http.Header)
@@ -361,8 +361,11 @@ func (c *Client) NewRequest(method, path string, baseUrl *url.URL, opt interface
 // URL of the Client. Relative URL paths should always be specified without
 // a preceding slash. If specified, the value pointed to by body is JSON
 // encoded and included as the request body.
-func (c *Client) UploadRequest(method, path string, content io.Reader, filename string, opt interface{}, options []RequestOptionFunc) (*retryablehttp.Request, error) {
+func (c *Client) UploadRequest(method, path string, baseUrl *url.URL, content io.Reader, fileType, filename string, opt interface{}, options []RequestOptionFunc) (*retryablehttp.Request, error) {
 	u := *c.baseURL
+	if baseUrl != nil {
+		u = *baseUrl
+	}
 	unescaped, err := url.PathUnescape(path)
 	if err != nil {
 		return nil, err
@@ -370,12 +373,12 @@ func (c *Client) UploadRequest(method, path string, content io.Reader, filename 
 
 	// Set the encoded path data
 	u.RawPath = c.baseURL.Path + path
-	u.Path = c.baseURL.Path + unescaped
+	u.Path = pathCombine(c.baseURL.Path, unescaped)
 
 	// Create a request specific headers map.
 	reqHeaders := make(http.Header)
 	reqHeaders.Set("Accept", "application/json")
-
+	reqHeaders.Set("Transfer-Encoding", "chunked")
 	if c.UserAgent != "" {
 		reqHeaders.Set("User-Agent", c.UserAgent)
 	}
@@ -383,7 +386,7 @@ func (c *Client) UploadRequest(method, path string, content io.Reader, filename 
 	b := new(bytes.Buffer)
 	w := multipart.NewWriter(b)
 
-	fw, err := w.CreateFormFile("file", filename)
+	fw, err := w.CreateFormFile(fileType, filename)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +450,7 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}, decoder DecoderTy
 	// Set the correct authentication header. If using basic auth, then check
 	// if we already have a token and if not first authenticate and get one.
 	if values := req.Header.Values("X-NuGet-ApiKey"); len(values) == 0 {
-		req.Header.Set("JOB-TOKEN", c.apiKey)
+		req.Header.Set("X-NuGet-ApiKey", c.apiKey)
 	}
 
 	resp, err := c.client.Do(req)
@@ -578,14 +581,12 @@ func CheckResponse(r *http.Response) error {
 	}
 
 	errorResponse := &ErrorResponse{Response: r}
-
 	data, err := io.ReadAll(r.Body)
 	if err == nil && strings.TrimSpace(string(data)) != "" {
 		errorResponse.Body = data
-
 		var raw interface{}
 		if err := json.Unmarshal(data, &raw); err != nil {
-			errorResponse.Message = fmt.Sprintf("failed to parse unknown error format: %s", data)
+			errorResponse.Message = fmt.Sprintf("failed to parse unknown error format: %s %s", data, r.Status)
 		} else {
 			errorResponse.Message = parseError(raw)
 		}

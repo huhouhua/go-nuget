@@ -195,7 +195,7 @@ func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri 
 	if sourceUri.Scheme == "file" {
 		return nil, fmt.Errorf("no support file system push")
 	}
-	return p.push(sourceUri.Path, packageToPush, options...)
+	return p.push(packageToPush, sourceUri, options...)
 }
 
 // https://nuget.smbsrc.net/
@@ -225,12 +225,12 @@ func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path str
 	return nil, nil
 }
 
-func (p *PackageUpdateResource) push(sourcePath, pathToPackage string, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) push(pathToPackage string, sourceUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
 	file, err := os.Open(pathToPackage)
 	if err != nil {
 		return nil, err
 	}
-	req, err := p.client.UploadRequest(http.MethodPut, sourcePath, file, "package.nupkg", nil, options)
+	req, err := p.client.UploadRequest(http.MethodPut, sourceUrl.Path, sourceUrl, file, "package", "package.nupkg", nil, options)
 	if err != nil {
 		return nil, err
 	}
