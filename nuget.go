@@ -293,8 +293,11 @@ func (c *Client) setBaseURL(urlStr string) error {
 // Relative URL paths should always be specified without a preceding slash.
 // If specified, the value pointed to by body is JSON encoded and included
 // as the request body.
-func (c *Client) NewRequest(method, path string, opt interface{}, options []RequestOptionFunc) (*retryablehttp.Request, error) {
+func (c *Client) NewRequest(method, path string, baseUrl *url.URL, opt interface{}, options []RequestOptionFunc) (*retryablehttp.Request, error) {
 	u := *c.baseURL
+	if baseUrl != nil {
+		u = *baseUrl
+	}
 	unescaped, err := url.PathUnescape(path)
 	if err != nil {
 		return nil, err

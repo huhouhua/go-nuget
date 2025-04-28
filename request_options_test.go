@@ -26,7 +26,7 @@ func TestWithHeader(t *testing.T) {
 	})
 
 	// ensure that X-CUSTOM-HEADER hasn't been set at all
-	req, err := client.NewRequest(http.MethodGet, "/v3/without-header", nil, nil)
+	req, err := client.NewRequest(http.MethodGet, "/v3/without-header", nil, nil, nil)
 	require.NoError(t, err)
 
 	_, err = client.Do(req, nil, DecoderEmpty)
@@ -37,6 +37,7 @@ func TestWithHeader(t *testing.T) {
 		http.MethodGet,
 		"/v3/with-header",
 		nil,
+		nil,
 		[]RequestOptionFunc{WithHeader("X-CUSTOM-HEADER", "randomtokenstring")},
 	)
 	require.NoError(t, err)
@@ -44,7 +45,7 @@ func TestWithHeader(t *testing.T) {
 	_, err = client.Do(req, nil, DecoderEmpty)
 	require.NoError(t, err)
 
-	req, err = client.NewRequest(http.MethodGet, "/v3/without-header", nil, nil)
+	req, err = client.NewRequest(http.MethodGet, "/v3/without-header", nil, nil, nil)
 	require.NoError(t, err)
 
 	_, err = client.Do(req, nil, DecoderEmpty)
@@ -64,14 +65,14 @@ func TestWithHeader(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	req, err = client.NewRequest(http.MethodGet, "/v3/with-header", nil, nil)
+	req, err = client.NewRequest(http.MethodGet, "/v3/with-header", nil, nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, "randomtokenstring", req.Header.Get("X-CUSTOM-HEADER"))
 
 	_, err = client.Do(req, nil, DecoderEmpty)
 	require.NoError(t, err)
 
-	req, err = client.NewRequest(http.MethodGet, "/v3/with-header", nil, nil)
+	req, err = client.NewRequest(http.MethodGet, "/v3/with-header", nil, nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, "randomtokenstring", req.Header.Get("X-CUSTOM-HEADER"))
 
@@ -98,7 +99,7 @@ func TestWithHeaders(t *testing.T) {
 	}
 
 	// ensure that X-CUSTOM-HEADER hasn't been set at all
-	req, err := client.NewRequest(http.MethodGet, "/v3/without-headers", nil, nil)
+	req, err := client.NewRequest(http.MethodGet, "/v3/without-headers", nil, nil, nil)
 	require.NoError(t, err)
 
 	_, err = client.Do(req, nil, DecoderEmpty)
@@ -109,6 +110,7 @@ func TestWithHeaders(t *testing.T) {
 		http.MethodGet,
 		"/v3/with-headers",
 		nil,
+		nil,
 		[]RequestOptionFunc{WithHeaders(headers)},
 	)
 	require.NoError(t, err)
@@ -116,7 +118,7 @@ func TestWithHeaders(t *testing.T) {
 	_, err = client.Do(req, nil, DecoderEmpty)
 	require.NoError(t, err)
 
-	req, err = client.NewRequest(http.MethodGet, "/v3/without-headers", nil, nil)
+	req, err = client.NewRequest(http.MethodGet, "/v3/without-headers", nil, nil, nil)
 	require.NoError(t, err)
 
 	_, err = client.Do(req, nil, DecoderEmpty)
@@ -137,14 +139,14 @@ func TestWithHeaders(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	req, err = client.NewRequest(http.MethodGet, "/v3/with-headers", nil, nil)
+	req, err = client.NewRequest(http.MethodGet, "/v3/with-headers", nil, nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, "randomtokenstring", req.Header.Get("X-CUSTOM-HEADER-1"))
 
 	_, err = client.Do(req, nil, DecoderEmpty)
 	require.NoError(t, err)
 
-	req, err = client.NewRequest(http.MethodGet, "/v3/with-headers", nil, nil)
+	req, err = client.NewRequest(http.MethodGet, "/v3/with-headers", nil, nil, nil)
 	require.NoError(t, err)
 	require.Equal(t, "randomtokenstring", req.Header.Get("X-CUSTOM-HEADER-1"))
 

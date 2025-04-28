@@ -75,11 +75,14 @@ func (v *VersionInfo) ParseVersion() (*NuGetVersion, error) {
 // Search Retrieves search results
 func (p *PackageSearchResource) Search(opt *SearchOptions, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
 	baseURL := p.client.getResourceUrl(SearchQueryService)
-	req, err := p.client.NewRequest(http.MethodGet, baseURL.Path, opt, options)
+	req, err := p.client.NewRequest(http.MethodGet, baseURL.Path, nil, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	req.URL.RawQuery = fmt.Sprintf("%s&semVerLevel=2.0.0", req.URL.RawQuery)
+	fmt.Println(req.URL.String())
+
 	result := V3SearchResult{}
 	resp, err := p.client.Do(req, &result, DecoderTypeJSON)
 	if err != nil {

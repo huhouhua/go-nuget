@@ -41,7 +41,7 @@ func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOpt
 		return nil, fmt.Errorf("no support file system delete")
 	}
 	u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape(id), PathEscape(version))
-	req, err := p.client.NewRequest(http.MethodDelete, u, nil, options)
+	req, err := p.client.NewRequest(http.MethodDelete, u, nil, nil, options)
 	if err != nil {
 		return nil, err
 	}

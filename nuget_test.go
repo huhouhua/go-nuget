@@ -137,7 +137,7 @@ func TestCheckResponseOnHeadRequestError(t *testing.T) {
 		t.Fatalf("Failed to create client: %v", err)
 	}
 
-	req, err := c.NewRequest(http.MethodHead, "test", nil, nil)
+	req, err := c.NewRequest(http.MethodHead, "test", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestRequestWithContext(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	req, err := c.NewRequest(http.MethodGet, "test", nil, []RequestOptionFunc{WithContext(ctx)})
+	req, err := c.NewRequest(http.MethodGet, "test", nil, nil, []RequestOptionFunc{WithContext(ctx)})
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
