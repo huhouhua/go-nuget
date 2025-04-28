@@ -348,3 +348,4 @@ dist
 .note.md
 
 # config files, may contain sensitive information
+/e2e

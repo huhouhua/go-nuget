@@ -75,7 +75,7 @@ func NewFrameworkSpecificGroup(TargetFramework string, items ...string) (*Framew
 	}
 	f := &FrameworkSpecificGroup{
 		TargetFramework: TargetFramework,
-		Items:           make([]string, len(items)),
+		Items:           make([]string, 0, len(items)),
 	}
 	for _, item := range items {
 		if strings.HasSuffix(item, "/_._") {
