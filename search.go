@@ -72,7 +72,7 @@ func (v *VersionInfo) ParseVersion() (*NuGetVersion, error) {
 	}, err
 }
 
-// Search Retrieves search results
+// Search retrieves search results
 func (p *PackageSearchResource) Search(opt *SearchOptions, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
 	baseURL := p.client.getResourceUrl(SearchQueryService)
 	req, err := p.client.NewRequest(http.MethodGet, baseURL.Path, baseURL, opt, options)

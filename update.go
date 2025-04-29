@@ -28,6 +28,8 @@ type resultContext struct {
 	Error error
 }
 
+// Delete deletes a package from the server.
+// please note that this package can only be soft deleted
 func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOptionFunc) (*http.Response, error) {
 	baseURL, err := p.getResourceUrl(PackagePublish)
 	if err != nil {
@@ -56,6 +58,7 @@ type PushPackageOptions struct {
 	IsSnupkg bool `json:"isSnupkg"`
 }
 
+// PushWithStream pushes a package stream to the server.
 func (p *PackageUpdateResource) PushWithStream(packageStream io.Reader, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
 	tempDir := os.TempDir()
 	extension := PackageExtension
@@ -84,10 +87,14 @@ func (p *PackageUpdateResource) PushWithStream(packageStream io.Reader, opt *Pus
 	return p.Push([]string{tempFilePath}, opt, options...)
 }
 
+// PushSingle pushes a single package to the server.
 func (p *PackageUpdateResource) PushSingle(packagePath string, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
 	return p.Push([]string{packagePath}, opt, options...)
 }
 
+// Push pushes a package to the server. It supports pushing multiple packages.
+// please note that it takes a while to see the successfully pushed packages.
+// the pushed packages can only be soft-deleted.
 func (p *PackageUpdateResource) Push(packagePaths []string, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), opt.TimeoutInDuration)
 	defer cancel()
@@ -145,6 +152,7 @@ func (p *PackageUpdateResource) Push(packagePaths []string, opt *PushPackageOpti
 	}
 }
 
+// getResourceUrl returns the resource URL for the given service type.
 func (p *PackageUpdateResource) getResourceUrl(value ServiceType) (*url.URL, error) {
 	baseURL := p.client.getResourceUrl(value)
 	sourceUri, err := createSourceUri(baseURL.String())
@@ -225,6 +233,7 @@ func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path str
 	return nil, nil
 }
 
+// push pushes a package to the server.
 func (p *PackageUpdateResource) push(pathToPackage string, sourceUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
 	file, err := os.Open(pathToPackage)
 	if err != nil {
