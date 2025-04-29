@@ -7,30 +7,28 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/huhouhua/go-nuget"
 	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/huhouhua/go-nuget"
+	"time"
 )
 
 // downloadNupkgExample demonstrates how to download a NuGet package
 func downloadNupkgExample() {
-	// Create a new client
-	client, err := nuget.NewClient()
+	// Create a new NuGet client with custom retry settings
+	client, err := nuget.NewClient(
+		nuget.WithBaseURL("https://your-private-feed.com/"),
+		nuget.WithCustomRetryMax(5),
+		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
+	)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
 
 	// Package details
-	packageID := "Newtonsoft.Json"
-	versionStr := "12.0.1"
-
-	// Parse version
-	version, err := nuget.Parse(versionStr)
-	if err != nil {
-		log.Fatalf("Failed to parse version: %v", err)
-	}
+	packageID := "MyPackage"
+	versionStr := "1.0.0-beta"
 
 	opt := &nuget.CopyNupkgOptions{
 		Version: versionStr,
@@ -38,7 +36,7 @@ func downloadNupkgExample() {
 	}
 
 	// Download the package
-	resp, err := client.FindPackage.CopyNupkgToStream(packageID, opt)
+	_, err = client.FindPackageResource.CopyNupkgToStream(packageID, opt)
 	if err != nil {
 		log.Fatalf("Failed to download package: %v", err)
 	}
@@ -50,7 +48,7 @@ func downloadNupkgExample() {
 
 	// Save the package to a file
 	outputFile := filepath.Join("downloads", fmt.Sprintf("%s.%s.nupkg", packageID, versionStr))
-	if err := os.WriteFile(outputFile, opt.writer.(*bytes.Buffer).Bytes(), 0644); err != nil {
+	if err := os.WriteFile(outputFile, opt.Writer.(*bytes.Buffer).Bytes(), 0644); err != nil {
 		log.Fatalf("Failed to save package: %v", err)
 	}
 
@@ -59,6 +57,12 @@ func downloadNupkgExample() {
 	reader, err := nuget.NewPackageArchiveReader(opt.Writer)
 	// get nuspec file content
 	spec, err := reader.Nuspec()
+	if err != nil {
+		log.Fatalf("Failed Get nuspec file content: %v", err)
+	}
+
+	fmt.Printf("Tags:%s", spec.Metadata.Tags)
+	fmt.Printf("Description:%s", spec.Metadata.Description)
 
 	// TODO: Add package reading functionality
 	// In C# this would use PackageArchiveReader, but we'll need to implement
