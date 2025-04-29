@@ -30,7 +30,8 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 	publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
 	require.NoError(t, err)
 
-	reportUrl, err := url.Parse("https://www.nuget.org/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse")
+	rawURL := fmt.Sprintf("%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse", client.baseURL.Scheme, client.baseURL.Host)
+	reportUrl, err := url.Parse(rawURL)
 	require.NoError(t, err)
 
 	want := []*PackageSearchMetadataRegistration{
@@ -126,7 +127,8 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 	publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
 	require.NoError(t, err)
 
-	reportUrl, err := url.Parse("https://www.nuget.org/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse")
+	rawURL := fmt.Sprintf("%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse", client.baseURL.Scheme, client.baseURL.Host)
+	reportUrl, err := url.Parse(rawURL)
 	require.NoError(t, err)
 
 	want := &PackageSearchMetadataRegistration{

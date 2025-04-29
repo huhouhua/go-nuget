@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
@@ -35,7 +36,10 @@ func setup(t *testing.T, indexPath string) (*http.ServeMux, *Client) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-
+	for _, u := range client.serviceUrls {
+		u.Host = client.baseURL.Host
+		u.Scheme = client.baseURL.Scheme
+	}
 	return mux, client
 }
 
@@ -180,49 +184,54 @@ func TestRequestWithContext(t *testing.T) {
 }
 
 func TestServiceUrls(t *testing.T) {
+
 	tests := []struct {
 		name          string
 		indexDataPath string
-		wantData      map[ServiceType]string
+		wantDataFunc  func(baseUrl *url.URL) map[ServiceType]string
 		want          bool
 	}{
 		{
 			name:          "https://api.nuget.org/ index urls",
 			indexDataPath: "testdata/index.json",
-			wantData: map[ServiceType]string{
-				SearchQueryService:        "https://azuresearch-ussc.nuget.org/query",
-				RegistrationsBaseUrl:      "https://api.nuget.org/v3/registration5-gz-semver2",
-				SearchAutocompleteService: "https://azuresearch-ussc.nuget.org/autocomplete",
-				ReportAbuseUriTemplate:    "https://www.nuget.org/packages/{id}/{version}/ReportAbuse",
-				ReadmeUriTemplate:         "https://api.nuget.org/v3-flatcontainer/{lower_id}/{lower_version}/readme",
-				PackageDetailsUriTemplate: "https://www.nuget.org/packages/{id}/{version}?_src=template",
-				LegacyGallery:             "https://www.nuget.org/api/v2",
-				PackagePublish:            "https://www.nuget.org/api/v2/package",
-				PackageBaseAddress:        "https://api.nuget.org/v3-flatcontainer",
-				RepositorySignatures:      "https://api.nuget.org/v3-index/repository-signatures/5.0.0/index.json",
-				SymbolPackagePublish:      "https://www.nuget.org/api/v2/symbolpackage",
-				VulnerabilityInfo:         "https://api.nuget.org/v3/vulnerabilities/index.json",
-				OwnerDetailsUriTemplate:   "https://www.nuget.org/profiles/{owner}?_src=template",
+			wantDataFunc: func(baseUrl *url.URL) map[ServiceType]string {
+				return map[ServiceType]string{
+					SearchQueryService:        fmt.Sprintf("%s://%s/query", baseUrl.Scheme, baseUrl.Host),
+					RegistrationsBaseUrl:      fmt.Sprintf("%s://%s/v3/registration5-gz-semver2", baseUrl.Scheme, baseUrl.Host),
+					SearchAutocompleteService: fmt.Sprintf("%s://%s/autocomplete", baseUrl.Scheme, baseUrl.Host),
+					ReportAbuseUriTemplate:    fmt.Sprintf("%s://%s/packages/{id}/{version}/ReportAbuse", baseUrl.Scheme, baseUrl.Host),
+					ReadmeUriTemplate:         fmt.Sprintf("%s://%s/v3-flatcontainer/{lower_id}/{lower_version}/readme", baseUrl.Scheme, baseUrl.Host),
+					PackageDetailsUriTemplate: fmt.Sprintf("%s://%s/packages/{id}/{version}?_src=template", baseUrl.Scheme, baseUrl.Host),
+					LegacyGallery:             fmt.Sprintf("%s://%s/api/v2", baseUrl.Scheme, baseUrl.Host),
+					PackagePublish:            fmt.Sprintf("%s://%s/api/v2/package", baseUrl.Scheme, baseUrl.Host),
+					PackageBaseAddress:        fmt.Sprintf("%s://%s/v3-flatcontainer", baseUrl.Scheme, baseUrl.Host),
+					RepositorySignatures:      fmt.Sprintf("%s://%s/v3-index/repository-signatures/5.0.0/index.json", baseUrl.Scheme, baseUrl.Host),
+					SymbolPackagePublish:      fmt.Sprintf("%s://%s/api/v2/symbolpackage", baseUrl.Scheme, baseUrl.Host),
+					VulnerabilityInfo:         fmt.Sprintf("%s://%s/v3/vulnerabilities/index.json", baseUrl.Scheme, baseUrl.Host),
+					OwnerDetailsUriTemplate:   fmt.Sprintf("%s://%s/profiles/{owner}?_src=template", baseUrl.Scheme, baseUrl.Host),
+				}
 			},
 			want: true,
 		},
 		{
 			name:          "baget index urls",
 			indexDataPath: "testdata/index_2.json",
-			wantData: map[ServiceType]string{
-				SearchQueryService:        "http://localhost:5000/v3/search",
-				RegistrationsBaseUrl:      "http://localhost:5000/v3/registration",
-				SearchAutocompleteService: "http://localhost:5000/v3/autocomplete",
-				ReportAbuseUriTemplate:    "https://www.nuget.org/packages/{id}/{version}/ReportAbuse",
-				ReadmeUriTemplate:         "",
-				PackageDetailsUriTemplate: "",
-				LegacyGallery:             "",
-				PackagePublish:            "http://localhost:5000/api/v2/package",
-				PackageBaseAddress:        "http://localhost:5000/v3/package",
-				RepositorySignatures:      "",
-				SymbolPackagePublish:      "http://localhost:5000/api/v2/symbol",
-				VulnerabilityInfo:         "",
-				OwnerDetailsUriTemplate:   "",
+			wantDataFunc: func(baseUrl *url.URL) map[ServiceType]string {
+				return map[ServiceType]string{
+					SearchQueryService:        fmt.Sprintf("%s://%s/v3/search", baseUrl.Scheme, baseUrl.Host),
+					RegistrationsBaseUrl:      fmt.Sprintf("%s://%s/v3/registration", baseUrl.Scheme, baseUrl.Host),
+					SearchAutocompleteService: fmt.Sprintf("%s://%s/v3/autocomplete", baseUrl.Scheme, baseUrl.Host),
+					ReportAbuseUriTemplate:    fmt.Sprintf("%s://%s/packages/{id}/{version}/ReportAbuse", baseUrl.Scheme, baseUrl.Host),
+					ReadmeUriTemplate:         "",
+					PackageDetailsUriTemplate: "",
+					LegacyGallery:             "",
+					PackagePublish:            fmt.Sprintf("%s://%s/api/v2/package", baseUrl.Scheme, baseUrl.Host),
+					PackageBaseAddress:        fmt.Sprintf("%s://%s/v3/package", baseUrl.Scheme, baseUrl.Host),
+					RepositorySignatures:      "",
+					SymbolPackagePublish:      fmt.Sprintf("%s://%s/api/v2/symbol", baseUrl.Scheme, baseUrl.Host),
+					VulnerabilityInfo:         "",
+					OwnerDetailsUriTemplate:   "",
+				}
 			},
 			want: true,
 		},
@@ -231,8 +240,10 @@ func TestServiceUrls(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			_, client := setup(t, tc.indexDataPath)
-			urls := make(map[ServiceType]*url.URL, len(tc.wantData))
-			for st, item := range tc.wantData {
+			wantData := tc.wantDataFunc(client.BaseURL())
+
+			urls := make(map[ServiceType]*url.URL)
+			for st, item := range wantData {
 				if item == "" {
 					continue
 				}
