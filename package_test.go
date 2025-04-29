@@ -95,7 +95,7 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 		},
 		FrameworkReferenceGroups: []*FrameworkSpecificGroup{
 			{
-				Items:           []string{"", "System.Net.Http"},
+				Items:           []string{"System.Net.Http"},
 				HasEmptyFolder:  false,
 				TargetFramework: ".NETFramework4.8",
 			},
