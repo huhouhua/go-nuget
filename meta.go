@@ -172,7 +172,7 @@ func (p *PackageMetadataResource) getMetadata(id string, opt *ListMetadataOption
 	}
 	baseURL := p.client.getResourceUrl(RegistrationsBaseUrl)
 	u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, PathEscape(packageId))
-	req, err := p.client.NewRequest(http.MethodGet, u, nil, nil, options)
+	req, err := p.client.NewRequest(http.MethodGet, u, baseURL, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

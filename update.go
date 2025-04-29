@@ -41,7 +41,7 @@ func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOpt
 		return nil, fmt.Errorf("no support file system delete")
 	}
 	u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape(id), PathEscape(version))
-	req, err := p.client.NewRequest(http.MethodDelete, u, nil, nil, options)
+	req, err := p.client.NewRequest(http.MethodDelete, u, baseURL, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -234,5 +234,6 @@ func (p *PackageUpdateResource) push(pathToPackage string, sourceUrl *url.URL, o
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("X-NuGet-Client-Version", "4.1.0")
 	return p.client.Do(req, nil, DecoderEmpty)
 }
