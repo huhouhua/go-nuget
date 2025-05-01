@@ -154,11 +154,9 @@ func (p *PackageMetadataResource) GetMetadata(id, version string, options ...Req
 		return nil, nil, err
 	}
 	versionRange := NewVersionRange(v, v, true, true)
-	list, resp, err := p.getMetadata(id, opt, versionRange, options...)
-	if err != nil {
+	if list, resp, err := p.getMetadata(id, opt, versionRange, options...); err != nil {
 		return nil, nil, err
-	}
-	if len(list) >= 0 {
+	} else if len(list) >= 0 {
 		return list[0], resp, nil
 	}
 	return nil, nil, err
@@ -186,8 +184,7 @@ func (p *PackageMetadataResource) getMetadata(id string, opt *ListMetadataOption
 		if item == nil {
 			return nil, resp, fmt.Errorf("invalid %s", baseURL.String())
 		}
-		err = p.addMetadataToPackages(&packages, item, opt, versionRange)
-		if err != nil {
+		if err = p.addMetadataToPackages(&packages, item, opt, versionRange); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -221,8 +218,7 @@ func (p *PackageMetadataResource) addMetadataToPackages(packages *[]*PackageSear
 				if leafItem.CatalogEntry.DependencySets != nil {
 					for _, depSet := range leafItem.CatalogEntry.DependencySets {
 						for _, dependency := range depSet.Packages {
-							err = dependency.Parse()
-							if err != nil {
+							if err = dependency.Parse(); err != nil {
 								return err
 							}
 						}

@@ -135,8 +135,7 @@ func NewPackageArchiveReader(r io.Writer) (*PackageArchiveReader, error) {
 	p := &PackageArchiveReader{
 		writer: r,
 	}
-	err := p.parse()
-	if err != nil {
+	if err := p.parse(); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -152,13 +151,11 @@ func (p *PackageArchiveReader) parse() error {
 	r := buf.Bytes()
 	archive := bytes.NewReader(r)
 	var err error
-	p.archive, err = zip.NewReader(archive, int64(len(r)))
-	if err != nil {
+	if p.archive, err = zip.NewReader(archive, int64(len(r))); err != nil {
 		return err
 	}
 	// Extract the nuspec file
-	p.nuspecFile, err = p.extractNuspecFile()
-	if err != nil {
+	if p.nuspecFile, err = p.extractNuspecFile(); err != nil {
 		return err
 	}
 	return nil
@@ -182,11 +179,11 @@ func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
 func (p *PackageArchiveReader) extractNuspecFile() (io.ReadCloser, error) {
 	for _, file := range p.archive.File {
 		if strings.HasSuffix(file.Name, ".nuspec") {
-			nuspecFile, err := file.Open()
-			if err != nil {
+			if nuspecFile, err := file.Open(); err != nil {
 				return nil, err
+			} else {
+				return nuspecFile, nil
 			}
-			return nuspecFile, nil
 		}
 	}
 	return nil, fmt.Errorf("no .nuspec file found in the .nupkg archive")

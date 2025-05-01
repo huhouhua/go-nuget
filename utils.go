@@ -43,8 +43,7 @@ func wildcardToRegex(wildcard string) *regexp.Regexp {
 		pattern = strings.ReplaceAll(pattern, "\\*", `[^/]*(/)?`)
 		pattern = strings.ReplaceAll(pattern, "\\?", ".")
 	}
-
-	finalPattern := "^" + pattern + "$"
+	finalPattern := fmt.Sprintf("^%s$", pattern)
 	// Compile regular expressions to be case-insensitive using the `(?i)` prefix (equivalent to RegexOptions.IgnoreCase)
 	re := regexp.MustCompile(`(?i)` + finalPattern)
 	return re

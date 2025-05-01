@@ -69,8 +69,7 @@ func (p *PackageUpdateResource) PushWithStream(packageStream io.Reader, opt *Pus
 	fileName := fmt.Sprintf("%s%s", "package", extension)
 	tempFilePath := filepath.Join(tempDir, "_nuget", strconv.FormatInt(millis, 10), fileName)
 
-	err := os.MkdirAll(filepath.Dir(tempFilePath), 0755)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Dir(tempFilePath), 0755); err != nil {
 		return nil, err
 	}
 	fileInfo, err := os.Create(tempFilePath)
@@ -106,16 +105,14 @@ func (p *PackageUpdateResource) Push(packagePaths []string, opt *PushPackageOpti
 	}
 	symbolUrl := &url.URL{}
 	if opt.SymbolSource != "" {
-		symbolUrl, err = createSourceUri(opt.SymbolSource)
-		if err != nil {
+		if symbolUrl, err = createSourceUri(opt.SymbolSource); err != nil {
 			return nil, err
 		}
 	}
 	go func() {
 		for _, path := range packagePaths {
 			if !strings.HasSuffix(path, SnupkgExtension) {
-				resp, err := p.pushPackagePath(opt, path, packageUrl, symbolUrl, options...)
-				if err != nil {
+				if resp, err := p.pushPackagePath(opt, path, packageUrl, symbolUrl, options...); err != nil {
 					resultChan <- &resultContext{
 						Resp:  resp,
 						Error: err,
@@ -126,8 +123,7 @@ func (p *PackageUpdateResource) Push(packagePaths []string, opt *PushPackageOpti
 				// - The user specified it on the command line
 				// - The endpoint for main package supports pushing snupkgs
 				if strings.TrimSpace(opt.SymbolSource) != "" {
-					resp, err := p.pushWithSymbol(opt, path, symbolUrl, options...)
-					if err != nil {
+					if resp, err := p.pushWithSymbol(opt, path, symbolUrl, options...); err != nil {
 						resultChan <- &resultContext{
 							Resp:  resp,
 							Error: err,
@@ -176,8 +172,7 @@ func (p *PackageUpdateResource) pushPackagePath(opt *PushPackageOptions, path st
 		return nil, fmt.Errorf("api key is required")
 	}
 	for _, nupkgToPush := range paths {
-		resp, err := p.pushPackageCore(nupkgToPush, sourceUri, opt, options...)
-		if err != nil {
+		if resp, err := p.pushPackageCore(nupkgToPush, sourceUri, opt, options...); err != nil {
 			return resp, err
 		}
 		// If the package was pushed successfully, push the symbol package.
@@ -188,8 +183,7 @@ func (p *PackageUpdateResource) pushPackagePath(opt *PushPackageOptions, path st
 		if _, err = os.Stat(symbolPackagePath); !os.IsNotExist(err) {
 			continue
 		}
-		resp, err = p.pushPackageCore(symbolPackagePath, symbolUrl, opt, options...)
-		if err != nil {
+		if resp, err := p.pushPackageCore(symbolPackagePath, symbolUrl, opt, options...); err != nil {
 			return resp, err
 		}
 	}
@@ -225,8 +219,7 @@ func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path str
 		log.Printf("warning symbol server not configured %s", filepath.Base(symbolPackagePath))
 	}
 	for _, packageToPush := range paths {
-		resp, err := p.pushPackageCore(packageToPush, symbolUrl, opt, options...)
-		if err != nil {
+		if resp, err := p.pushPackageCore(packageToPush, symbolUrl, opt, options...); err != nil {
 			return resp, err
 		}
 	}

@@ -442,8 +442,7 @@ func (c *Client) UploadRequest(method, path string, baseUrl *url.URL, content io
 // first decode it.
 func (c *Client) Do(req *retryablehttp.Request, v interface{}, decoder DecoderType) (*http.Response, error) {
 	// Wait will block until the limiter can obtain a new token.
-	err := c.limiter.Wait(req.Context())
-	if err != nil {
+	if err := c.limiter.Wait(req.Context()); err != nil {
 		return nil, err
 	}
 
@@ -466,8 +465,7 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}, decoder DecoderTy
 	// so the limiter will remain disabled in case of an error.
 	c.configureLimiterOnce.Do(func() { c.configureLimiter(req.Context(), resp.Header) })
 
-	err = CheckResponse(resp)
-	if err != nil {
+	if err = CheckResponse(resp); err != nil {
 		// Even though there was an error, we still return the response
 		// in case the caller wants to inspect it further.
 		return resp, err
@@ -503,21 +501,21 @@ func (c *Client) loadResource() error {
 		var find bool
 		for _, variant := range typeVariants.Types {
 			if id, ok := resourceMap[variant]; ok {
-				u, err := url.Parse(strings.TrimSuffix(id, "/"))
-				if err != nil {
+				if u, err := url.Parse(strings.TrimSuffix(id, "/")); err != nil {
 					return err
+				} else {
+					c.serviceUrls[t] = u
+					find = true
+					break
 				}
-				c.serviceUrls[t] = u
-				find = true
-				break
 			}
 		}
 		if !find && typeVariants.DefaultUrl != "" {
-			u, err := url.Parse(strings.TrimSuffix(typeVariants.DefaultUrl, "/"))
-			if err != nil {
+			if u, err := url.Parse(strings.TrimSuffix(typeVariants.DefaultUrl, "/")); err != nil {
 				return err
+			} else {
+				c.serviceUrls[t] = u
 			}
-			c.serviceUrls[t] = u
 		}
 	}
 	return nil
@@ -562,12 +560,12 @@ type ErrorResponse struct {
 
 func (e *ErrorResponse) Error() string {
 	path, _ := url.QueryUnescape(e.Response.Request.URL.Path)
-	url := fmt.Sprintf("%s://%s%s", e.Response.Request.URL.Scheme, e.Response.Request.URL.Host, path)
+	u := fmt.Sprintf("%s://%s%s", e.Response.Request.URL.Scheme, e.Response.Request.URL.Host, path)
 
 	if e.Message == "" {
-		return fmt.Sprintf("%s %s: %d", e.Response.Request.Method, url, e.Response.StatusCode)
+		return fmt.Sprintf("%s %s: %d", e.Response.Request.Method, u, e.Response.StatusCode)
 	} else {
-		return fmt.Sprintf("%s %s: %d %s", e.Response.Request.Method, url, e.Response.StatusCode, e.Message)
+		return fmt.Sprintf("%s %s: %d %s", e.Response.Request.Method, u, e.Response.StatusCode, e.Message)
 	}
 }
 

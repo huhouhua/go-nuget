@@ -111,11 +111,11 @@ func ApplyPackageDependency(info *PackageDependencyInfo, options ...PackageDepen
 // WithIdentity can be used to set a package identity for the PackageDependencyInfo.
 func WithIdentity(meta *Metadata) PackageDependencyInfoFunc {
 	return func(info *PackageDependencyInfo) error {
-		identity, err := NewPackageIdentity(meta.ID, meta.Version)
-		if err != nil {
+		if identity, err := NewPackageIdentity(meta.ID, meta.Version); err != nil {
 			return err
+		} else {
+			info.PackageIdentity = identity
 		}
-		info.PackageIdentity = identity
 		return nil
 	}
 }
@@ -130,20 +130,20 @@ func WithDependencyGroups(dependencies *Dependencies) PackageDependencyInfoFunc 
 		if dependencies.Groups != nil {
 			for _, groups := range dependencies.Groups {
 				groupFound = true
-				group, err := NewPackageDependencyGroup(groups.TargetFramework, groups.Dependencies...)
-				if err != nil {
+				if group, err := NewPackageDependencyGroup(groups.TargetFramework, groups.Dependencies...); err != nil {
 					return err
+				} else {
+					info.DependencyGroups = append(info.DependencyGroups, group)
 				}
-				info.DependencyGroups = append(info.DependencyGroups, group)
 			}
 		}
 		if !groupFound {
 			for _, dependency := range dependencies.Dependency {
-				group, err := NewPackageDependencyGroup("Any", dependency)
-				if err != nil {
+				if group, err := NewPackageDependencyGroup("Any", dependency); err != nil {
 					return err
+				} else {
+					info.DependencyGroups = append(info.DependencyGroups, group)
 				}
-				info.DependencyGroups = append(info.DependencyGroups, group)
 			}
 		}
 		return nil
@@ -157,11 +157,12 @@ func WithFrameworkReferenceGroups(framework *FrameworkAssemblies) PackageDepende
 			return nil
 		}
 		for _, assembly := range framework.FrameworkAssembly {
-			group, err := NewFrameworkSpecificGroup(assembly.TargetFramework, assembly.AssemblyName...)
-			if err != nil {
+
+			if group, err := NewFrameworkSpecificGroup(assembly.TargetFramework, assembly.AssemblyName...); err != nil {
 				return err
+			} else {
+				info.FrameworkReferenceGroups = append(info.FrameworkReferenceGroups, group)
 			}
-			info.FrameworkReferenceGroups = append(info.FrameworkReferenceGroups, group)
 		}
 		return nil
 	}

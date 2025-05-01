@@ -38,13 +38,13 @@ func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptio
 
 	var versions []*NuGetVersion
 	for _, v := range version.Versions {
-		nugetVersion, err := semver.NewVersion(v)
-		if err != nil {
+		if nugetVersion, err := semver.NewVersion(v); err != nil {
 			return nil, resp, err
+		} else {
+			versions = append(versions, &NuGetVersion{
+				Version: nugetVersion,
+			})
 		}
-		versions = append(versions, &NuGetVersion{
-			Version: nugetVersion,
-		})
 	}
 	return versions, resp, nil
 }
