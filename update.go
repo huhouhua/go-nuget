@@ -200,7 +200,7 @@ func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri 
 	return p.push(packageToPush, sourceUri, options...)
 }
 
-// https://nuget.smbsrc.net/
+// pushWithSymbol handle push to https://nuget.smbsrc.net/
 func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path string, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
 
 	// Get the symbol package for this package
