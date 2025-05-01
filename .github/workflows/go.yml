@@ -31,6 +31,8 @@ jobs:
       - name: Check syntax and styling of go sources
         run: |
           make lint
+        if: |
+          matrix.go-version == '1.24.x'
 
       - name: Run unit test and get test coverage
         run: |
