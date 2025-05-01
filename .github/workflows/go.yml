@@ -28,9 +28,9 @@ jobs:
         run: |
           make verify-copyright
 
-#      - name: Check syntax and styling of go sources
-#        run: |
-#          make lint
+      - name: Check syntax and styling of go sources
+        run: |
+          make lint
 
       - name: Run unit test and get test coverage
         run: |
