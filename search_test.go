@@ -5,6 +5,8 @@
 package nuget
 
 import (
+	"errors"
+	"github.com/Masterminds/semver/v3"
 	"net/http"
 	"testing"
 	"time"
@@ -63,4 +65,91 @@ func TestPackageSearchResource_Search(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
+}
+
+func TestParseVersion(t *testing.T) {
+	symbolVersion, err := semver.NewVersion("1-0-0")
+	require.NoError(t, err)
+	tests := []struct {
+		name    string
+		version *VersionInfo
+		want    *NuGetVersion
+		error   error
+	}{
+		{
+			name: "beta",
+			version: &VersionInfo{
+				Version: "1.0.0-beta",
+			},
+			want: &NuGetVersion{
+				Version: semver.New(1, 0, 0, "beta", ""),
+			},
+			error: nil,
+		},
+		{
+			name: "beta with last number",
+			version: &VersionInfo{
+				Version: "1.0.0-beta.1",
+			},
+			want: &NuGetVersion{
+				Version: semver.New(1, 0, 0, "beta.1", ""),
+			},
+			error: nil,
+		},
+		{
+			name: "pre-release with last number",
+			version: &VersionInfo{
+				Version: "1.0.0-preview.1",
+			},
+			want: &NuGetVersion{
+				Version: semver.New(1, 0, 0, "preview.1", ""),
+			},
+			error: nil,
+		},
+		{
+			name: "alpha with last number",
+			version: &VersionInfo{
+				Version: "1.0.0-alpha.1",
+			},
+			want: &NuGetVersion{
+				Version: semver.New(1, 0, 0, "alpha.1", ""),
+			},
+			error: nil,
+		},
+		{
+			name: "rc with build sha",
+			version: &VersionInfo{
+				Version: "1.0.0-rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65",
+			},
+			want: &NuGetVersion{
+				Version: semver.New(1, 0, 0, "rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65", ""),
+			},
+			error: nil,
+		},
+		{
+			name: "with symbol",
+			version: &VersionInfo{
+				Version: "1-0-0",
+			},
+			want: &NuGetVersion{
+				Version: symbolVersion,
+			},
+			error: nil,
+		},
+		{
+			name: "all zeroes",
+			version: &VersionInfo{
+				Version: "00000.0000.0",
+			},
+			want:  nil,
+			error: errors.New("Invalid Semantic Version"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v, err := tt.version.ParseVersion()
+			require.Equal(t, err, tt.error)
+			require.Equal(t, v, tt.want)
+		})
+	}
 }
