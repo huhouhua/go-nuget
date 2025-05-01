@@ -64,8 +64,4 @@ func downloadNupkgExample() {
 
 	fmt.Printf("Tags:%s", spec.Metadata.Tags)
 	fmt.Printf("Description:%s", spec.Metadata.Description)
-
-	// TODO: Add package reading functionality
-	// In C# this would use PackageArchiveReader, but we'll need to implement
-	// our own package reading functionality or use a third-party library
 }
