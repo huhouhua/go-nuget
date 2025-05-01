@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func searchExample() {
+func searchPackageExample() {
 	// Create a new NuGet client with custom retry settings
 	client, err := nuget.NewClient(
 		nuget.WithBaseURL("https://your-private-feed.com/"),
