@@ -94,7 +94,7 @@ func createTestDirectory(t *testing.T, dirName string, files []string) string {
 		filePath := filepath.Join(dirPath, file)
 		f, err := os.Create(filePath)
 		require.NoErrorf(t, err, "Failed to create file in test directory: %v", err)
-		f.Close()
+		_ = f.Close()
 	}
 
 	return dirPath
@@ -120,8 +120,8 @@ func TestNewClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	for serviceType, url := range c.serviceUrls {
-		t.Logf("type:%s url:%s", serviceType.String(), url.String())
+	for serviceType, u := range c.serviceUrls {
+		t.Logf("type:%s url:%s", serviceType.String(), u.String())
 	}
 	//expectedBaseURL := defaultBaseURL+apiVersionPath
 
@@ -176,7 +176,9 @@ func TestRequestWithContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create request: %v", err)
 	}
-	defer cancel()
+	t.Cleanup(func() {
+		cancel()
+	})
 
 	if req.Context() != ctx {
 		t.Fatal("Context was not set correctly")

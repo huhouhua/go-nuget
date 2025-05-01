@@ -95,7 +95,7 @@ func TestPerformWildcardSearch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			results, normBase, err := PerformWildcardSearch(tt.basePath, tt.searchPath, tt.includeEmptyDirs)
-			require.NoErrorf(t, err, "error in PerformWildcardSearch: %v", err)
+			require.NoErrorf(t, err, "error in PerformWildcardSearch: %s", err.Error())
 
 			foundFiles := map[string]bool{}
 			foundDirs := map[string]bool{}
@@ -269,7 +269,7 @@ func TestGetPathToEnumerateFrom(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actual, err := getPathToEnumerateFrom(tt.basePath, tt.searchPath)
 			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
+				t.Fatalf("Unexpected error: %s", err.Error())
 			}
 			expected := filepath.Clean(tt.expectedResult)
 			if actual != expected {
@@ -386,23 +386,24 @@ func TestIsDirectoryPath(t *testing.T) {
 func TestIsEmptyDirectory(t *testing.T) {
 	// Test 1: Empty directory
 	emptyDir := createTestDirectory(t, "emptyDir", []string{})
-	defer os.RemoveAll(emptyDir)
+	t.Cleanup(func() {
+		_ = os.RemoveAll(emptyDir)
+	})
 
 	t.Run("Empty directory", func(t *testing.T) {
-		empty := isEmptyDirectory(emptyDir)
-
-		if !empty {
+		if empty := isEmptyDirectory(emptyDir); !empty {
 			t.Errorf("Expected directory to be empty, but it was not")
 		}
 	})
 
 	// Test 2: Directory with files
 	dirWithFiles := createTestDirectory(t, "dirWithFiles", []string{"file1.txt", "file2.txt"})
-	defer os.RemoveAll(dirWithFiles)
+	t.Cleanup(func() {
+		_ = os.RemoveAll(dirWithFiles)
+	})
 
 	t.Run("Directory with files", func(t *testing.T) {
-		empty := isEmptyDirectory(dirWithFiles)
-		if empty {
+		if empty := isEmptyDirectory(dirWithFiles); empty {
 			t.Errorf("Expected directory to have files, but it was empty")
 		}
 	})
@@ -410,9 +411,7 @@ func TestIsEmptyDirectory(t *testing.T) {
 	// Test 3: Non-existent directory
 	t.Run("Non-existent directory", func(t *testing.T) {
 		nonExistentDir := "/path/to/nonexistent/directory"
-		empty := isEmptyDirectory(nonExistentDir)
-
-		if empty {
+		if empty := isEmptyDirectory(nonExistentDir); empty {
 			t.Errorf("Expected error, but directory was considered empty")
 		}
 	})

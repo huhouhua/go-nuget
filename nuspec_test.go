@@ -20,14 +20,18 @@ func TestReaderNupkg(t *testing.T) {
 
 	require.NoError(t, err, "open file %s failed %v", nupkgPath, err)
 
-	defer r.Close()
+	t.Cleanup(func() {
+		_ = r.Close()
+	})
 
 	var nuspecFile io.ReadCloser
 	for _, f := range r.File {
 		if strings.HasSuffix(f.Name, ".nuspec") {
 			nuspecFile, err = f.Open()
 			require.NoError(t, err, "open %s file failed: %v", f.Name, err)
-			defer nuspecFile.Close()
+			t.Cleanup(func() {
+				_ = nuspecFile.Close()
+			})
 			break
 		}
 	}
