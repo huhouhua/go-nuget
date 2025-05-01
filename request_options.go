@@ -47,3 +47,12 @@ func WithAPIKey(apiKey string) RequestOptionFunc {
 		return nil
 	}
 }
+
+// WithNugetClientVersion takes a nuget client version which is then used when making this one request.
+// default is "4.1.0"
+func WithNugetClientVersion(version string) RequestOptionFunc {
+	return func(req *retryablehttp.Request) error {
+		req.Header.Set("X-NuGet-Client-Version", version)
+		return nil
+	}
+}

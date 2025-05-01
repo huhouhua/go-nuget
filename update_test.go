@@ -28,6 +28,12 @@ func TestPackageUpdateResource_AllowsApiKeyWhenPushing(t *testing.T) {
 				r.Header.Get("Content-Type"),
 			)
 		}
+		if !strings.Contains(r.Header.Get("X-NuGet-Client-Version"), "4.1.0") {
+			t.Fatalf(
+				"PackageUpdateResource.Push request x-nuget-client-version %+v want 4.1.0",
+				r.Header.Get("X-NuGet-Client-Version"),
+			)
+		}
 		if r.ContentLength == -1 {
 			t.Fatalf("PackageUpdateResource.Push request content-length is -1")
 		}
@@ -56,12 +62,18 @@ func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 
 		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data;") {
 			t.Fatalf(
-				"PackageUpdateResource.Push request content-type %+v want multipart/form-data;",
+				"PackageUpdateResource.PushWithStream request content-type %+v want multipart/form-data;",
 				r.Header.Get("Content-Type"),
 			)
 		}
+		if !strings.Contains(r.Header.Get("X-NuGet-Client-Version"), "4.1.0") {
+			t.Fatalf(
+				"PackageUpdateResource.PushWithStream request x-nuget-client-version %+v want 4.1.0",
+				r.Header.Get("X-NuGet-Client-Version"),
+			)
+		}
 		if r.ContentLength == -1 {
-			t.Fatalf("PackageUpdateResource.Push request content-length is -1")
+			t.Fatalf("PackageUpdateResource.PushWithStream request content-length is -1")
 		}
 		_, err := fmt.Fprint(w, `{}`)
 		require.NoError(t, err)

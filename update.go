@@ -275,6 +275,5 @@ func (p *PackageUpdateResource) push(
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-NuGet-Client-Version", "4.1.0")
 	return p.client.Do(req, nil, DecoderEmpty)
 }

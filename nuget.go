@@ -391,7 +391,6 @@ func (c *Client) UploadRequest(
 	if c.UserAgent != "" {
 		reqHeaders.Set("User-Agent", c.UserAgent)
 	}
-
 	b := new(bytes.Buffer)
 	w := multipart.NewWriter(b)
 
@@ -440,7 +439,9 @@ func (c *Client) UploadRequest(
 	for k, v := range reqHeaders {
 		req.Header[k] = v
 	}
-
+	if req.Header["X-NuGet-Client-Version"] == nil {
+		req.Header.Set("X-NuGet-Client-Version", "4.1.0")
+	}
 	return req, nil
 }
 
