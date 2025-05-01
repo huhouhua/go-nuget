@@ -37,7 +37,6 @@ func pushPackageExample() {
 
 func deletePackageExample() {
 	// Create a new NuGet client with custom retry settings
-	// Specify your repository API URL, for example, https://api.nuget.org/
 	client, err := nuget.NewOAuthClient(
 		"my-api-key",
 		nuget.WithBaseURL("https://api.nuget.org/"),

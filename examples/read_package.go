@@ -21,13 +21,13 @@ func readPackageExample() {
 	}
 	defer file.Close()
 	var dest io.Writer = &bytes.Buffer{}
-
-	_, err = io.Copy(dest, file)
-	if err != nil {
+	if _, err = io.Copy(dest, file); err != nil {
 		log.Fatal(err)
 	}
 	reader, err := nuget.NewPackageArchiveReader(dest)
-
+	if err != nil {
+		log.Fatalf("Failed to parse nuget package archive: %v", err)
+	}
 	// get nuspec file content
 	spec, err := reader.Nuspec()
 	if err != nil {
