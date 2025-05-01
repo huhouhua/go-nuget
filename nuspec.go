@@ -167,7 +167,9 @@ func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
 	}
 	var err error
 	p.once.Do(func() {
-		defer p.nuspecFile.Close()
+		defer func() {
+			_ = p.nuspecFile.Close()
+		}()
 		// Decode the XML content into the Nuspec struct
 		decoder := xml.NewDecoder(p.nuspecFile)
 		err = decoder.Decode(&p.nuspec)
