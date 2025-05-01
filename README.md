@@ -27,12 +27,14 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Package Source Authentication
 - [x] Package Source Retry Logic
 
-## Usage
+## Installation
 
-```go
-import "github.com/huhouhua/go-nuget"
+When used with Go modules, use the following import path:
+```shell
+go get github.com/huhouhua/go-nuget
 ```
 
+## Usage
 Construct a new NuGet client, then use the various methods on the client to
 access different parts of the NuGet API. For example, to get the service index:
 
