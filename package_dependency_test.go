@@ -7,7 +7,6 @@ package nuget
 import (
 	"errors"
 	"github.com/Masterminds/semver/v3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -91,7 +90,7 @@ func TestNewPackageIdentity(t *testing.T) {
 			require.Equal(t, err, tt.wantError)
 			if err == nil {
 				require.NotNil(t, identity)
-				assert.Equal(t, tt.id, identity.Id)
+				require.Equal(t, tt.id, identity.Id)
 			}
 		})
 	}
@@ -123,8 +122,8 @@ func TestFrameworkSpecificGroup(t *testing.T) {
 			group, err := NewFrameworkSpecificGroup(tt.targetFramework, tt.items...)
 			require.Equal(t, err, tt.wantError)
 			if err == nil {
-				assert.NotNil(t, group)
-				assert.Equal(t, len(tt.items), len(group.Items))
+				require.NotNil(t, group)
+				require.Equal(t, len(tt.items), len(group.Items))
 			}
 		})
 	}
