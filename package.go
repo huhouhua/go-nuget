@@ -6,9 +6,10 @@ package nuget
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"io"
 	"net/http"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type FindPackageResource struct {
@@ -16,7 +17,10 @@ type FindPackageResource struct {
 }
 
 // ListAllVersions gets all package versions for a package ID.
-func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptionFunc) ([]*NuGetVersion, *http.Response, error) {
+func (f *FindPackageResource) ListAllVersions(
+	id string,
+	options ...RequestOptionFunc,
+) ([]*NuGetVersion, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -50,7 +54,10 @@ func (f *FindPackageResource) ListAllVersions(id string, options ...RequestOptio
 }
 
 // GetDependencyInfo gets dependency information for a specific package.
-func (f *FindPackageResource) GetDependencyInfo(id, version string, options ...RequestOptionFunc) (*PackageDependencyInfo, *http.Response, error) {
+func (f *FindPackageResource) GetDependencyInfo(
+	id, version string,
+	options ...RequestOptionFunc,
+) (*PackageDependencyInfo, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -84,7 +91,11 @@ type CopyNupkgOptions struct {
 }
 
 // CopyNupkgToStream downloads a specific package version and copies it to the provided writer.
-func (f *FindPackageResource) CopyNupkgToStream(id string, opt *CopyNupkgOptions, options ...RequestOptionFunc) (*http.Response, error) {
+func (f *FindPackageResource) CopyNupkgToStream(
+	id string,
+	opt *CopyNupkgOptions,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	// Parse package ID
 	packageId, err := parseID(id)
 	if err != nil {

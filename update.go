@@ -59,7 +59,11 @@ type PushPackageOptions struct {
 }
 
 // PushWithStream pushes a package stream to the server.
-func (p *PackageUpdateResource) PushWithStream(packageStream io.Reader, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) PushWithStream(
+	packageStream io.Reader,
+	opt *PushPackageOptions,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	tempDir := os.TempDir()
 	extension := PackageExtension
 	if opt.IsSnupkg {
@@ -87,14 +91,22 @@ func (p *PackageUpdateResource) PushWithStream(packageStream io.Reader, opt *Pus
 }
 
 // PushSingle pushes a single package to the server.
-func (p *PackageUpdateResource) PushSingle(packagePath string, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) PushSingle(
+	packagePath string,
+	opt *PushPackageOptions,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	return p.Push([]string{packagePath}, opt, options...)
 }
 
 // Push pushes a package to the server. It supports pushing multiple packages.
 // please note that it takes a while to see the successfully pushed packages.
 // the pushed packages can only be soft-deleted.
-func (p *PackageUpdateResource) Push(packagePaths []string, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) Push(
+	packagePaths []string,
+	opt *PushPackageOptions,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), opt.TimeoutInDuration)
 	defer cancel()
 	resultChan := make(chan *resultContext)
@@ -159,12 +171,17 @@ func (p *PackageUpdateResource) getResourceUrl(value ServiceType) (*url.URL, err
 }
 
 // pushPackagePath Push nupkgs, and if successful, push any corresponding symbols.
-func (p *PackageUpdateResource) pushPackagePath(opt *PushPackageOptions, path string, sourceUri, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) pushPackagePath(
+	opt *PushPackageOptions,
+	path string,
+	sourceUri, symbolUrl *url.URL,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	paths, err := resolvePackageFromPath(path, false)
 	if err != nil {
 		return nil, err
 	}
-	if paths == nil || len(paths) == 0 {
+	if len(paths) == 0 {
 		return nil, fmt.Errorf("no packages found in %s", path)
 	}
 
@@ -190,7 +207,12 @@ func (p *PackageUpdateResource) pushPackagePath(opt *PushPackageOptions, path st
 	return nil, nil
 }
 
-func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri *url.URL, opt *PushPackageOptions, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) pushPackageCore(
+	packageToPush string,
+	sourceUri *url.URL,
+	opt *PushPackageOptions,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	log.Printf("push package %s to %s", filepath.Base(packageToPush), sourceUri.Path)
 
 	// TODO: file system push
@@ -201,8 +223,12 @@ func (p *PackageUpdateResource) pushPackageCore(packageToPush string, sourceUri 
 }
 
 // pushWithSymbol handle push to https://nuget.smbsrc.net/
-func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path string, symbolUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
-
+func (p *PackageUpdateResource) pushWithSymbol(
+	opt *PushPackageOptions,
+	path string,
+	symbolUrl *url.URL,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	// Get the symbol package for this package
 	symbolPackagePath := GetSymbolsPath(path, opt.IsSnupkg)
 
@@ -211,7 +237,7 @@ func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path str
 		return nil, err
 	}
 	// No files were resolved.
-	if paths == nil || len(paths) == 0 {
+	if len(paths) == 0 {
 		return nil, fmt.Errorf("unable to find file %s", path)
 	}
 	// See if the api key exists
@@ -227,12 +253,25 @@ func (p *PackageUpdateResource) pushWithSymbol(opt *PushPackageOptions, path str
 }
 
 // push pushes a package to the server.
-func (p *PackageUpdateResource) push(pathToPackage string, sourceUrl *url.URL, options ...RequestOptionFunc) (*http.Response, error) {
+func (p *PackageUpdateResource) push(
+	pathToPackage string,
+	sourceUrl *url.URL,
+	options ...RequestOptionFunc,
+) (*http.Response, error) {
 	file, err := os.Open(pathToPackage)
 	if err != nil {
 		return nil, err
 	}
-	req, err := p.client.UploadRequest(http.MethodPut, sourceUrl.Path, sourceUrl, file, "package", "package.nupkg", nil, options)
+	req, err := p.client.UploadRequest(
+		http.MethodPut,
+		sourceUrl.Path,
+		sourceUrl,
+		file,
+		"package",
+		"package.nupkg",
+		nil,
+		options,
+	)
 	if err != nil {
 		return nil, err
 	}

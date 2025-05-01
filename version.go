@@ -6,8 +6,9 @@ package nuget
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type NuGetVersion struct {
@@ -64,7 +65,7 @@ func ParseVersionRange(rangeStr string) (*VersionRange, error) {
 	if !strings.HasPrefix(rangeStr, "[") && !strings.HasPrefix(rangeStr, "(") {
 		v, err := semver.NewVersion(rangeStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid version: %v", err)
+			return nil, fmt.Errorf("invalid version: %s", err.Error())
 		}
 		return NewVersionRange(v, v, true, true), nil
 	}
@@ -84,14 +85,14 @@ func ParseVersionRange(rangeStr string) (*VersionRange, error) {
 	if minStr != "" {
 		min, err = semver.NewVersion(minStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid min version: %v", err)
+			return nil, fmt.Errorf("invalid min version: %s", err.Error())
 		}
 	}
 
 	if maxStr != "" {
 		max, err = semver.NewVersion(maxStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid max version: %v", err)
+			return nil, fmt.Errorf("invalid max version: %s", err.Error())
 		}
 	}
 
@@ -109,7 +110,7 @@ func parseFloatingVersion(rangeStr string) (*VersionRange, error) {
 		baseVersion := strings.TrimSuffix(rangeStr, "-*")
 		v, err := semver.NewVersion(baseVersion)
 		if err != nil {
-			return nil, fmt.Errorf("invalid version in prerelease range: %v", err)
+			return nil, fmt.Errorf("invalid version in prerelease range: %s", err.Error())
 		}
 		vr := NewVersionRange(v, nil, true, false)
 		vr.Float = Prerelease
@@ -139,7 +140,7 @@ func parseFloatingRange(rangeStr string) (*VersionRange, error) {
 
 	v, err := semver.NewVersion(strings.TrimPrefix(rangeStr, prefix))
 	if err != nil {
-		return nil, fmt.Errorf("invalid version in %s range: %v", prefix, err)
+		return nil, fmt.Errorf("invalid version in %s range: %s", prefix, err.Error())
 	}
 
 	var maxVersion *semver.Version
@@ -245,7 +246,8 @@ func (vr *VersionRange) DoesRangeSatisfy(other *VersionRange) bool {
 		}
 
 		// Check if either the min or max version of the other range satisfies this range
-		return rangeWithBounds.Satisfies(other.MinVersion.Version) || rangeWithBounds.Satisfies(other.MaxVersion.Version)
+		return rangeWithBounds.Satisfies(other.MinVersion.Version) ||
+			rangeWithBounds.Satisfies(other.MaxVersion.Version)
 	} else {
 		// If this range doesn't have both bounds, check if either bound of the other range satisfies this range
 		return vr.Satisfies(other.MinVersion.Version) || vr.Satisfies(other.MaxVersion.Version)
@@ -436,14 +438,6 @@ func processPrereleaseVersion(v *NuGetVersion) *NuGetVersion {
 		return &NuGetVersion{semver.New(v.Major(), v.Minor(), v.Patch(), "", "")}
 	}
 	return &NuGetVersion{semver.New(v.Major(), v.Minor(), v.Patch(), prerelease, "")}
-}
-
-// boolToInt converts a boolean to an integer (0 or 1)
-func boolToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 
 // PrettyPrint returns a human-readable string representation of the version range

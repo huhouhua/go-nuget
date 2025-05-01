@@ -6,9 +6,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/huhouhua/go-nuget"
 	"log"
 	"time"
+
+	"github.com/huhouhua/go-nuget"
 )
 
 func searchPackageExample() {

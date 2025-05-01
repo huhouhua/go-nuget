@@ -54,21 +54,21 @@ type Repository struct {
 
 type Dependencies struct {
 	Groups     []*DependenciesGroup `xml:"group"`
-	Dependency []*Dependency        `xml:"dependency" `
+	Dependency []*Dependency        `xml:"dependency"`
 }
 
 type DependenciesGroup struct {
 	TargetFramework string        `xml:"targetFramework,attr"`
-	Dependencies    []*Dependency `xml:"dependency" `
+	Dependencies    []*Dependency `xml:"dependency"`
 }
 
 // Dependency Represents a package dependency Id and allowed version range.
 type Dependency struct {
-	Id              string        `xml:"id,attr" json:"id"`
+	Id              string        `xml:"id,attr"      json:"id"`
 	VersionRaw      string        `xml:"version,attr" json:"version"`
 	ExcludeRaw      string        `xml:"exclude,attr" json:"exclude"`
 	IncludeRaw      string        `xml:"include,attr" json:"include"`
-	VersionRangeRaw string        `json:"range"`
+	VersionRangeRaw string        `                   json:"range"`
 	VersionRange    *VersionRange `xml:"-"`
 	Include         []string      `xml:"-"`
 	Exclude         []string      `xml:"-"`

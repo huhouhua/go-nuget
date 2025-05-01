@@ -7,7 +7,6 @@ package nuget
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,13 +15,14 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // setup sets up a test HTTP server along with a NuGet.Client that is
 // configured to talk to that test server.  Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
 func setup(t *testing.T, indexPath string) (*http.ServeMux, *Client) {
-
 	mux, server := createHttpServer(t, indexPath)
 
 	// client is the NuGet client being tested.
@@ -184,7 +184,6 @@ func TestRequestWithContext(t *testing.T) {
 }
 
 func TestServiceUrls(t *testing.T) {
-
 	tests := []struct {
 		name          string
 		indexDataPath string
@@ -196,19 +195,51 @@ func TestServiceUrls(t *testing.T) {
 			indexDataPath: "testdata/index.json",
 			wantDataFunc: func(baseUrl *url.URL) map[ServiceType]string {
 				return map[ServiceType]string{
-					SearchQueryService:        fmt.Sprintf("%s://%s/query", baseUrl.Scheme, baseUrl.Host),
-					RegistrationsBaseUrl:      fmt.Sprintf("%s://%s/v3/registration5-gz-semver2", baseUrl.Scheme, baseUrl.Host),
+					SearchQueryService: fmt.Sprintf("%s://%s/query", baseUrl.Scheme, baseUrl.Host),
+					RegistrationsBaseUrl: fmt.Sprintf(
+						"%s://%s/v3/registration5-gz-semver2",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
 					SearchAutocompleteService: fmt.Sprintf("%s://%s/autocomplete", baseUrl.Scheme, baseUrl.Host),
-					ReportAbuseUriTemplate:    fmt.Sprintf("%s://%s/packages/{id}/{version}/ReportAbuse", baseUrl.Scheme, baseUrl.Host),
-					ReadmeUriTemplate:         fmt.Sprintf("%s://%s/v3-flatcontainer/{lower_id}/{lower_version}/readme", baseUrl.Scheme, baseUrl.Host),
-					PackageDetailsUriTemplate: fmt.Sprintf("%s://%s/packages/{id}/{version}?_src=template", baseUrl.Scheme, baseUrl.Host),
-					LegacyGallery:             fmt.Sprintf("%s://%s/api/v2", baseUrl.Scheme, baseUrl.Host),
-					PackagePublish:            fmt.Sprintf("%s://%s/api/v2/package", baseUrl.Scheme, baseUrl.Host),
-					PackageBaseAddress:        fmt.Sprintf("%s://%s/v3-flatcontainer", baseUrl.Scheme, baseUrl.Host),
-					RepositorySignatures:      fmt.Sprintf("%s://%s/v3-index/repository-signatures/5.0.0/index.json", baseUrl.Scheme, baseUrl.Host),
-					SymbolPackagePublish:      fmt.Sprintf("%s://%s/api/v2/symbolpackage", baseUrl.Scheme, baseUrl.Host),
-					VulnerabilityInfo:         fmt.Sprintf("%s://%s/v3/vulnerabilities/index.json", baseUrl.Scheme, baseUrl.Host),
-					OwnerDetailsUriTemplate:   fmt.Sprintf("%s://%s/profiles/{owner}?_src=template", baseUrl.Scheme, baseUrl.Host),
+					ReportAbuseUriTemplate: fmt.Sprintf(
+						"%s://%s/packages/{id}/{version}/ReportAbuse",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
+					ReadmeUriTemplate: fmt.Sprintf(
+						"%s://%s/v3-flatcontainer/{lower_id}/{lower_version}/readme",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
+					PackageDetailsUriTemplate: fmt.Sprintf(
+						"%s://%s/packages/{id}/{version}?_src=template",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
+					LegacyGallery:      fmt.Sprintf("%s://%s/api/v2", baseUrl.Scheme, baseUrl.Host),
+					PackagePublish:     fmt.Sprintf("%s://%s/api/v2/package", baseUrl.Scheme, baseUrl.Host),
+					PackageBaseAddress: fmt.Sprintf("%s://%s/v3-flatcontainer", baseUrl.Scheme, baseUrl.Host),
+					RepositorySignatures: fmt.Sprintf(
+						"%s://%s/v3-index/repository-signatures/5.0.0/index.json",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
+					SymbolPackagePublish: fmt.Sprintf(
+						"%s://%s/api/v2/symbolpackage",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
+					VulnerabilityInfo: fmt.Sprintf(
+						"%s://%s/v3/vulnerabilities/index.json",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
+					OwnerDetailsUriTemplate: fmt.Sprintf(
+						"%s://%s/profiles/{owner}?_src=template",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
 				}
 			},
 			want: true,
@@ -221,7 +252,11 @@ func TestServiceUrls(t *testing.T) {
 					SearchQueryService:        fmt.Sprintf("%s://%s/v3/search", baseUrl.Scheme, baseUrl.Host),
 					RegistrationsBaseUrl:      fmt.Sprintf("%s://%s/v3/registration", baseUrl.Scheme, baseUrl.Host),
 					SearchAutocompleteService: fmt.Sprintf("%s://%s/v3/autocomplete", baseUrl.Scheme, baseUrl.Host),
-					ReportAbuseUriTemplate:    fmt.Sprintf("%s://%s/packages/{id}/{version}/ReportAbuse", baseUrl.Scheme, baseUrl.Host),
+					ReportAbuseUriTemplate: fmt.Sprintf(
+						"%s://%s/packages/{id}/{version}/ReportAbuse",
+						baseUrl.Scheme,
+						baseUrl.Host,
+					),
 					ReadmeUriTemplate:         "",
 					PackageDetailsUriTemplate: "",
 					LegacyGallery:             "",
@@ -258,5 +293,4 @@ func TestServiceUrls(t *testing.T) {
 			}
 		})
 	}
-
 }

@@ -5,10 +5,11 @@
 package nuget
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPerformWildcardSearch(t *testing.T) {
@@ -61,11 +62,18 @@ func TestPerformWildcardSearch(t *testing.T) {
 			expectedFiles:    []string{},
 		},
 		{
-			name:              "match empty directories",
-			basePath:          tmpDir,
-			searchPath:        "**",
-			includeEmptyDirs:  true,
-			expectedFiles:     []string{"file1.txt", "file2.log", "data.json", "a1.txt", filepath.Join("sub1", "b.txt"), filepath.Join("sub2", "c.md")},
+			name:             "match empty directories",
+			basePath:         tmpDir,
+			searchPath:       "**",
+			includeEmptyDirs: true,
+			expectedFiles: []string{
+				"file1.txt",
+				"file2.log",
+				"data.json",
+				"a1.txt",
+				filepath.Join("sub1", "b.txt"),
+				filepath.Join("sub2", "c.md"),
+			},
 			expectedEmptyDirs: []string{"empty", filepath.Join("sub2", "innerempty")},
 		},
 		{
@@ -154,7 +162,16 @@ func TestEnsurePackageExtension(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.packagePath, func(t *testing.T) {
 			result := EnsurePackageExtension(tt.packagePath, tt.isSnupkg)
-			require.Equalf(t, tt.expected, result, "EnsurePackageExtension(%q, %v) = %q; want %q", tt.packagePath, tt.isSnupkg, result, tt.expected)
+			require.Equalf(
+				t,
+				tt.expected,
+				result,
+				"EnsurePackageExtension(%q, %v) = %q; want %q",
+				tt.packagePath,
+				tt.isSnupkg,
+				result,
+				tt.expected,
+			)
 		})
 	}
 }

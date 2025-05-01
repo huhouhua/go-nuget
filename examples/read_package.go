@@ -7,10 +7,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/huhouhua/go-nuget"
 	"io"
 	"log"
 	"os"
+
+	"github.com/huhouhua/go-nuget"
 )
 
 func readPackageExample() {

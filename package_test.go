@@ -7,10 +7,11 @@ package nuget
 import (
 	"bytes"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
+
+	"github.com/Masterminds/semver/v3"
+	"github.com/stretchr/testify/require"
 )
 
 // https://api.nuget.org/v3-flatcontainer/newtonsoft.json/index.json
@@ -105,7 +106,6 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
-
 }
 
 func TestPackageResource_CopyNupkgToStream(t *testing.T) {

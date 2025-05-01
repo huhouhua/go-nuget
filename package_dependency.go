@@ -6,8 +6,9 @@ package nuget
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type PackageDependencyInfo struct {
@@ -157,7 +158,6 @@ func WithFrameworkReferenceGroups(framework *FrameworkAssemblies) PackageDepende
 			return nil
 		}
 		for _, assembly := range framework.FrameworkAssembly {
-
 			if group, err := NewFrameworkSpecificGroup(assembly.TargetFramework, assembly.AssemblyName...); err != nil {
 				return err
 			} else {

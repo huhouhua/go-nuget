@@ -6,8 +6,9 @@ package nuget
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"net/http"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type PackageSearchResource struct {
@@ -27,12 +28,6 @@ type SearchOptions struct {
 
 	// PackageTypes Restrict the search to certain package types.
 	PackageTypes []string `url:"packageTypeFilter,omitempty" json:"PackageTypes,omitempty"`
-
-	//// Filter The optional filter type. Absense of this value indicates that all versions should be returned
-	//Filter SearchFilterType
-	//
-	//// OrderBy The optional order by. Absense of this value indicates that search results should be ordered by relevance.
-	//OrderBy SearchOrderBy
 
 	// SupportedFrameworks Filter to only the list of packages compatible with these frameworks.
 	SupportedFrameworks []string `url:"supportedFramework,omitempty" json:"supportedFrameworks,omitempty"`
@@ -73,7 +68,10 @@ func (v *VersionInfo) ParseVersion() (*NuGetVersion, error) {
 }
 
 // Search retrieves search results
-func (p *PackageSearchResource) Search(opt *SearchOptions, options ...RequestOptionFunc) ([]*PackageSearchMetadata, *http.Response, error) {
+func (p *PackageSearchResource) Search(
+	opt *SearchOptions,
+	options ...RequestOptionFunc,
+) ([]*PackageSearchMetadata, *http.Response, error) {
 	baseURL := p.client.getResourceUrl(SearchQueryService)
 	req, err := p.client.NewRequest(http.MethodGet, baseURL.Path, baseURL, opt, options)
 	if err != nil {

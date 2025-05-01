@@ -7,12 +7,13 @@ package nuget
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageUpdateResource_AllowsApiKeyWhenPushing(t *testing.T) {
@@ -22,7 +23,10 @@ func TestPackageUpdateResource_AllowsApiKeyWhenPushing(t *testing.T) {
 		testMethod(t, r, http.MethodPut)
 
 		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data;") {
-			t.Fatalf("PackageUpdateResource.Push request content-type %+v want multipart/form-data;", r.Header.Get("Content-Type"))
+			t.Fatalf(
+				"PackageUpdateResource.Push request content-type %+v want multipart/form-data;",
+				r.Header.Get("Content-Type"),
+			)
 		}
 		if r.ContentLength == -1 {
 			t.Fatalf("PackageUpdateResource.Push request content-length is -1")
@@ -51,7 +55,10 @@ func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 		testMethod(t, r, http.MethodPut)
 
 		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data;") {
-			t.Fatalf("PackageUpdateResource.Push request content-type %+v want multipart/form-data;", r.Header.Get("Content-Type"))
+			t.Fatalf(
+				"PackageUpdateResource.Push request content-type %+v want multipart/form-data;",
+				r.Header.Get("Content-Type"),
+			)
 		}
 		if r.ContentLength == -1 {
 			t.Fatalf("PackageUpdateResource.Push request content-length is -1")

@@ -6,11 +6,12 @@ package nuget
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type PackageMetadataResource struct {
@@ -139,12 +140,19 @@ type ListMetadataOptions struct {
 }
 
 // ListMetadata List of package metadata.
-func (p *PackageMetadataResource) ListMetadata(id string, opt *ListMetadataOptions, options ...RequestOptionFunc) ([]*PackageSearchMetadataRegistration, *http.Response, error) {
+func (p *PackageMetadataResource) ListMetadata(
+	id string,
+	opt *ListMetadataOptions,
+	options ...RequestOptionFunc,
+) ([]*PackageSearchMetadataRegistration, *http.Response, error) {
 	return p.getMetadata(id, opt, All, options...)
 }
 
 // GetMetadata returns the registration metadata for the id and version
-func (p *PackageMetadataResource) GetMetadata(id, version string, options ...RequestOptionFunc) (*PackageSearchMetadataRegistration, *http.Response, error) {
+func (p *PackageMetadataResource) GetMetadata(
+	id, version string,
+	options ...RequestOptionFunc,
+) (*PackageSearchMetadataRegistration, *http.Response, error) {
 	opt := &ListMetadataOptions{
 		IncludePrerelease: true,
 		IncludeUnlisted:   true,
@@ -163,7 +171,12 @@ func (p *PackageMetadataResource) GetMetadata(id, version string, options ...Req
 }
 
 // getMetadata retrieves metadata for a given package ID and version range.
-func (p *PackageMetadataResource) getMetadata(id string, opt *ListMetadataOptions, versionRange *VersionRange, options ...RequestOptionFunc) ([]*PackageSearchMetadataRegistration, *http.Response, error) {
+func (p *PackageMetadataResource) getMetadata(
+	id string,
+	opt *ListMetadataOptions,
+	versionRange *VersionRange,
+	options ...RequestOptionFunc,
+) ([]*PackageSearchMetadataRegistration, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -192,7 +205,12 @@ func (p *PackageMetadataResource) getMetadata(id string, opt *ListMetadataOption
 }
 
 // addMetadataToPackages adds metadata to the given packages slice based on the provided registration page and options.
-func (p *PackageMetadataResource) addMetadataToPackages(packages *[]*PackageSearchMetadataRegistration, page *registrationPage, opt *ListMetadataOptions, versionRange *VersionRange) error {
+func (p *PackageMetadataResource) addMetadataToPackages(
+	packages *[]*PackageSearchMetadataRegistration,
+	page *registrationPage,
+	opt *ListMetadataOptions,
+	versionRange *VersionRange,
+) error {
 	Lower, err := semver.NewVersion(page.Lower)
 	if err != nil {
 		return err
@@ -211,7 +229,8 @@ func (p *PackageMetadataResource) addMetadataToPackages(packages *[]*PackageSear
 		if err != nil {
 			return err
 		}
-		if versionRange.Satisfies(v.Version) && (opt.IncludePrerelease || v.IsPrerelease()) && (opt.IncludeUnlisted || leafItem.CatalogEntry.IsListed) {
+		if versionRange.Satisfies(v.Version) && (opt.IncludePrerelease || v.IsPrerelease()) &&
+			(opt.IncludeUnlisted || leafItem.CatalogEntry.IsListed) {
 			if err = p.configureMetadataUrl(leafItem.CatalogEntry); err != nil {
 				return err
 			} else {

@@ -11,7 +11,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"io"
 	"math"
 	"math/rand"
@@ -23,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/go-querystring/query"
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
@@ -69,9 +70,6 @@ type Client struct {
 	// apiKey used to make authenticated API calls.
 	apiKey string
 
-	// Protects the apiKey field from concurrent read/write accesses.
-	apiKeyLock sync.RWMutex
-
 	// serviceUrls is used to store the service Resource of the NuGet API.
 	serviceUrls map[ServiceType]*url.URL
 
@@ -103,7 +101,6 @@ func NewClient(options ...ClientOptionFunc) (*Client, error) {
 		return nil, err
 	}
 	return client, nil
-
 }
 
 // NewOAuthClient returns a new NuGet API client. To use API methods which
@@ -293,7 +290,12 @@ func (c *Client) setBaseURL(urlStr string) error {
 // Relative URL paths should always be specified without a preceding slash.
 // If specified, the value pointed to by body is JSON encoded and included
 // as the request body.
-func (c *Client) NewRequest(method, path string, baseUrl *url.URL, opt interface{}, options []RequestOptionFunc) (*retryablehttp.Request, error) {
+func (c *Client) NewRequest(
+	method, path string,
+	baseUrl *url.URL,
+	opt interface{},
+	options []RequestOptionFunc,
+) (*retryablehttp.Request, error) {
 	u := *c.baseURL
 	if baseUrl != nil {
 		u = *baseUrl
@@ -361,7 +363,14 @@ func (c *Client) NewRequest(method, path string, baseUrl *url.URL, opt interface
 // URL of the Client. Relative URL paths should always be specified without
 // a preceding slash. If specified, the value pointed to by body is JSON
 // encoded and included as the request body.
-func (c *Client) UploadRequest(method, path string, baseUrl *url.URL, content io.Reader, fileType, filename string, opt interface{}, options []RequestOptionFunc) (*retryablehttp.Request, error) {
+func (c *Client) UploadRequest(
+	method, path string,
+	baseUrl *url.URL,
+	content io.Reader,
+	fileType, filename string,
+	opt interface{},
+	options []RequestOptionFunc,
+) (*retryablehttp.Request, error) {
 	u := *c.baseURL
 	if baseUrl != nil {
 		u = *baseUrl

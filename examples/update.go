@@ -5,9 +5,10 @@
 package main
 
 import (
-	"github.com/huhouhua/go-nuget"
 	"log"
 	"time"
+
+	"github.com/huhouhua/go-nuget"
 )
 
 func pushPackageExample() {

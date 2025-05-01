@@ -6,9 +6,10 @@ package nuget
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestNewPackageDependencyGroup(t *testing.T) {

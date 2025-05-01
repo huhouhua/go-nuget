@@ -6,9 +6,10 @@ package nuget
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestServiceResource_GetIndex(t *testing.T) {

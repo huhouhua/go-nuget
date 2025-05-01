@@ -44,7 +44,8 @@ func wildcardToRegex(wildcard string) *regexp.Regexp {
 		pattern = strings.ReplaceAll(pattern, "\\?", ".")
 	}
 	finalPattern := fmt.Sprintf("^%s$", pattern)
-	// Compile regular expressions to be case-insensitive using the `(?i)` prefix (equivalent to RegexOptions.IgnoreCase)
+	// Compile regular expressions to be case-insensitive using the `(?i)` prefix (equivalent to
+	// RegexOptions.IgnoreCase)
 	re := regexp.MustCompile(`(?i)` + finalPattern)
 	return re
 }
@@ -163,7 +164,6 @@ func normalizeBasePath(basePath string, searchPath *string) string {
 		return filepath.Clean(basePath)
 	}
 	return absBasePath
-
 }
 
 // resolvePackageFromPath Resolves a package path into a list of paths.
@@ -197,12 +197,10 @@ func EnsurePackageExtension(packagePath string, isSnupkg bool) string {
 	if strings.HasSuffix(packagePath, "**") {
 		// Add directory separator and wildcard
 		packagePath = fmt.Sprintf("%s%s%s", packagePath, string(filepath.Separator), "*")
-
 	} else if !strings.HasSuffix(packagePath, "*") {
 		// If it doesn't end with "*", append "*" at the end
 		packagePath = fmt.Sprintf("%s%s", packagePath, "*")
 	}
-
 	// Add the appropriate extension based on isSnupkg
 	if isSnupkg {
 		packagePath = fmt.Sprintf("%s%s", packagePath, SnupkgExtension)
@@ -255,6 +253,7 @@ func fixSourceURI(source string) string {
 	return source
 }
 
+//nolint:unused
 func isSourceNuGetSymbolServer(source *url.URL) bool {
 	return source.Host == NuGetSymbolHostName
 }
@@ -301,7 +300,8 @@ func getFileNameWithoutExtension(path string) string {
 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
 }
 
-// GetSymbolsPath Get the symbols package from the original package. Removes the .nupkg and adds .snupkg or .symbols. nupkg.
+// GetSymbolsPath Get the symbols package from the original package. Removes the .nupkg and adds .snupkg or .symbols.
+// nupkg.
 func GetSymbolsPath(packagePath string, isSnupkg bool) string {
 	symbolPath := getFileNameWithoutExtension(packagePath)
 	if isSnupkg {

@@ -7,11 +7,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/huhouhua/go-nuget"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/huhouhua/go-nuget"
 )
 
 // downloadNupkgExample demonstrates how to download a NuGet package

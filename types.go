@@ -124,7 +124,10 @@ func init() {
 		SearchQueryService:        newTypeOptions(SearchQueryServiceTypes, ""),
 		RegistrationsBaseUrl:      newTypeOptions(RegistrationsBaseUrlTypes, ""),
 		SearchAutocompleteService: newTypeOptions(SearchAutocompleteServiceTypes, ""),
-		ReportAbuseUriTemplate:    newTypeOptions(ReportAbuseTypes, "https://www.nuget.org/packages/{id}/{version}/ReportAbuse"),
+		ReportAbuseUriTemplate: newTypeOptions(
+			ReportAbuseTypes,
+			"https://www.nuget.org/packages/{id}/{version}/ReportAbuse",
+		),
 		ReadmeUriTemplate:         newTypeOptions(ReadmeFileUrlTypes, ""),
 		PackageDetailsUriTemplate: newTypeOptions(PackageDetailsUriTemplateTypes, ""),
 		LegacyGallery:             newTypeOptions(LegacyGalleryTypes, ""),
@@ -161,7 +164,8 @@ type SearchFilterType int
 type SearchOrderBy int
 
 const (
-	// IsLatestVersion Only select the latest stable version of a package per package ID. Given the server supports IsAbsoluteLatestVersion,
+	// IsLatestVersion Only select the latest stable version of a package per package ID. Given the server supports
+	// IsAbsoluteLatestVersion,
 	//a package that is IsLatestVersion should never be prerelease. Also, it does not make sense to
 	//look for a IsLatestVersion package when also including prerelease.
 	IsLatestVersion SearchFilterType = iota

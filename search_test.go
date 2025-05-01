@@ -5,10 +5,11 @@
 package nuget
 
 import (
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageSearchResource_Search(t *testing.T) {
@@ -62,5 +63,4 @@ func TestPackageSearchResource_Search(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
-
 }

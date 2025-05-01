@@ -6,11 +6,12 @@ package nuget
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageMetadataResource_ListMetadata(t *testing.T) {
@@ -30,7 +31,11 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 	publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
 	require.NoError(t, err)
 
-	rawURL := fmt.Sprintf("%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse", client.baseURL.Scheme, client.baseURL.Host)
+	rawURL := fmt.Sprintf(
+		"%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse",
+		client.baseURL.Scheme,
+		client.baseURL.Host,
+	)
 	reportUrl, err := url.Parse(rawURL)
 	require.NoError(t, err)
 
@@ -127,7 +132,11 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 	publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
 	require.NoError(t, err)
 
-	rawURL := fmt.Sprintf("%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse", client.baseURL.Scheme, client.baseURL.Host)
+	rawURL := fmt.Sprintf(
+		"%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse",
+		client.baseURL.Scheme,
+		client.baseURL.Host,
+	)
 	reportUrl, err := url.Parse(rawURL)
 	require.NoError(t, err)
 

@@ -6,11 +6,12 @@ package nuget
 
 import (
 	"archive/zip"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestReaderNupkg(t *testing.T) {
@@ -24,10 +25,8 @@ func TestReaderNupkg(t *testing.T) {
 	var nuspecFile io.ReadCloser
 	for _, f := range r.File {
 		if strings.HasSuffix(f.Name, ".nuspec") {
-
 			nuspecFile, err = f.Open()
 			require.NoError(t, err, "open %s file failed: %v", f.Name, err)
-
 			defer nuspecFile.Close()
 			break
 		}
