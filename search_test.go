@@ -6,10 +6,11 @@ package nuget
 
 import (
 	"errors"
-	"github.com/Masterminds/semver/v3"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/stretchr/testify/require"
 )
