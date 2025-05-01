@@ -439,9 +439,6 @@ func (c *Client) UploadRequest(
 	for k, v := range reqHeaders {
 		req.Header[k] = v
 	}
-	if req.Header["X-NuGet-Client-Version"] == nil {
-		req.Header.Set("X-NuGet-Client-Version", "4.1.0")
-	}
 	return req, nil
 }
 
@@ -460,6 +457,10 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}, decoder DecoderTy
 	// if we already have a token and if not first authenticate and get one.
 	if values := req.Header.Values("X-NuGet-ApiKey"); len(values) == 0 {
 		req.Header.Set("X-NuGet-ApiKey", c.apiKey)
+	}
+
+	if values := req.Header.Values("X-NuGet-Client-Version"); len(values) == 0 {
+		req.Header.Set("X-NuGet-Client-Version", "4.1.0")
 	}
 
 	resp, err := c.client.Do(req)
