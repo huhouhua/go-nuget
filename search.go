@@ -5,8 +5,8 @@
 package nuget
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/Masterminds/semver/v3"
 )
@@ -77,11 +77,19 @@ func (p *PackageSearchResource) Search(
 	if err != nil {
 		return nil, nil, err
 	}
-	req.URL.RawQuery = fmt.Sprintf("%s&semVerLevel=2.0.0", req.URL.RawQuery)
+	addSemVer(req.URL)
 	result := V3SearchResult{}
 	resp, err := p.client.Do(req, &result, DecoderTypeJSON)
 	if err != nil {
 		return nil, resp, err
 	}
 	return result.Data, resp, nil
+}
+
+func addSemVer(u *url.URL) {
+	params := u.Query()
+	if !params.Has("semVerLevel") {
+		params.Add("semVerLevel", "2.0.0")
+	}
+	u.RawQuery = params.Encode()
 }
