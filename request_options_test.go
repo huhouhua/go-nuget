@@ -14,7 +14,7 @@ import (
 )
 
 func TestWithHeader(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 	mux.HandleFunc("/v3/without-header", func(w http.ResponseWriter, r *http.Request) {
 		require.Empty(t, r.Header.Get("X-CUSTOM-HEADER"))
 		w.WriteHeader(http.StatusOK)
@@ -82,7 +82,7 @@ func TestWithHeader(t *testing.T) {
 }
 
 func TestWithHeaders(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 	mux.HandleFunc("/v3/without-headers", func(w http.ResponseWriter, r *http.Request) {
 		require.Empty(t, r.Header.Get("X-CUSTOM-HEADER-1"))
 		require.Empty(t, r.Header.Get("X-CUSTOM-HEADER-2"))

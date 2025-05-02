@@ -7,6 +7,7 @@ package nuget
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 )
 
 func TestPackageSearchResource_Search(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 
 	baseURL := client.getResourceUrl(SearchQueryService)
 	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +67,95 @@ func TestPackageSearchResource_Search(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, want, b)
+}
+
+func TestSearchPackageUrl(t *testing.T) {
+	wantError := errors.New("404 Not Found")
+
+	_, client := setup(t, index_V3)
+	require.NotNil(t, client)
+
+	u, err := url.Parse("")
+	require.NoError(t, err)
+	client.baseURL = u
+
+	_, _, err = client.SearchResource.Search(&SearchOptions{})
+	require.Equal(t, wantError, err)
+}
+
+func TestSearchOptions(t *testing.T) {
+	mux, client := setup(t, index_V3)
+	require.NotNil(t, client)
+	baseURL := client.getResourceUrl(SearchQueryService)
+	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodGet)
+		if r.URL.Query().Get("q") == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, err := w.Write([]byte("searchOptions request 'q' parameter is missing;"))
+			require.NoError(t, err)
+			return
+		}
+		mustWriteHTTPResponse(t, w, "testdata/search.json")
+	})
+
+	tests := []struct {
+		name   string
+		opt    *SearchOptions
+		errMsg string
+	}{
+		{
+			name:   "nil",
+			opt:    nil,
+			errMsg: "failed to parse unknown error format: searchOptions request 'q' parameter is missing; 400 Bad Request",
+		},
+		{
+			name:   "query parameter has not been set",
+			opt:    &SearchOptions{},
+			errMsg: "failed to parse unknown error format: searchOptions request 'q' parameter is missing; 400 Bad Request",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			search, resp, err := client.SearchResource.Search(tt.opt)
+			var errResp *ErrorResponse
+			if err != nil && errors.As(err, &errResp) {
+				require.Equal(t, tt.errMsg, errResp.Message)
+				return
+			}
+			require.NotNil(t, resp)
+			require.NotNil(t, search)
+		})
+	}
+}
+
+func TestAddSemVer(t *testing.T) {
+	tests := []struct {
+		name string
+		url  *url.URL
+		want *url.URL
+	}{
+		{
+			name: "add semVerLevel",
+			url:  createUrl("https://127.0.0.1/query"),
+			want: createUrl("https://127.0.0.1/query?semVerLevel=2.0.0"),
+		},
+		{
+			name: "already existed semVerLevel",
+			url:  createUrl("https://127.0.0.1/query?semVerLevel=2.0.0"),
+			want: createUrl("https://127.0.0.1/query?semVerLevel=2.0.0"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			addSemVer(tt.url)
+			require.Equal(t, tt.want, tt.url)
+		})
+	}
+}
+
+func createUrl(u string) *url.URL {
+	rawUrl, _ := url.Parse(u)
+	return rawUrl
 }
 
 func TestParseVersion(t *testing.T) {

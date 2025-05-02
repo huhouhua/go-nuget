@@ -19,6 +19,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	index_V3    = "testdata/index.json"
+	index_Baget = "testdata/index_baget.json"
+)
+
 // setup sets up a test HTTP server along with a NuGet.Client that is
 // configured to talk to that test server.  Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
@@ -114,7 +119,7 @@ func createEmptyDir(t *testing.T, path string) {
 }
 
 func TestNewClient(t *testing.T) {
-	_, server := createHttpServer(t, "testdata/index.json")
+	_, server := createHttpServer(t, index_V3)
 	c, err := NewClient(WithBaseURL(server.URL))
 
 	if err != nil {
@@ -134,7 +139,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestCheckResponseOnHeadRequestError(t *testing.T) {
-	_, server := createHttpServer(t, "testdata/index.json")
+	_, server := createHttpServer(t, index_V3)
 	c, err := NewClient(WithBaseURL(server.URL))
 
 	if err != nil {
@@ -165,7 +170,7 @@ func TestCheckResponseOnHeadRequestError(t *testing.T) {
 }
 
 func TestRequestWithContext(t *testing.T) {
-	_, server := createHttpServer(t, "testdata/index.json")
+	_, server := createHttpServer(t, index_V3)
 	c, err := NewClient(WithBaseURL(server.URL))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
@@ -194,7 +199,7 @@ func TestServiceUrls(t *testing.T) {
 	}{
 		{
 			name:          "https://api.nuget.org/ index urls",
-			indexDataPath: "testdata/index.json",
+			indexDataPath: index_V3,
 			wantDataFunc: func(baseUrl *url.URL) map[ServiceType]string {
 				return map[ServiceType]string{
 					SearchQueryService: fmt.Sprintf("%s://%s/query", baseUrl.Scheme, baseUrl.Host),
@@ -248,7 +253,7 @@ func TestServiceUrls(t *testing.T) {
 		},
 		{
 			name:          "baget index urls",
-			indexDataPath: "testdata/index_2.json",
+			indexDataPath: index_Baget,
 			wantDataFunc: func(baseUrl *url.URL) map[ServiceType]string {
 				return map[ServiceType]string{
 					SearchQueryService:        fmt.Sprintf("%s://%s/v3/search", baseUrl.Scheme, baseUrl.Host),

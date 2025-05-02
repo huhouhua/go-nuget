@@ -17,7 +17,7 @@ import (
 )
 
 func TestPackageUpdateResource_AllowsApiKeyWhenPushing(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 	baseURL := client.getResourceUrl(PackagePublish)
 	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
@@ -55,7 +55,7 @@ func TestPackageUpdateResource_AllowsApiKeyWhenPushing(t *testing.T) {
 }
 
 func TestPackageUpdateResource_PushWithStream(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 	baseURL := client.getResourceUrl(PackagePublish)
 	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
@@ -91,7 +91,7 @@ func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 }
 
 func TestPackageUpdateResource_Delete(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 	baseURL := client.getResourceUrl(PackagePublish)
 	u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape("newtonsoft.json"), PathEscape("1.0.0"))
 	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {

@@ -15,7 +15,7 @@ import (
 )
 
 func TestPackageMetadataResource_ListMetadata(t *testing.T) {
-	mux, client := setup(t, "testdata/index_2.json")
+	mux, client := setup(t, index_Baget)
 
 	baseURL := client.getResourceUrl(RegistrationsBaseUrl)
 	u := fmt.Sprintf("%s/gitlabapiclient/index.json", baseURL.Path)
@@ -116,7 +116,7 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 }
 
 func TestPackageMetadataResource_GetMetadata(t *testing.T) {
-	mux, client := setup(t, "testdata/index_2.json")
+	mux, client := setup(t, index_Baget)
 
 	baseURL := client.getResourceUrl(RegistrationsBaseUrl)
 	u := fmt.Sprintf("%s/gitlabapiclient/index.json", baseURL.Path)

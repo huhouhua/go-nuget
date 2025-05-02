@@ -16,7 +16,7 @@ import (
 
 // https://api.nuget.org/v3-flatcontainer/newtonsoft.json/index.json
 func TestPackageResource_ListAllVersions(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 
 	baseURL := client.getResourceUrl(PackageBaseAddress)
 	u := fmt.Sprintf("%s/newtonsoft.json/index.json", baseURL.Path)
@@ -39,7 +39,7 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 }
 
 func TestPackageResource_GetDependencyInfo(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 
 	baseURL := client.getResourceUrl(PackageBaseAddress)
 	url := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape("1.0.0"))
@@ -109,7 +109,7 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 }
 
 func TestPackageResource_CopyNupkgToStream(t *testing.T) {
-	mux, client := setup(t, "testdata/index.json")
+	mux, client := setup(t, index_V3)
 	opt := &CopyNupkgOptions{
 		Version: "6.0.1-beta1",
 		Writer:  &bytes.Buffer{},
