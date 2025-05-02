@@ -138,13 +138,13 @@ func TestAddSemVer(t *testing.T) {
 	}{
 		{
 			name: "add semVerLevel",
-			url:  createUrl("https://127.0.0.1/query"),
-			want: createUrl("https://127.0.0.1/query?semVerLevel=2.0.0"),
+			url:  createUrl(t, "https://127.0.0.1/query"),
+			want: createUrl(t, "https://127.0.0.1/query?semVerLevel=2.0.0"),
 		},
 		{
 			name: "already existed semVerLevel",
-			url:  createUrl("https://127.0.0.1/query?semVerLevel=2.0.0"),
-			want: createUrl("https://127.0.0.1/query?semVerLevel=2.0.0"),
+			url:  createUrl(t, "https://127.0.0.1/query?semVerLevel=2.0.0"),
+			want: createUrl(t, "https://127.0.0.1/query?semVerLevel=2.0.0"),
 		},
 	}
 	for _, tt := range tests {
@@ -155,8 +155,9 @@ func TestAddSemVer(t *testing.T) {
 	}
 }
 
-func createUrl(u string) *url.URL {
-	rawUrl, _ := url.Parse(u)
+func createUrl(t *testing.T, u string) *url.URL {
+	rawUrl, err := url.Parse(u)
+	require.NoError(t, err)
 	return rawUrl
 }
 
