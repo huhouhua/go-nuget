@@ -70,14 +70,16 @@ func TestPackageSearchResource_Search(t *testing.T) {
 }
 
 func TestSearchPackageUrl(t *testing.T) {
-	wantError := errors.New("404 Not Found")
+	wantError := url.EscapeError("%qu")
 
 	_, client := setup(t, index_V3)
 	require.NotNil(t, client)
 
 	u, err := url.Parse("")
+	u.Path = "%query"
 	require.NoError(t, err)
-	client.baseURL = u
+
+	client.serviceUrls[SearchQueryService] = u
 
 	_, _, err = client.SearchResource.Search(&SearchOptions{})
 	require.Equal(t, wantError, err)
