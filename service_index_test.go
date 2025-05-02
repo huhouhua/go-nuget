@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/stretchr/testify/require"
 )
 
 func TestServiceResource_GetIndex(t *testing.T) {

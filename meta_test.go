@@ -5,11 +5,14 @@
 package nuget
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/stretchr/testify/require"
 )
@@ -106,13 +109,13 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 			},
 		},
 	}
-	b, resp, err := client.MetadataResource.ListMetadata("gitlabapiclient", &ListMetadataOptions{
+	p, resp, err := client.MetadataResource.ListMetadata("gitlabapiclient", &ListMetadataOptions{
 		IncludePrerelease: true,
 		IncludeUnlisted:   false,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, want, b)
+	require.Equal(t, want, p)
 }
 
 func TestPackageMetadataResource_GetMetadata(t *testing.T) {
@@ -205,8 +208,279 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 			PrefixReserved: false,
 		},
 	}
-	b, resp, err := client.MetadataResource.GetMetadata("gitlabapiclient", "1.8.1-beta.5")
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.Equal(t, want, b)
+	t.Run("compare results", func(t *testing.T) {
+		b, resp, err := client.MetadataResource.GetMetadata("gitlabapiclient", "1.8.1-beta.5")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, want, b)
+	})
+	t.Run("invalid version", func(t *testing.T) {
+		wantErr := errors.New("Invalid Semantic Version")
+		_, _, err = client.MetadataResource.GetMetadata("json", "x.0.0")
+		require.Equal(t, wantErr, err)
+	})
+}
+
+func TestPackageSearchMetadataRegistration(t *testing.T) {
+	t.Run("parse identity", func(t *testing.T) {
+		input := &PackageSearchMetadataRegistration{
+			SearchMetadata: &SearchMetadata{
+				PackageId: "json",
+				Version:   "1.0.0-beta",
+			},
+			Owners: "Kevin Berger,test2,test3",
+		}
+		wantIdentity := &PackageIdentity{
+			Id: input.SearchMetadata.PackageId,
+			Version: &NuGetVersion{
+				Version: semver.New(1, 0, 0, "beta", ""),
+			},
+		}
+		identity, err := input.Identity()
+		require.NoError(t, err)
+		require.Equal(t, wantIdentity, identity)
+
+		wantOwners := []string{"Kevin Berger", "test2", "test3"}
+		require.Equal(t, wantOwners, input.OwnersList())
+	})
+	t.Run("invalid version", func(t *testing.T) {
+		inputErr := &PackageSearchMetadataRegistration{
+			SearchMetadata: &SearchMetadata{
+				PackageId: "json",
+				Version:   "^0.0.1",
+			},
+		}
+		wantErr := errors.New("Invalid Semantic Version")
+		_, err := inputErr.Identity()
+		require.Equal(t, wantErr, err)
+	})
+}
+
+func TestParseAndReplaceUrl(t *testing.T) {
+	invalidUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}")
+	invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%%details"
+
+	tests := []struct {
+		name         string
+		urlTemplate  *url.URL
+		replacements map[string]string
+		want         *url.URL
+		error        error
+	}{
+		{
+			name:        "valid replacements",
+			urlTemplate: createUrl(t, "https://example.com/packages/{id}/{version}/details"),
+			replacements: map[string]string{
+				"{id}":      "testpackage",
+				"{version}": "1.0.0",
+			},
+			want: createUrl(t, "https://example.com/packages/testpackage/1.0.0/details"),
+		},
+		{
+			name:        "nil template",
+			urlTemplate: nil,
+			replacements: map[string]string{
+				"{id}":      "testpackage",
+				"{version}": "1.0.0",
+			},
+			want: nil,
+		},
+		{
+			name:        "invalid url parsing",
+			urlTemplate: invalidUrlTemplate,
+			replacements: map[string]string{
+				"{id}":      "testpackage",
+				"{version}": "1.0.0",
+			},
+			want: nil,
+			error: &url.Error{
+				Op:  "parse",
+				URL: "https://example.com/packages/testpackage/1.0.0%%details",
+				Err: url.EscapeError("%%d"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := parseAndReplaceUrl(tt.urlTemplate, tt.replacements)
+			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.want, actual)
+		})
+	}
+}
+
+func TestWithReportAbuseUrl(t *testing.T) {
+	tests := []struct {
+		name        string
+		urlTemplate *url.URL
+		metadata    *PackageSearchMetadataRegistration
+		want        *url.URL
+		error       error
+	}{
+		{
+			name:        "valid url template",
+			urlTemplate: createUrl(t, "https://example.com/packages/{id}/{version}/ReportAbuse"),
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want: createUrl(t, "https://example.com/packages/testpackage/1.0.0/ReportAbuse"),
+		},
+		{
+			name:        "nil url template",
+			urlTemplate: nil,
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := WithReportAbuseUrl(tt.urlTemplate)(tt.metadata)
+			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.want, tt.metadata.ReportAbuseUrl)
+		})
+	}
+}
+
+func TestWithPackageDetailsUrl(t *testing.T) {
+	tests := []struct {
+		name        string
+		urlTemplate *url.URL
+		metadata    *PackageSearchMetadataRegistration
+		want        *url.URL
+		error       error
+	}{
+		{
+			name:        "valid url template",
+			urlTemplate: createUrl(t, "https://example.com/packages/{id}/{version}?_src=template"),
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want: createUrl(t, "https://example.com/packages/testpackage/1.0.0?_src=template"),
+		},
+		{
+			name:        "nil url template",
+			urlTemplate: nil,
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := WithPackageDetailsUrl(tt.urlTemplate)(tt.metadata)
+			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.want, tt.metadata.PackageDetailsUrl)
+		})
+	}
+}
+
+func TestWithReadmeFileUrl(t *testing.T) {
+	tests := []struct {
+		name        string
+		urlTemplate *url.URL
+		metadata    *PackageSearchMetadataRegistration
+		want        *url.URL
+		error       error
+	}{
+		{
+			name:        "valid url template",
+			urlTemplate: createUrl(t, "https://example.com/v3-flatcontainer/{lower_id}/{lower_version}/readme"),
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want: createUrl(t, "https://example.com/v3-flatcontainer/testpackage/1.0.0/readme"),
+		},
+		{
+			name:        "nil url template",
+			urlTemplate: nil,
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := WithReadmeFileUrl(tt.urlTemplate)(tt.metadata)
+			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.want, tt.metadata.ReadmeFileUrl)
+		})
+	}
+}
+
+func TestApplyMetadataRegistration(t *testing.T) {
+	t.Run("Apply All Metadata Functions", func(t *testing.T) {
+		reportAbuseUrlTemplate, _ := url.Parse("https://example.com/packages/{id}/{version}/ReportAbuse")
+		detailsUrlTemplate, _ := url.Parse("https://example.com/packages/{id}/{version}?_src=template")
+		readmeUrlTemplate, _ := url.Parse("https://example.com/v3-flatcontainer/{lower_id}/{lower_version}/readme")
+
+		metadata := &PackageSearchMetadataRegistration{
+			SearchMetadata: &SearchMetadata{
+				PackageId: "TestPackage",
+				Version:   "1.0.0",
+			},
+		}
+
+		err := ApplyMetadataRegistration(metadata,
+			WithReportAbuseUrl(reportAbuseUrlTemplate),
+			WithPackageDetailsUrl(detailsUrlTemplate),
+			WithReadmeFileUrl(readmeUrlTemplate),
+		)
+
+		require.NoError(t, err)
+		require.Equal(t, "https://example.com/packages/testpackage/1.0.0/ReportAbuse", metadata.ReportAbuseUrl.String())
+		require.Equal(
+			t,
+			"https://example.com/packages/testpackage/1.0.0?_src=template",
+			metadata.PackageDetailsUrl.String(),
+		)
+		require.Equal(
+			t,
+			"https://example.com/v3-flatcontainer/testpackage/1.0.0/readme",
+			metadata.ReadmeFileUrl.String(),
+		)
+	})
+
+	t.Run("Handle Errors in Metadata Functions", func(t *testing.T) {
+		invalidUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}")
+		invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%%ReportAbuse"
+
+		metadata := &PackageSearchMetadataRegistration{
+			SearchMetadata: &SearchMetadata{
+				PackageId: "TestPackage",
+				Version:   "1.0.0",
+			},
+		}
+
+		err := ApplyMetadataRegistration(metadata,
+			WithReportAbuseUrl(invalidUrlTemplate),
+		)
+		wantErr := &url.Error{
+			Op:  "parse",
+			URL: "https://example.com/packages/testpackage/1.0.0%%ReportAbuse",
+			Err: url.EscapeError("%%R"),
+		}
+		require.Equal(t, wantErr, err)
+	})
 }
