@@ -263,7 +263,7 @@ func (p *PackageMetadataResource) configureMetadataUrl(catalogEntry *PackageSear
 }
 
 // MetadataRegistrationFunc is a function that modifies the PackageSearchMetadataRegistration.
-type MetadataRegistrationFunc func(catalogEntry *PackageSearchMetadataRegistration) error
+type MetadataRegistrationFunc func(page *PackageSearchMetadataRegistration) error
 
 // ApplyMetadataRegistration applies a list of MetadataRegistrationFunc to a PackageSearchMetadataRegistration.
 func ApplyMetadataRegistration(page *PackageSearchMetadataRegistration, options ...MetadataRegistrationFunc) error {
@@ -275,23 +275,32 @@ func ApplyMetadataRegistration(page *PackageSearchMetadataRegistration, options 
 	return nil
 }
 
+// Helper function to parse and replace placeholders in URL templates
+func parseAndReplaceUrl(template *url.URL, replacements map[string]string) (*url.URL, error) {
+	if template == nil {
+		return nil, nil
+	}
+	decodedTemplate, err := url.QueryUnescape(template.String())
+	if err != nil {
+		return nil, err
+	}
+	for placeholder, value := range replacements {
+		decodedTemplate = strings.ReplaceAll(decodedTemplate, placeholder, value)
+	}
+	return url.Parse(decodedTemplate)
+}
+
 // WithReportAbuseUrl sets the ReportAbuseUrl field of the PackageSearchMetadataRegistration.
 func WithReportAbuseUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
-	return func(catalogEntry *PackageSearchMetadataRegistration) error {
-		if urlTemplate == nil {
-			return nil
+	return func(page *PackageSearchMetadataRegistration) error {
+		replacements := map[string]string{
+			"{id}":      strings.ToLower(page.PackageId),
+			"{version}": page.Version,
 		}
-		decodedTemplate, err := url.QueryUnescape(urlTemplate.String())
-		if err != nil {
-			return err
-		}
-		ut := strings.ReplaceAll(decodedTemplate, "{id}", strings.ToLower(catalogEntry.PackageId))
-		ut = strings.ReplaceAll(ut, "{version}", catalogEntry.Version)
-
-		if u, err := url.Parse(ut); err != nil {
+		if u, err := parseAndReplaceUrl(urlTemplate, replacements); err != nil {
 			return err
 		} else {
-			catalogEntry.ReportAbuseUrl = u
+			page.ReportAbuseUrl = u
 		}
 		return nil
 	}
@@ -299,21 +308,15 @@ func WithReportAbuseUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
 
 // WithPackageDetailsUrl sets the PackageDetailsUrl field of the PackageSearchMetadataRegistration.
 func WithPackageDetailsUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
-	return func(catalogEntry *PackageSearchMetadataRegistration) error {
-		if urlTemplate == nil {
-			return nil
+	return func(page *PackageSearchMetadataRegistration) error {
+		replacements := map[string]string{
+			"{id}":      strings.ToLower(page.PackageId),
+			"{version}": page.Version,
 		}
-		decodedTemplate, err := url.QueryUnescape(urlTemplate.String())
-		if err != nil {
-			return err
-		}
-		ut := strings.ReplaceAll(decodedTemplate, "{id}", strings.ToLower(catalogEntry.PackageId))
-		ut = strings.ReplaceAll(ut, "{version}", catalogEntry.Version)
-
-		if u, err := url.Parse(ut); err != nil {
+		if u, err := parseAndReplaceUrl(urlTemplate, replacements); err != nil {
 			return err
 		} else {
-			catalogEntry.PackageDetailsUrl = u
+			page.PackageDetailsUrl = u
 		}
 		return nil
 	}
@@ -321,21 +324,15 @@ func WithPackageDetailsUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
 
 // WithReadmeFileUrl sets the ReadmeFileUrl field of the PackageSearchMetadataRegistration.
 func WithReadmeFileUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
-	return func(catalogEntry *PackageSearchMetadataRegistration) error {
-		if urlTemplate == nil {
-			return nil
+	return func(page *PackageSearchMetadataRegistration) error {
+		replacements := map[string]string{
+			"{lower_id}":      strings.ToLower(page.PackageId),
+			"{lower_version}": strings.ToLower(page.Version),
 		}
-		decodedTemplate, err := url.QueryUnescape(urlTemplate.String())
-		if err != nil {
-			return err
-		}
-		ut := strings.ReplaceAll(decodedTemplate, "{lower_id}", strings.ToLower(catalogEntry.PackageId))
-		ut = strings.ReplaceAll(ut, "{lower_version}", strings.ToLower(catalogEntry.Version))
-
-		if u, err := url.Parse(ut); err != nil {
+		if u, err := parseAndReplaceUrl(urlTemplate, replacements); err != nil {
 			return err
 		} else {
-			catalogEntry.ReadmeFileUrl = u
+			page.ReadmeFileUrl = u
 		}
 		return nil
 	}
