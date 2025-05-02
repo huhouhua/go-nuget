@@ -260,6 +260,9 @@ func TestParseAndReplaceUrl(t *testing.T) {
 	invalidUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}")
 	invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%%details"
 
+	unescapeUrlTemplate := createUrl(t, "")
+	unescapeUrlTemplate.Scheme = "%eth0"
+
 	tests := []struct {
 		name         string
 		urlTemplate  *url.URL
@@ -299,17 +302,26 @@ func TestParseAndReplaceUrl(t *testing.T) {
 				Err: url.EscapeError("%%d"),
 			},
 		},
+		{
+			name:         "unescape url error",
+			urlTemplate:  unescapeUrlTemplate,
+			replacements: nil,
+			want:         nil,
+			error:        url.EscapeError("%et"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			actual, err := parseAndReplaceUrl(tt.urlTemplate, tt.replacements)
-			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, actual)
 		})
 	}
 }
 
 func TestWithReportAbuseUrl(t *testing.T) {
+	unescapeUrlTemplate := createUrl(t, "")
+	unescapeUrlTemplate.Scheme = "%eth0"
 	tests := []struct {
 		name        string
 		urlTemplate *url.URL
@@ -339,17 +351,31 @@ func TestWithReportAbuseUrl(t *testing.T) {
 			},
 			want: nil,
 		},
+		{
+			name:        "unescape url error",
+			urlTemplate: unescapeUrlTemplate,
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want:  nil,
+			error: url.EscapeError("%et"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := WithReportAbuseUrl(tt.urlTemplate)(tt.metadata)
-			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, tt.metadata.ReportAbuseUrl)
 		})
 	}
 }
 
 func TestWithPackageDetailsUrl(t *testing.T) {
+	unescapeUrlTemplate := createUrl(t, "")
+	unescapeUrlTemplate.Scheme = "%eth0"
 	tests := []struct {
 		name        string
 		urlTemplate *url.URL
@@ -379,17 +405,31 @@ func TestWithPackageDetailsUrl(t *testing.T) {
 			},
 			want: nil,
 		},
+		{
+			name:        "unescape url error",
+			urlTemplate: unescapeUrlTemplate,
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want:  nil,
+			error: url.EscapeError("%et"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := WithPackageDetailsUrl(tt.urlTemplate)(tt.metadata)
-			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, tt.metadata.PackageDetailsUrl)
 		})
 	}
 }
 
 func TestWithReadmeFileUrl(t *testing.T) {
+	unescapeUrlTemplate := createUrl(t, "")
+	unescapeUrlTemplate.Scheme = "%eth0"
 	tests := []struct {
 		name        string
 		urlTemplate *url.URL
@@ -418,12 +458,23 @@ func TestWithReadmeFileUrl(t *testing.T) {
 				},
 			},
 			want: nil,
+		}, {
+			name:        "unescape url error",
+			urlTemplate: unescapeUrlTemplate,
+			metadata: &PackageSearchMetadataRegistration{
+				SearchMetadata: &SearchMetadata{
+					PackageId: "TestPackage",
+					Version:   "1.0.0",
+				},
+			},
+			want:  nil,
+			error: url.EscapeError("%et"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := WithReadmeFileUrl(tt.urlTemplate)(tt.metadata)
-			require.Equal(t, err, tt.error)
+			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, tt.metadata.ReadmeFileUrl)
 		})
 	}
@@ -431,9 +482,9 @@ func TestWithReadmeFileUrl(t *testing.T) {
 
 func TestApplyMetadataRegistration(t *testing.T) {
 	t.Run("Apply All Metadata Functions", func(t *testing.T) {
-		reportAbuseUrlTemplate, _ := url.Parse("https://example.com/packages/{id}/{version}/ReportAbuse")
-		detailsUrlTemplate, _ := url.Parse("https://example.com/packages/{id}/{version}?_src=template")
-		readmeUrlTemplate, _ := url.Parse("https://example.com/v3-flatcontainer/{lower_id}/{lower_version}/readme")
+		reportAbuseUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}/ReportAbuse")
+		detailsUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}?_src=template")
+		readmeUrlTemplate := createUrl(t, "https://example.com/v3-flatcontainer/{lower_id}/{lower_version}/readme")
 
 		metadata := &PackageSearchMetadataRegistration{
 			SearchMetadata: &SearchMetadata{
