@@ -154,3 +154,18 @@ func TestWithHeaders(t *testing.T) {
 	_, err = client.Do(req, nil, DecoderEmpty)
 	require.NoError(t, err)
 }
+
+func TestWithHeaderNuget(t *testing.T) {
+	_, client := setup(t, index_V3)
+	req, err := client.NewRequest(
+		http.MethodGet,
+		"/v3/with-nuget",
+		nil,
+		nil,
+		[]RequestOptionFunc{WithAPIKey("test-with-api-key"), WithNugetClientVersion("5.0.0")},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, req)
+	require.Equal(t, "test-with-api-key", req.Header.Get("X-NuGet-ApiKey"))
+	require.Equal(t, "5.0.0", req.Header.Get("X-NuGet-Client-Version"))
+}
