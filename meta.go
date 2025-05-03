@@ -183,7 +183,7 @@ func (p *PackageMetadataResource) getMetadata(
 	}
 	baseURL := p.client.getResourceUrl(RegistrationsBaseUrl)
 	u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, PathEscape(packageId))
-	req, err := p.client.NewRequest(http.MethodGet, u, baseURL, nil, options)
+	req, err := p.client.NewRequest(http.MethodGet, u, &baseURL, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -276,10 +276,7 @@ func ApplyMetadataRegistration(page *PackageSearchMetadataRegistration, options 
 }
 
 // Helper function to parse and replace placeholders in URL templates
-func parseAndReplaceUrl(template *url.URL, replacements map[string]string) (*url.URL, error) {
-	if template == nil {
-		return nil, nil
-	}
+func parseAndReplaceUrl(template url.URL, replacements map[string]string) (*url.URL, error) {
 	decodedTemplate, err := url.QueryUnescape(template.String())
 	if err != nil {
 		return nil, err
@@ -291,7 +288,7 @@ func parseAndReplaceUrl(template *url.URL, replacements map[string]string) (*url
 }
 
 // WithReportAbuseUrl sets the ReportAbuseUrl field of the PackageSearchMetadataRegistration.
-func WithReportAbuseUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
+func WithReportAbuseUrl(urlTemplate url.URL) MetadataRegistrationFunc {
 	return func(page *PackageSearchMetadataRegistration) error {
 		replacements := map[string]string{
 			"{id}":      strings.ToLower(page.PackageId),
@@ -307,7 +304,7 @@ func WithReportAbuseUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
 }
 
 // WithPackageDetailsUrl sets the PackageDetailsUrl field of the PackageSearchMetadataRegistration.
-func WithPackageDetailsUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
+func WithPackageDetailsUrl(urlTemplate url.URL) MetadataRegistrationFunc {
 	return func(page *PackageSearchMetadataRegistration) error {
 		replacements := map[string]string{
 			"{id}":      strings.ToLower(page.PackageId),
@@ -323,7 +320,7 @@ func WithPackageDetailsUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
 }
 
 // WithReadmeFileUrl sets the ReadmeFileUrl field of the PackageSearchMetadataRegistration.
-func WithReadmeFileUrl(urlTemplate *url.URL) MetadataRegistrationFunc {
+func WithReadmeFileUrl(urlTemplate url.URL) MetadataRegistrationFunc {
 	return func(page *PackageSearchMetadataRegistration) error {
 		replacements := map[string]string{
 			"{lower_id}":      strings.ToLower(page.PackageId),
