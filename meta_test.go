@@ -535,3 +535,263 @@ func TestApplyMetadataRegistration(t *testing.T) {
 		require.Equal(t, wantErr, err)
 	})
 }
+
+func TestAddMetadataToPackages(t *testing.T) {
+	versionRange, err := ParseVersionRange("[1.5.0, )")
+	require.NoError(t, err)
+
+	_, client := setup(t, index_V3)
+	require.NotNil(t, client)
+
+	emptyPkg := make([]*PackageSearchMetadataRegistration, 0)
+
+	var (
+		tests = []struct {
+			name    string
+			page    *registrationPage
+			options *ListMetadataOptions
+			error   error
+			wantPkg []*PackageSearchMetadataRegistration
+		}{
+			{
+				name: "Valid package in range",
+				page: &registrationPage{
+					Lower: "1.0.0",
+					Upper: "2.0.0",
+					Items: []*registrationLeafItem{
+						{
+							CatalogEntry: &PackageSearchMetadataRegistration{
+								SearchMetadata: &SearchMetadata{
+									PackageId: "TestPackage",
+									Version:   "1.5.0",
+									IsListed:  true,
+								},
+							},
+						},
+					},
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   false,
+				},
+				error: nil,
+				wantPkg: []*PackageSearchMetadataRegistration{
+					{
+						SearchMetadata: &SearchMetadata{
+							PackageId: "TestPackage",
+							Version:   "1.5.0",
+							IsListed:  true,
+						},
+						PackageDetailsUrl: createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String())),
+						ReadmeFileUrl:     createUrl(t, fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String())),
+						ReportAbuseUrl:    createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String())),
+					},
+				},
+			},
+			{
+				name: "Invalid lower version in page",
+				page: &registrationPage{
+					Lower: "invalid-lower-version",
+					Upper: "2.0.0",
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   true,
+				},
+				wantPkg: emptyPkg,
+				error:   errors.New("Invalid Semantic Version"),
+			},
+			{
+				name: "Invalid upper version in page",
+				page: &registrationPage{
+					Lower: "1.0.0",
+					Upper: "invalid-upper-version",
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   true,
+				},
+				wantPkg: emptyPkg,
+				error:   errors.New("Invalid Semantic Version"),
+			},
+			{
+				name: "Version out of range",
+				page: &registrationPage{
+					Lower: "3.0.0",
+					Upper: "4.0.0",
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   true,
+				},
+				wantPkg: emptyPkg,
+				error:   nil,
+			},
+			{
+				name: "IncludePrerelease is false and package is prerelease",
+				page: &registrationPage{
+					Lower: "1.0.0",
+					Upper: "2.0.0",
+					Items: []*registrationLeafItem{
+						{
+							CatalogEntry: &PackageSearchMetadataRegistration{
+								SearchMetadata: &SearchMetadata{
+									PackageId: "TestPackage",
+									Version:   "1.5.0-beta",
+									IsListed:  true,
+								},
+							},
+						},
+					},
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: false,
+					IncludeUnlisted:   true,
+				},
+				wantPkg: []*PackageSearchMetadataRegistration{
+					{
+						SearchMetadata: &SearchMetadata{
+							PackageId: "TestPackage",
+							Version:   "1.5.0-beta",
+							IsListed:  true,
+						},
+						PackageDetailsUrl: createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0-beta?_src=template", client.baseURL.String())),
+						ReadmeFileUrl:     createUrl(t, fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0-beta/readme", client.baseURL.String())),
+						ReportAbuseUrl:    createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0-beta/ReportAbuse", client.baseURL.String())),
+					},
+				},
+				error: nil,
+			},
+			{
+				name: "IncludeUnlisted is false and package is unlisted",
+				page: &registrationPage{
+					Lower: "1.0.0",
+					Upper: "2.0.0",
+					Items: []*registrationLeafItem{
+						{
+							CatalogEntry: &PackageSearchMetadataRegistration{
+								SearchMetadata: &SearchMetadata{
+									PackageId: "TestPackage",
+									Version:   "1.5.0",
+									IsListed:  false,
+								},
+							},
+						},
+					},
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   false,
+				},
+				wantPkg: emptyPkg,
+				error:   nil,
+			},
+			{
+				name: "parse dependencySets",
+				page: &registrationPage{
+					Lower: "1.5.0",
+					Upper: "1.5.0",
+					Items: []*registrationLeafItem{
+						{
+							CatalogEntry: &PackageSearchMetadataRegistration{
+								SearchMetadata: &SearchMetadata{
+									PackageId: "TestPackage",
+									Version:   "1.5.0",
+									IsListed:  true,
+									DependencySets: []*PackageDependencyGroup{
+										{
+											TargetFramework: "net48",
+											Packages: []*Dependency{
+												{
+													Id:              "Newtonsoft.Json",
+													VersionRangeRaw: "[1.5.0, )",
+													VersionRange:    versionRange,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   true,
+				},
+				error: nil,
+				wantPkg: []*PackageSearchMetadataRegistration{
+					{
+						SearchMetadata: &SearchMetadata{
+							PackageId: "TestPackage",
+							Version:   "1.5.0",
+							DependencySets: []*PackageDependencyGroup{
+								{
+									TargetFramework: "net48",
+									Packages: []*Dependency{
+										{
+											Id:              "Newtonsoft.Json",
+											VersionRangeRaw: "[1.5.0, )",
+											VersionRange:    versionRange,
+										},
+									},
+								},
+							},
+							IsListed: true,
+						},
+						PackageDetailsUrl: createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String())),
+						ReadmeFileUrl:     createUrl(t, fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String())),
+						ReportAbuseUrl:    createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String())),
+					},
+				},
+			},
+			{
+				name: "parse dependencySets fail",
+				page: &registrationPage{
+					Lower: "1.5.0",
+					Upper: "1.5.0",
+					Items: []*registrationLeafItem{
+						{
+							CatalogEntry: &PackageSearchMetadataRegistration{
+								SearchMetadata: &SearchMetadata{
+									PackageId: "TestPackage",
+									Version:   "1.5.0",
+									IsListed:  true,
+									DependencySets: []*PackageDependencyGroup{
+										{
+											TargetFramework: "net48",
+											Packages: []*Dependency{
+												{
+													Id:              "Newtonsoft.Json",
+													VersionRangeRaw: "[1.5.0, )",
+													VersionRange:    versionRange,
+													VersionRaw:      "1.0.0%",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   true,
+				},
+				error:   errors.New("invalid version: Invalid Semantic Version"),
+				wantPkg: emptyPkg,
+			},
+		}
+	)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			packages := make([]*PackageSearchMetadataRegistration, 0)
+
+			err = client.MetadataResource.addMetadataToPackages(&packages, tt.page, tt.options, versionRange)
+			require.Equal(t, tt.error, err)
+
+			require.Equal(t, tt.wantPkg, packages)
+		})
+	}
+}
