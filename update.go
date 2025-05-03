@@ -110,7 +110,6 @@ func (p *PackageUpdateResource) Push(
 	ctx, cancel := context.WithTimeout(context.Background(), opt.TimeoutInDuration)
 	defer cancel()
 	resultChan := make(chan *resultContext)
-
 	packageUrl, err := p.getResourceUrl(PackagePublish)
 	if err != nil {
 		return nil, err
@@ -122,6 +121,7 @@ func (p *PackageUpdateResource) Push(
 		}
 	}
 	go func() {
+		defer close(resultChan)
 		for _, path := range packagePaths {
 			if !strings.HasSuffix(path, SnupkgExtension) {
 				if resp, err := p.pushPackagePath(opt, path, packageUrl, symbolUrl, options...); err != nil {
