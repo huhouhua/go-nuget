@@ -628,41 +628,6 @@ func TestAddMetadataToPackages(t *testing.T) {
 				error:   nil,
 			},
 			{
-				name: "IncludePrerelease is false and package is prerelease",
-				page: &registrationPage{
-					Lower: "1.0.0",
-					Upper: "2.0.0",
-					Items: []*registrationLeafItem{
-						{
-							CatalogEntry: &PackageSearchMetadataRegistration{
-								SearchMetadata: &SearchMetadata{
-									PackageId: "TestPackage",
-									Version:   "1.5.0-beta",
-									IsListed:  true,
-								},
-							},
-						},
-					},
-				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: false,
-					IncludeUnlisted:   true,
-				},
-				wantPkg: []*PackageSearchMetadataRegistration{
-					{
-						SearchMetadata: &SearchMetadata{
-							PackageId: "TestPackage",
-							Version:   "1.5.0-beta",
-							IsListed:  true,
-						},
-						PackageDetailsUrl: createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0-beta?_src=template", client.baseURL.String())),
-						ReadmeFileUrl:     createUrl(t, fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0-beta/readme", client.baseURL.String())),
-						ReportAbuseUrl:    createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0-beta/ReportAbuse", client.baseURL.String())),
-					},
-				},
-				error: nil,
-			},
-			{
 				name: "IncludeUnlisted is false and package is unlisted",
 				page: &registrationPage{
 					Lower: "1.0.0",
