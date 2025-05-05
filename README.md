@@ -6,6 +6,7 @@ A NuGet API v3 client enabling Go programs to interact with NuGet repositories i
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/huhouhua/go-nuget/blob/main/LICENSE)
 [![Sourcegraph](https://sourcegraph.com/github.com/huhouhua/go-nuget/-/badge.svg)](https://sourcegraph.com/github.com/huhouhua/go-nuget?badge)
 [![GoDoc](https://godoc.org/github.com/huhouhua/go-nuget?status.svg)](https://godoc.org/github.com/huhouhua/go-nuget)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/huhouhua/go-nuget?logo=go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/huhouhua/go-nuget)](https://goreportcard.com/report/github.com/huhouhua/go-nuget)
 [![golangci badge](https://github.com/golangci/golangci-web/blob/master/src/assets/images/badge_a_plus_flat.svg)](https://golangci.com/r/github.com/huhouhua/go-nuget)
 [![Test Coverage](https://codecov.io/gh/huhouhua/go-nuget/branch/main/graph/badge.svg)](https://codecov.io/gh/huhouhua/go-nuget)
