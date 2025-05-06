@@ -582,9 +582,18 @@ func TestAddMetadataToPackages(t *testing.T) {
 							Version:   "1.5.0",
 							IsListed:  true,
 						},
-						PackageDetailsUrl: createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String())),
-						ReadmeFileUrl:     createUrl(t, fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String())),
-						ReportAbuseUrl:    createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String())),
+						PackageDetailsUrl: createUrl(
+							t,
+							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String()),
+						),
+						ReadmeFileUrl: createUrl(
+							t,
+							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String()),
+						),
+						ReportAbuseUrl: createUrl(
+							t,
+							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String()),
+						),
 					},
 				},
 			},
@@ -704,9 +713,18 @@ func TestAddMetadataToPackages(t *testing.T) {
 							},
 							IsListed: true,
 						},
-						PackageDetailsUrl: createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String())),
-						ReadmeFileUrl:     createUrl(t, fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String())),
-						ReportAbuseUrl:    createUrl(t, fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String())),
+						PackageDetailsUrl: createUrl(
+							t,
+							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String()),
+						),
+						ReadmeFileUrl: createUrl(
+							t,
+							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String()),
+						),
+						ReportAbuseUrl: createUrl(
+							t,
+							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String()),
+						),
 					},
 				},
 			},
