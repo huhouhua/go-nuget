@@ -179,11 +179,11 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mux, client := setup(t, index_V3)
 			require.NotNil(t, client)
+			baseURL := client.getResourceUrl(PackagePublish)
+			addTestUploadHandler(t, baseURL.Path, mux)
 			if tt.clientFunc != nil {
 				tt.clientFunc(client)
 			}
-			baseURL := client.getResourceUrl(PackagePublish)
-			addTestUploadHandler(t, baseURL.Path, mux)
 
 			_, err := client.UpdateResource.Push(tt.packagePaths, tt.opt)
 			var errResp *ErrorResponse
