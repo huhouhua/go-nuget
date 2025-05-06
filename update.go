@@ -109,7 +109,6 @@ func (p *PackageUpdateResource) Push(
 ) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), opt.TimeoutInDuration)
 	defer cancel()
-	resultChan := make(chan *resultContext)
 	packageUrl, err := p.getResourceUrl(PackagePublish)
 	if err != nil {
 		return nil, err
@@ -120,6 +119,7 @@ func (p *PackageUpdateResource) Push(
 			return nil, err
 		}
 	}
+	resultChan := make(chan *resultContext)
 	go func() {
 		defer close(resultChan)
 		for _, path := range packagePaths {
