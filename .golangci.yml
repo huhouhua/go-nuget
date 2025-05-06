@@ -56,7 +56,9 @@ issues:
   # List of regexps of issue texts to exclude.
   exclude:
     - "^.*, make it a constant$"
-
+  exclude-dirs:
+    - "e2e"
+    - "examples"
   # Maximum issues count per one linter (set to 0 to disable)
   max-issues-per-linter: 0
 

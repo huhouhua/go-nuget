@@ -140,7 +140,6 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 
 			_, err := client.UpdateResource.Push(tt.packagePaths, tt.opt)
 			require.Equal(t, tt.error, err)
-
 		})
 	}
 }
