@@ -73,7 +73,7 @@ func (p *PackageSearchResource) Search(
 	options ...RequestOptionFunc,
 ) ([]*PackageSearchMetadata, *http.Response, error) {
 	baseURL := p.client.getResourceUrl(SearchQueryService)
-	req, err := p.client.NewRequest(http.MethodGet, baseURL.Path, &baseURL, opt, options)
+	req, err := p.client.NewRequest(http.MethodGet, baseURL.Path, baseURL, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

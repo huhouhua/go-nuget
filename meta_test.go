@@ -312,7 +312,7 @@ func TestParseAndReplaceUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := parseAndReplaceUrl(*tt.urlTemplate, tt.replacements)
+			actual, err := parseAndReplaceUrl(tt.urlTemplate, tt.replacements)
 			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, actual)
 		})
@@ -366,7 +366,7 @@ func TestWithReportAbuseUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WithReportAbuseUrl(*tt.urlTemplate)(tt.metadata)
+			err := WithReportAbuseUrl(tt.urlTemplate)(tt.metadata)
 			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, tt.metadata.ReportAbuseUrl)
 		})
@@ -420,7 +420,7 @@ func TestWithPackageDetailsUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WithPackageDetailsUrl(*tt.urlTemplate)(tt.metadata)
+			err := WithPackageDetailsUrl(tt.urlTemplate)(tt.metadata)
 			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, tt.metadata.PackageDetailsUrl)
 		})
@@ -473,7 +473,7 @@ func TestWithReadmeFileUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WithReadmeFileUrl(*tt.urlTemplate)(tt.metadata)
+			err := WithReadmeFileUrl(tt.urlTemplate)(tt.metadata)
 			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, tt.metadata.ReadmeFileUrl)
 		})
@@ -494,9 +494,9 @@ func TestApplyMetadataRegistration(t *testing.T) {
 		}
 
 		err := ApplyMetadataRegistration(metadata,
-			WithReportAbuseUrl(*reportAbuseUrlTemplate),
-			WithPackageDetailsUrl(*detailsUrlTemplate),
-			WithReadmeFileUrl(*readmeUrlTemplate),
+			WithReportAbuseUrl(reportAbuseUrlTemplate),
+			WithPackageDetailsUrl(detailsUrlTemplate),
+			WithReadmeFileUrl(readmeUrlTemplate),
 		)
 
 		require.NoError(t, err)
@@ -525,7 +525,7 @@ func TestApplyMetadataRegistration(t *testing.T) {
 		}
 
 		err := ApplyMetadataRegistration(metadata,
-			WithReportAbuseUrl(*invalidUrlTemplate),
+			WithReportAbuseUrl(invalidUrlTemplate),
 		)
 		wantErr := &url.Error{
 			Op:  "parse",

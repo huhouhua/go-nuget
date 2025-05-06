@@ -533,12 +533,15 @@ func (c *Client) loadResource() error {
 }
 
 // getResourceUrl returns the resource URL for the given resource value.
-func (c *Client) getResourceUrl(value ServiceType) url.URL {
+func (c *Client) getResourceUrl(value ServiceType) *url.URL {
 	var u url.URL
 	if svcUrl, ok := c.serviceUrls[value]; ok {
 		u = *svcUrl
 	}
-	return u
+	if u.String() == "" {
+		return nil
+	}
+	return &u
 }
 
 func (d DecoderType) Invoke(r io.Reader, v interface{}) error {
