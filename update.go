@@ -87,23 +87,14 @@ func (p *PackageUpdateResource) PushWithStream(
 	if _, err = io.Copy(fileInfo, packageStream); err != nil {
 		return nil, err
 	}
-	return p.Push([]string{tempFilePath}, opt, options...)
-}
-
-// PushSingle pushes a single package to the server.
-func (p *PackageUpdateResource) PushSingle(
-	packagePath string,
-	opt *PushPackageOptions,
-	options ...RequestOptionFunc,
-) (*http.Response, error) {
-	return p.Push([]string{packagePath}, opt, options...)
+	return p.Push(tempFilePath, opt, options...)
 }
 
 // Push pushes a package to the server. It supports pushing multiple packages.
 // please note that it takes a while to see the successfully pushed packages.
 // the pushed packages can only be soft-deleted.
 func (p *PackageUpdateResource) Push(
-	packagePaths []string,
+	packagePath string,
 	opt *PushPackageOptions,
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
@@ -122,41 +113,30 @@ func (p *PackageUpdateResource) Push(
 	resultChan := make(chan *resultContext)
 	go func() {
 		defer close(resultChan)
-		for _, path := range packagePaths {
-			if !strings.HasSuffix(path, SnupkgExtension) {
-				if resp, err := p.pushPackagePath(opt, path, packageUrl, symbolUrl, options...); err != nil {
-					resultChan <- &resultContext{
-						Resp:  resp,
-						Error: err,
-					}
-				}
-			} else {
-				// symbolSource is only set when:
-				// - The user specified it on the command line
-				// - The endpoint for main package supports pushing snupkgs
-				if strings.TrimSpace(opt.SymbolSource) != "" {
-					if resp, err := p.pushWithSymbol(opt, path, symbolUrl, options...); err != nil {
-						resultChan <- &resultContext{
-							Resp:  resp,
-							Error: err,
-						}
-					}
-				}
-			}
+		var resp *http.Response
+		var err error
+		if !strings.HasSuffix(packagePath, SnupkgExtension) {
+			resp, err = p.pushPackagePath(opt, packagePath, packageUrl, symbolUrl, options...)
+		} else if strings.TrimSpace(opt.SymbolSource) != "" {
+			// symbolSource is only set when:
+			// - The user specified it on the command line
+			// - The endpoint for main package supports pushing snupkgs
+			resp, err = p.pushWithSymbol(opt, packagePath, symbolUrl, options...)
 		}
-		// execution completed
 		resultChan <- &resultContext{
-			Resp:  nil,
-			Error: nil,
+			Resp:  resp,
+			Error: err,
 		}
 	}()
 
-	select {
-	case <-ctx.Done():
+	for {
+		select {
 		// context deadline exceeded
-		return nil, ctx.Err()
-	case result := <-resultChan:
-		return result.Resp, result.Error
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case result := <-resultChan:
+			return result.Resp, result.Error
+		}
 	}
 }
 
@@ -252,6 +232,40 @@ func (p *PackageUpdateResource) pushWithSymbol(
 	return nil, nil
 }
 
+// createVerificationApiKey Get a temp API key from nuget.org for pushing to https://nuget.smbsrc.net/
+func (p *PackageUpdateResource) createVerificationApiKey(pathToPackage string, options ...RequestOptionFunc) (string, error) {
+	packageFile, err := os.Open(pathToPackage)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = packageFile.Close()
+	}()
+	reader, err := NewPackageArchiveReader(packageFile)
+	if err != nil {
+		return "", err
+	}
+	nuspec, err := reader.Nuspec()
+	if err != nil {
+		return "", err
+	}
+	u := fmt.Sprintf(TempApiKeyServiceEndpoint, nuspec.Metadata.ID, nuspec.Metadata.Version)
+	sourceUri, err := getServiceEndpointUrl(DefaultGalleryServerUrl, u, false)
+	if err != nil {
+		return "", err
+	}
+	req, err := p.client.NewRequest(http.MethodPost, "", sourceUri, nil, options)
+	if err != nil {
+		return "", err
+	}
+	// Execute request
+	var keyMap map[string]string
+	if _, err = p.client.Do(req, &keyMap, DecoderTypeJSON); err != nil {
+		return "", err
+	}
+	return keyMap["Key"], nil
+}
+
 // push pushes a package to the server.
 func (p *PackageUpdateResource) push(
 	pathToPackage string,
@@ -275,5 +289,13 @@ func (p *PackageUpdateResource) push(
 	if err != nil {
 		return nil, err
 	}
+	if isSourceNuGetSymbolServer(sourceUrl) {
+		if key, err := p.createVerificationApiKey(pathToPackage, options...); err != nil {
+			return nil, err
+		} else {
+			req.Header.Add("X-NuGet-ApiKey", key)
+		}
+	}
+
 	return p.client.Do(req, nil, DecoderEmpty)
 }

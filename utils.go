@@ -253,9 +253,8 @@ func fixSourceURI(source string) string {
 	return source
 }
 
-//nolint:unused
 func isSourceNuGetSymbolServer(source *url.URL) bool {
-	return source.Host == NuGetSymbolHostName
+	return strings.EqualFold(source.Host, NuGetSymbolHostName)
 }
 
 // pathCombine combines an array of strings into a path.
@@ -266,22 +265,26 @@ func pathCombine(paths ...string) string {
 
 	var combinedPath string
 	for _, path := range paths {
-		// Skip empty paths
+		path = strings.TrimSpace(path) // Trim any leading or trailing spaces
 		if path == "" {
-			continue
+			continue // Skip empty paths
 		}
-
-		// Detect if the current path is an absolute path
-		isWindowsAbsolute := strings.Contains(path, ":\\") || strings.Contains(path, ":/")
-		if filepath.IsAbs(path) || isWindowsAbsolute {
-			// If it's an absolute path, reset the combinedPath
+		if filepath.IsAbs(path) {
+			// Reset to the absolute path
 			combinedPath = path
 		} else {
-			// Otherwise, join it with the current combined path
+			// Join with the current combined path
 			combinedPath = filepath.Join(combinedPath, path)
 		}
 	}
-	return combinedPath
+
+	// Normalize the final combined path
+	return filepath.Clean(combinedPath)
+}
+
+func isURL(path string) bool {
+	u, err := url.Parse(path)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
 // getFileNameWithoutExtension returns the file name of the specified path string without the extension.
@@ -323,12 +326,12 @@ func getServiceEndpointUrl(source, path string, noServiceEndpoint bool) (*url.UR
 	requestUri := ""
 	if strings.TrimSpace(strings.TrimPrefix(baseUri.Path, "/")) != "" && !noServiceEndpoint {
 		if path != "" {
-			requestUri = pathCombine(baseUri.String(), ServiceEndpoint, "/", path)
+			requestUri = fmt.Sprintf("%s%s", baseUri.String(), pathCombine(ServiceEndpoint, "/", path))
 		} else {
-			requestUri = pathCombine(baseUri.String(), ServiceEndpoint)
+			requestUri = fmt.Sprintf("%s%s", baseUri.String(), pathCombine(ServiceEndpoint, path))
 		}
 	} else {
-		requestUri = pathCombine(baseUri.String(), path)
+		requestUri = fmt.Sprintf("%s%s", baseUri.String(), path)
 	}
 	return url.Parse(requestUri)
 }

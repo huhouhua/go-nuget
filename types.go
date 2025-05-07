@@ -199,9 +199,11 @@ const (
 )
 
 const (
-	PackageExtension    = ".nupkg"
-	SnupkgExtension     = ".snupkg"
-	SymbolsExtension    = ".symbols" + PackageExtension
-	NuGetSymbolHostName = "nuget.smbsrc.net"
-	ServiceEndpoint     = "/api/v2/package"
+	PackageExtension          = ".nupkg"
+	SnupkgExtension           = ".snupkg"
+	SymbolsExtension          = ".symbols" + PackageExtension
+	NuGetSymbolHostName       = "nuget.smbsrc.net"
+	ServiceEndpoint           = "/api/v2/package"
+	DefaultGalleryServerUrl   = "https://www.nuget.org"
+	TempApiKeyServiceEndpoint = "create-verification-key/%s/%s"
 )
