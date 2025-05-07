@@ -5,9 +5,7 @@
 package nuget
 
 import (
-	"bytes"
 	"encoding/xml"
-	"io"
 	"os"
 	"testing"
 
@@ -22,12 +20,9 @@ func TestReaderNupkg(t *testing.T) {
 	t.Cleanup(func() {
 		_ = file.Close()
 	})
-
-	var dest io.Writer = &bytes.Buffer{}
-	_, err = io.Copy(dest, file)
 	require.NoError(t, err)
 
-	reader, err := NewPackageArchiveReader(dest)
+	reader, err := NewPackageArchiveReader(file)
 	require.NoError(t, err, "Failed to parse nuget package archive")
 
 	spec, err := reader.Nuspec()

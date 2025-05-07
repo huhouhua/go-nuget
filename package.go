@@ -5,8 +5,8 @@
 package nuget
 
 import (
+	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/Masterminds/semver/v3"
@@ -87,7 +87,7 @@ func (f *FindPackageResource) GetDependencyInfo(
 
 type CopyNupkgOptions struct {
 	Version string
-	Writer  io.Writer
+	Writer  *bytes.Buffer
 }
 
 // CopyNupkgToStream downloads a specific package version and copies it to the provided writer.

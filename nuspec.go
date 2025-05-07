@@ -125,15 +125,18 @@ type Reference struct {
 
 type PackageArchiveReader struct {
 	nuspec     *Nuspec
-	writer     io.Writer
+	buf        *bytes.Buffer
 	archive    *zip.Reader
 	nuspecFile io.ReadCloser
 	once       sync.Once
 }
 
-func NewPackageArchiveReader(r io.Writer) (*PackageArchiveReader, error) {
+func NewPackageArchiveReader(reader io.Reader) (*PackageArchiveReader, error) {
 	p := &PackageArchiveReader{
-		writer: r,
+		buf: &bytes.Buffer{},
+	}
+	if _, err := p.buf.ReadFrom(reader); err != nil {
+		return nil, err
 	}
 	if err := p.parse(); err != nil {
 		return nil, err
@@ -142,13 +145,11 @@ func NewPackageArchiveReader(r io.Writer) (*PackageArchiveReader, error) {
 }
 
 func (p *PackageArchiveReader) parse() error {
-	// Ensure p.writer is a *bytes.Buffer
-	buf, ok := p.writer.(*bytes.Buffer)
-	if !ok {
-		return fmt.Errorf("expected *bytes.Buffer, got %T", p.writer)
+	if p.buf == nil || p.buf.Len() == 0 {
+		return fmt.Errorf("package is empty")
 	}
 	// Create a zip reader from the buffer
-	r := buf.Bytes()
+	r := p.buf.Bytes()
 	archive := bytes.NewReader(r)
 	var err error
 	if p.archive, err = zip.NewReader(archive, int64(len(r))); err != nil {
