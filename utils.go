@@ -282,11 +282,6 @@ func pathCombine(paths ...string) string {
 	return filepath.Clean(combinedPath)
 }
 
-func isURL(path string) bool {
-	u, err := url.Parse(path)
-	return err == nil && u.Scheme != "" && u.Host != ""
-}
-
 // getFileNameWithoutExtension returns the file name of the specified path string without the extension.
 func getFileNameWithoutExtension(path string) string {
 	newPath := path

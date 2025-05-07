@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/stretchr/testify/require"
 )
@@ -198,7 +199,8 @@ func TestCreateVerificationApiKey(t *testing.T) {
 		if r.ContentLength == -1 {
 			t.Fatalf("PackageUpdateResource.createVerificationApiKey request content-length is -1")
 		}
-		_, err := fmt.Fprint(w, fmt.Sprintf(`{"Key":"%s","Expires":"2025-05-08T18:35:17.2531692Z"}`, wantKey))
+		data := fmt.Sprintf(`{"Key":"%s","Expires":"2025-05-08T18:35:17.2531692Z"}`, wantKey)
+		_, err := fmt.Fprint(w, data)
 		require.NoError(t, err)
 	})
 	nupkgPath := "testdata/go.nuget.test.1.0.0.snupkg"

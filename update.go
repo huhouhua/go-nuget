@@ -233,7 +233,10 @@ func (p *PackageUpdateResource) pushWithSymbol(
 }
 
 // createVerificationApiKey Get a temp API key from nuget.org for pushing to https://nuget.smbsrc.net/
-func (p *PackageUpdateResource) createVerificationApiKey(pathToPackage string, options ...RequestOptionFunc) (string, error) {
+func (p *PackageUpdateResource) createVerificationApiKey(
+	pathToPackage string,
+	options ...RequestOptionFunc,
+) (string, error) {
 	packageFile, err := os.Open(pathToPackage)
 	if err != nil {
 		return "", err
