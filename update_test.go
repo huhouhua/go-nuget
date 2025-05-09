@@ -163,7 +163,6 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			if tt.clientFunc != nil {
 				tt.clientFunc(client)
 			}
-
 			_, err := client.UpdateResource.Push(tt.packagePath, tt.opt)
 			var errResp *ErrorResponse
 			if errors.As(err, &errResp) {
@@ -175,46 +174,52 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 	}
 }
 
+func TestPackageUpdateResource_PushWithSymbol(t *testing.T) {
+	mux, client := setup(t, index_V3)
+	require.NotNil(t, client)
+	baseURL := client.getResourceUrl(PackagePublish)
+	addTestUploadHandler(t, baseURL.Path, mux)
+
+	wantKey := "0309f180-c810-45dd-bcae-9f0a94557abc"
+	apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
+	path := fmt.Sprintf("%s/%s", baseURL.Path, apiKeyEndpoint)
+	addTestVerificationApiKeyHandler(t, path, client.apiKey, wantKey, mux)
+
+	packagePath := "testdata/go.nuget.test.1.0.0.snupkg"
+	opt := &PushPackageOptions{
+		TimeoutInDuration: time.Minute * 10,
+		SymbolSource:      "https://nuget.smbsrc.net/",
+		IsSnupkg:          true,
+	}
+	_, err := client.UpdateResource.Push(packagePath, opt, func(request *retryablehttp.Request) error {
+		request.URL.Scheme = "http"
+		request.URL.Host = client.baseURL.Host
+		request.Host = client.baseURL.Host
+		return nil
+	})
+	require.NoError(t, err)
+}
+
 func TestCreateVerificationApiKey(t *testing.T) {
 	mux, client := setup(t, index_V3)
 	require.NotNil(t, client)
-	wantKey := "0309f180-c810-45dd-bcae-9f0a94557abc"
-	path := fmt.Sprintf("/"+TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
-	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		if !strings.Contains(r.Header.Get("X-NuGet-ApiKey"), client.apiKey) {
-			t.Fatalf(
-				"PackageUpdateResource.createVerificationApiKey request x-nuget-apikey %+v want %s",
-				r.Header.Get("X-NuGet-ApiKey"),
-				client.apiKey,
-			)
-		}
+	baseURL := client.getResourceUrl(PackagePublish)
 
-		if !strings.Contains(r.Header.Get("X-NuGet-Client-Version"), "4.1.0") {
-			t.Fatalf(
-				"PackageUpdateResource.createVerificationApiKey request x-nuget-client-version %+v want 4.1.0",
-				r.Header.Get("X-NuGet-Client-Version"),
-			)
-		}
-		if r.ContentLength == -1 {
-			t.Fatalf("PackageUpdateResource.createVerificationApiKey request content-length is -1")
-		}
-		data := fmt.Sprintf(`{"Key":"%s","Expires":"2025-05-08T18:35:17.2531692Z"}`, wantKey)
-		_, err := fmt.Fprint(w, data)
-		require.NoError(t, err)
-	})
+	wantKey := "0309f180-c810-45dd-bcae-9f0a94557abc"
+	apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
+	path := fmt.Sprintf("%s/%s", baseURL.Path, apiKeyEndpoint)
+	addTestVerificationApiKeyHandler(t, path, client.apiKey, wantKey, mux)
+
 	nupkgPath := "testdata/go.nuget.test.1.0.0.snupkg"
 	key, err := client.UpdateResource.createVerificationApiKey(nupkgPath, func(request *retryablehttp.Request) error {
-		u, err := url.Parse(fmt.Sprintf("%s/%s", client.baseURL.String(), path))
-		require.NoError(t, err)
-		request.URL = u
-		request.Host = u.Host
+		request.URL.Scheme = "http"
+		request.URL.Host = client.baseURL.Host
+		request.Host = client.baseURL.Host
 		return nil
 	})
 	require.NoError(t, err)
 	require.Equal(t, wantKey, key)
 }
-
 func addTestUploadHandler(t *testing.T, path string, mux *http.ServeMux) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
@@ -231,7 +236,7 @@ func addTestUploadHandler(t *testing.T, path string, mux *http.ServeMux) {
 				r.Header.Get("X-NuGet-Client-Version"),
 			)
 		}
-		timeout := r.URL.Query().Get("timeout_millisecond")
+		timeout := strings.TrimRight(r.URL.Query().Get("timeout_millisecond"), "/")
 		if millisecond, err := strconv.Atoi(timeout); err == nil {
 			time.Sleep(time.Duration(millisecond + int(time.Millisecond*5)))
 		}
@@ -245,6 +250,31 @@ func addTestUploadHandler(t *testing.T, path string, mux *http.ServeMux) {
 			t.Fatalf("PackageUpdateResource.Push request content-length is -1")
 		}
 		_, err := fmt.Fprint(w, `{}`)
+		require.NoError(t, err)
+	})
+}
+func addTestVerificationApiKeyHandler(t *testing.T, path, apiKey, wantKey string, mux *http.ServeMux) {
+	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, http.MethodPost)
+		if !strings.Contains(r.Header.Get("X-NuGet-ApiKey"), apiKey) {
+			t.Fatalf(
+				"PackageUpdateResource.createVerificationApiKey request x-nuget-apikey %+v want %s",
+				r.Header.Get("X-NuGet-ApiKey"),
+				apiKey,
+			)
+		}
+
+		if !strings.Contains(r.Header.Get("X-NuGet-Client-Version"), "4.1.0") {
+			t.Fatalf(
+				"PackageUpdateResource.createVerificationApiKey request x-nuget-client-version %+v want 4.1.0",
+				r.Header.Get("X-NuGet-Client-Version"),
+			)
+		}
+		if r.ContentLength == -1 {
+			t.Fatalf("PackageUpdateResource.createVerificationApiKey request content-length is -1")
+		}
+		data := fmt.Sprintf(`{"Key":"%s","Expires":"2025-05-08T18:35:17.2531692Z"}`, wantKey)
+		_, err := fmt.Fprint(w, data)
 		require.NoError(t, err)
 	})
 }

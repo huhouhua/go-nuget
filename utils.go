@@ -319,12 +319,8 @@ func getServiceEndpointUrl(source, path string, noServiceEndpoint bool) (*url.UR
 		return nil, err
 	}
 	requestUri := ""
-	if strings.TrimSpace(strings.TrimPrefix(baseUri.Path, "/")) != "" && !noServiceEndpoint {
-		if path != "" {
-			requestUri = fmt.Sprintf("%s%s", baseUri.String(), pathCombine(ServiceEndpoint, "/", path))
-		} else {
-			requestUri = fmt.Sprintf("%s%s", baseUri.String(), pathCombine(ServiceEndpoint, path))
-		}
+	if strings.TrimSpace(strings.TrimPrefix(baseUri.Path, "/")) == "" && !noServiceEndpoint {
+		requestUri = fmt.Sprintf("%s%s/%s", strings.TrimRight(baseUri.String(), "/"), ServiceEndpoint, path)
 	} else {
 		requestUri = fmt.Sprintf("%s%s", baseUri.String(), path)
 	}

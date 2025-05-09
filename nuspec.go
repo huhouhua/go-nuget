@@ -156,7 +156,7 @@ func (p *PackageArchiveReader) parse() error {
 		return err
 	}
 	// Extract the nuspec file
-	if p.nuspecFile, err = p.extractNuspecFile(); err != nil {
+	if p.nuspecFile, err = p.findNuspecFile(); err != nil {
 		return err
 	}
 	return nil
@@ -179,7 +179,7 @@ func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
 	return p.nuspec, err
 }
 
-func (p *PackageArchiveReader) extractNuspecFile() (io.ReadCloser, error) {
+func (p *PackageArchiveReader) findNuspecFile() (io.ReadCloser, error) {
 	for _, file := range p.archive.File {
 		if strings.HasSuffix(file.Name, ".nuspec") {
 			if nuspecFile, err := file.Open(); err != nil {

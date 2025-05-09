@@ -257,7 +257,7 @@ func (p *PackageUpdateResource) createVerificationApiKey(
 	if err != nil {
 		return "", err
 	}
-	req, err := p.client.NewRequest(http.MethodPost, "", sourceUri, nil, options)
+	req, err := p.client.NewRequest(http.MethodPost, sourceUri.Path, sourceUri, nil, options)
 	if err != nil {
 		return "", err
 	}
@@ -279,10 +279,14 @@ func (p *PackageUpdateResource) push(
 	if err != nil {
 		return nil, err
 	}
+	endpointUrl, err := getServiceEndpointUrl(sourceUrl.String(), "", false)
+	if err != nil {
+		return nil, err
+	}
 	req, err := p.client.UploadRequest(
 		http.MethodPut,
-		sourceUrl.Path,
-		sourceUrl,
+		endpointUrl.Path,
+		endpointUrl,
 		file,
 		"package",
 		"package.nupkg",
@@ -299,6 +303,5 @@ func (p *PackageUpdateResource) push(
 			req.Header.Add("X-NuGet-ApiKey", key)
 		}
 	}
-
 	return p.client.Do(req, nil, DecoderEmpty)
 }
