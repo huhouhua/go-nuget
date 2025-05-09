@@ -4,8 +4,6 @@
 
 package nuget
 
-import "strings"
-
 type ServiceTypes []string
 
 type ServiceType string
@@ -146,15 +144,6 @@ func newTypeOptions(types ServiceTypes, defaultUrl string) *ServiceTypeOptions {
 		Types:      types,
 		DefaultUrl: defaultUrl,
 	}
-}
-
-func (s ServiceTypes) Exist(value string) bool {
-	for _, item := range s {
-		if strings.EqualFold(item, value) {
-			return true
-		}
-	}
-	return false
 }
 
 // SearchFilterType The type of filter to apply to the search.
