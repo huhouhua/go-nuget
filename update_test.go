@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -21,16 +22,22 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-
 	"github.com/stretchr/testify/require"
 )
 
 func TestPackageUpdateResource_PushWithStream(t *testing.T) {
+	defaultTimeOut := time.Second * 10
 	mux, client := setup(t, index_V3)
 	baseURL := client.getResourceUrl(PackagePublish)
 	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
-
+		apiKey := r.Header.Get("X-NuGet-ApiKey")
+		if apiKey == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, err := fmt.Fprint(w, `{"msg":"api key is required"}`)
+			require.NoError(t, err)
+			return
+		}
 		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data;") {
 			t.Fatalf(
 				"PackageUpdateResource.PushWithStream request content-type %+v want multipart/form-data;",
@@ -50,27 +57,121 @@ func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	var opt = &PushPackageOptions{
-		TimeoutInDuration: time.Second * 5,
-		SymbolSource:      "",
+	tests := []struct {
+		name       string
+		opt        *PushPackageOptions
+		packageBuf io.Reader
+		error      error
+	}{
+		{
+			name:       "push empty package return fail",
+			opt:        &PushPackageOptions{},
+			packageBuf: os.Stdout,
+			error: &fs.PathError{
+				Op:   "read",
+				Path: "/dev/stdout",
+				Err:  syscall.Errno(9),
+			},
+		},
+		{
+			name: "push suffix .nupkg package return success",
+			opt: &PushPackageOptions{
+				TimeoutInDuration: defaultTimeOut,
+				IsSnupkg:          true,
+			},
+			packageBuf: new(bytes.Buffer),
+		},
+		{
+			name: "push a package return success",
+			opt: &PushPackageOptions{
+				TimeoutInDuration: defaultTimeOut,
+			},
+			packageBuf: new(bytes.Buffer),
+		},
 	}
-	packageBuf := new(bytes.Buffer)
-	_, err := client.UpdateResource.PushWithStream(packageBuf, opt)
-	if err != nil {
-		t.Fatalf("PackageUpdateResource.PushWithStream returns an error: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.UpdateResource.PushWithStream(tt.packageBuf, tt.opt)
+			require.Equal(t, tt.error, err, "PackageUpdateResource.PushWithStream returns an error")
+		})
 	}
 }
 
 func TestPackageUpdateResource_Delete(t *testing.T) {
-	mux, client := setup(t, index_V3)
-	baseURL := client.getResourceUrl(PackagePublish)
-	u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape("newtonsoft.json"), PathEscape("1.0.0"))
-	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodDelete)
-	})
-	_, err := client.UpdateResource.Delete("newtonsoft.json", "1.0.0")
-	if err != nil {
-		t.Errorf("UpdateResource.Delete returned error: %v", err)
+	tests := []struct {
+		name        string
+		configFunc  func(client *Client)
+		id          string
+		version     string
+		optionsFunc []RequestOptionFunc
+		error       error
+	}{
+		{
+			name: "valid resource url",
+			configFunc: func(client *Client) {
+				u := createUrl(t, "http://abc")
+				u.Scheme = ":"
+				client.serviceUrls[PackagePublish] = u
+			},
+			error: &url.Error{
+				Op:  "parse",
+				URL: ":://abc",
+				Err: errors.New("missing protocol scheme"),
+			},
+		},
+		{
+			name: "valid resource url scheme",
+			configFunc: func(client *Client) {
+				invalidUrlTemplate := createUrl(t, "file:///localhost:5000/api/v2/package")
+				client.serviceUrls[PackagePublish] = invalidUrlTemplate
+			},
+			error: errors.New("no support file system delete"),
+		},
+		{
+			name:    "new request return fail",
+			id:      "newtonsoft.json",
+			version: "1.0.0",
+			optionsFunc: []RequestOptionFunc{func(request *retryablehttp.Request) error {
+				return errors.New("request fail")
+			}},
+			error: errors.New("request fail"),
+		},
+		{
+			name:    "delete a package return success",
+			id:      "newtonsoft.json",
+			version: "1.0.0",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_V3)
+			if tt.configFunc != nil {
+				tt.configFunc(client)
+			}
+			baseURL := client.getResourceUrl(PackagePublish)
+			u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape(tt.id), PathEscape(tt.version))
+			mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, http.MethodDelete)
+				apiKey := r.Header.Get("X-NuGet-ApiKey")
+				if apiKey == "" {
+					w.WriteHeader(http.StatusBadRequest)
+					_, err := fmt.Fprint(w, `{"msg":"api key is required"}`)
+					require.NoError(t, err)
+					return
+				}
+				if !strings.Contains(r.Header.Get("X-NuGet-ApiKey"), client.apiKey) {
+					t.Fatalf(
+						"PackageUpdateResource.createVerificationApiKey request x-nuget-apikey %+v want %s",
+						r.Header.Get("X-NuGet-ApiKey"),
+						client.apiKey,
+					)
+				}
+				_, err := fmt.Fprint(w, `{}`)
+				require.NoError(t, err)
+			})
+			_, err := client.UpdateResource.Delete(tt.id, tt.version, tt.optionsFunc...)
+			require.Equal(t, tt.error, err, "UpdateResource.Delete returned error")
+		})
 	}
 }
 
@@ -346,16 +447,13 @@ func TestPushWithSymbol(t *testing.T) {
 }
 
 func TestPushPackage(t *testing.T) {
-	invalidSchemeUrlTemplate, err := url.Parse("https://www.myget.org/F/nuget/api/v2/symbolpackage/")
-	require.NoError(t, err)
+	invalidSchemeUrlTemplate := createUrl(t, "https://www.myget.org/F/nuget/api/v2/symbolpackage/")
 	invalidSchemeUrlTemplate.Scheme = "://abc"
 
-	invalidUrlTemplate, err := url.Parse("https://www.myget.org/F/nuget/api/v2/symbolpackage/")
-	require.NoError(t, err)
+	invalidUrlTemplate := createUrl(t, "https://www.myget.org/F/nuget/api/v2/symbolpackage/")
 	invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%eth"
 
-	smbsrcUrl, err := url.Parse("https://nuget.smbsrc.net/")
-	require.NoError(t, err)
+	smbsrcUrl := createUrl(t, "https://nuget.smbsrc.net/")
 
 	_, client := setup(t, index_V3)
 	require.NotNil(t, client)
@@ -471,12 +569,15 @@ func TestCreateVerificationApiKey(t *testing.T) {
 			if tt.handleConfigFunc != nil {
 				tt.handleConfigFunc(client, mux)
 			}
-			key, err := client.UpdateResource.createVerificationApiKey(tt.packagePath, func(request *retryablehttp.Request) error {
-				request.URL.Scheme = "http"
-				request.URL.Host = client.baseURL.Host
-				request.Host = client.baseURL.Host
-				return nil
-			})
+			key, err := client.UpdateResource.createVerificationApiKey(
+				tt.packagePath,
+				func(request *retryablehttp.Request) error {
+					request.URL.Scheme = "http"
+					request.URL.Host = client.baseURL.Host
+					request.Host = client.baseURL.Host
+					return nil
+				},
+			)
 			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.wantApiKey, key)
 		})
@@ -522,14 +623,14 @@ func addTestUploadHandler(t *testing.T, path string, mux *http.ServeMux) {
 		require.NoError(t, err)
 	})
 }
-func addTestVerificationApiKeyHandler(t *testing.T, path, apiKey, wantKey string, mux *http.ServeMux) {
+func addTestVerificationApiKeyHandler(t *testing.T, path, apikey, wantKey string, mux *http.ServeMux) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPost)
-		if !strings.Contains(r.Header.Get("X-NuGet-ApiKey"), apiKey) {
+		if !strings.Contains(r.Header.Get("X-NuGet-ApiKey"), apikey) {
 			t.Fatalf(
 				"PackageUpdateResource.createVerificationApiKey request x-nuget-apikey %+v want %s",
 				r.Header.Get("X-NuGet-ApiKey"),
-				apiKey,
+				apikey,
 			)
 		}
 
