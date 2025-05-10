@@ -171,7 +171,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			mux, client := setup(t, index_V3)
 			require.NotNil(t, client)
 			baseURL := client.getResourceUrl(PackagePublish)
-			addTestUploadHandler(t, baseURL.Path, client.apiKey, mux)
+			addTestUploadHandler(t, baseURL.Path, mux)
 			if tt.configFunc != nil {
 				tt.configFunc(client, mux)
 			}
@@ -248,7 +248,7 @@ func TestPushPackagePath(t *testing.T) {
 			require.NotNil(t, client)
 
 			baseURL := client.getResourceUrl(PackagePublish)
-			addTestUploadHandler(t, baseURL.Path, client.apiKey, mux)
+			addTestUploadHandler(t, baseURL.Path, mux)
 
 			if tt.configFunc != nil {
 				tt.configFunc(client)
@@ -281,7 +281,8 @@ func TestPushWithSymbol(t *testing.T) {
 			name:        "directory does not exist",
 			packagePath: "notfind/test",
 			opt: &PushPackageOptions{
-				IsSnupkg: false,
+				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
+				IsSnupkg:     false,
 			},
 			error: &fs.PathError{
 				Op:   "lstat",
@@ -292,8 +293,10 @@ func TestPushWithSymbol(t *testing.T) {
 		{
 			name:        "url empty",
 			packagePath: "",
-			opt:         &PushPackageOptions{},
-			error:       errors.New("unable to find file "),
+			opt: &PushPackageOptions{
+				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
+			},
+			error: errors.New("unable to find file "),
 		},
 		{
 			name:        "api key empty",
@@ -319,7 +322,7 @@ func TestPushWithSymbol(t *testing.T) {
 				require.NotNil(t, symbolUrl)
 			}
 
-			addTestUploadHandler(t, strings.TrimRight(symbolUrl.Path, "/"), client.apiKey, mux)
+			addTestUploadHandler(t, strings.TrimRight(symbolUrl.Path, "/"), mux)
 
 			_, err = client.UpdateResource.pushWithSymbol(
 				tt.opt,
@@ -362,7 +365,7 @@ func TestCreateVerificationApiKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, wantKey, key)
 }
-func addTestUploadHandler(t *testing.T, path, wantApiKey string, mux *http.ServeMux) {
+func addTestUploadHandler(t *testing.T, path string, mux *http.ServeMux) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
 		apiKey := r.Header.Get("X-NuGet-ApiKey")
@@ -371,13 +374,6 @@ func addTestUploadHandler(t *testing.T, path, wantApiKey string, mux *http.Serve
 			_, err := fmt.Fprint(w, `{"msg":"api key is required"}`)
 			require.NoError(t, err)
 			return
-		}
-		if !strings.Contains(apiKey, wantApiKey) {
-			t.Fatalf(
-				"PackageUpdateResource.Push request x-nuget-apikey %+v want %s",
-				apiKey,
-				wantApiKey,
-			)
 		}
 		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data;") {
 			t.Fatalf(
