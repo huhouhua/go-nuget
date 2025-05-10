@@ -162,7 +162,7 @@ func (p *PackageUpdateResource) pushPackagePath(
 		return nil, err
 	}
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("no packages found in %s", path)
+		return nil, fmt.Errorf("unable to find file %s", path)
 	}
 
 	if p.client.apiKey == "" && sourceUri.Scheme != "file" {

@@ -171,7 +171,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			mux, client := setup(t, index_V3)
 			require.NotNil(t, client)
 			baseURL := client.getResourceUrl(PackagePublish)
-			addTestUploadHandler(t, baseURL.Path, mux)
+			addTestUploadHandler(t, baseURL.Path, client.apiKey, mux)
 			if tt.configFunc != nil {
 				tt.configFunc(client, mux)
 			}
@@ -213,7 +213,7 @@ func TestPushPackagePath(t *testing.T) {
 		{
 			name:        "url empty",
 			packagePath: "",
-			error:       errors.New("no packages found in "),
+			error:       errors.New("unable to find file "),
 		},
 		{
 			name:        "api key empty",
@@ -248,7 +248,7 @@ func TestPushPackagePath(t *testing.T) {
 			require.NotNil(t, client)
 
 			baseURL := client.getResourceUrl(PackagePublish)
-			addTestUploadHandler(t, baseURL.Path, mux)
+			addTestUploadHandler(t, baseURL.Path, client.apiKey, mux)
 
 			if tt.configFunc != nil {
 				tt.configFunc(client)
@@ -267,8 +267,79 @@ func TestPushPackagePath(t *testing.T) {
 		})
 	}
 }
-func TestPushWithSymbol(t *testing.T) {
 
+func TestPushWithSymbol(t *testing.T) {
+	dir, err := os.Getwd()
+	require.NoError(t, err)
+	tests := []struct {
+		name        string
+		opt         *PushPackageOptions
+		packagePath string
+		error       error
+	}{
+		{
+			name:        "directory does not exist",
+			packagePath: "notfind/test",
+			opt: &PushPackageOptions{
+				IsSnupkg: false,
+			},
+			error: &fs.PathError{
+				Op:   "lstat",
+				Path: fmt.Sprintf("%s/notfind", dir),
+				Err:  syscall.Errno(2),
+			},
+		},
+		{
+			name:        "url empty",
+			packagePath: "",
+			opt:         &PushPackageOptions{},
+			error:       errors.New("unable to find file "),
+		},
+		{
+			name:        "api key empty",
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			opt: &PushPackageOptions{
+				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
+				IsSnupkg:     true,
+			},
+			error: errors.New("{msg: api key is required}"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_V3)
+			require.NotNil(t, client)
+			// test empty api key fail
+			client.apiKey = ""
+
+			symbolUrl := &url.URL{}
+			if tt.opt != nil && tt.opt.SymbolSource != "" {
+				symbolUrl, err = createSourceUri(tt.opt.SymbolSource)
+				require.NoError(t, err)
+				require.NotNil(t, symbolUrl)
+			}
+
+			addTestUploadHandler(t, strings.TrimRight(symbolUrl.Path, "/"), client.apiKey, mux)
+
+			_, err = client.UpdateResource.pushWithSymbol(
+				tt.opt,
+				tt.packagePath,
+				symbolUrl,
+				func(request *retryablehttp.Request) error {
+					request.URL.Scheme = "http"
+					request.URL.Host = client.baseURL.Host
+					request.Host = client.baseURL.Host
+					return nil
+				},
+			)
+			var errResp *ErrorResponse
+			if errors.As(err, &errResp) {
+				require.Equal(t, tt.error.Error(), errResp.Message, "PackageUpdateResource.Push returns an error")
+			} else {
+				require.Equal(t, tt.error, err, "PackageUpdateResource.Push returns an error")
+			}
+		})
+	}
 }
 
 func TestCreateVerificationApiKey(t *testing.T) {
@@ -291,10 +362,23 @@ func TestCreateVerificationApiKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, wantKey, key)
 }
-func addTestUploadHandler(t *testing.T, path string, mux *http.ServeMux) {
+func addTestUploadHandler(t *testing.T, path, wantApiKey string, mux *http.ServeMux) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
-
+		apiKey := r.Header.Get("X-NuGet-ApiKey")
+		if apiKey == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_, err := fmt.Fprint(w, `{"msg":"api key is required"}`)
+			require.NoError(t, err)
+			return
+		}
+		if !strings.Contains(apiKey, wantApiKey) {
+			t.Fatalf(
+				"PackageUpdateResource.Push request x-nuget-apikey %+v want %s",
+				apiKey,
+				wantApiKey,
+			)
+		}
 		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data;") {
 			t.Fatalf(
 				"PackageUpdateResource.Push request content-type %+v want multipart/form-data;",
