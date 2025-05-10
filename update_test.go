@@ -345,26 +345,144 @@ func TestPushWithSymbol(t *testing.T) {
 	}
 }
 
-func TestCreateVerificationApiKey(t *testing.T) {
-	mux, client := setup(t, index_V3)
-	require.NotNil(t, client)
-	baseURL := client.getResourceUrl(PackagePublish)
-
-	wantKey := "0309f180-c810-45dd-bcae-9f0a94557abc"
-	apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
-	path := fmt.Sprintf("%s/%s", baseURL.Path, apiKeyEndpoint)
-	addTestVerificationApiKeyHandler(t, path, client.apiKey, wantKey, mux)
-
-	nupkgPath := "testdata/go.nuget.test.1.0.0.snupkg"
-	key, err := client.UpdateResource.createVerificationApiKey(nupkgPath, func(request *retryablehttp.Request) error {
-		request.URL.Scheme = "http"
-		request.URL.Host = client.baseURL.Host
-		request.Host = client.baseURL.Host
-		return nil
-	})
+func TestPushPackage(t *testing.T) {
+	invalidSchemeUrlTemplate, err := url.Parse("https://www.myget.org/F/nuget/api/v2/symbolpackage/")
 	require.NoError(t, err)
-	require.Equal(t, wantKey, key)
+	invalidSchemeUrlTemplate.Scheme = "://abc"
+
+	invalidUrlTemplate, err := url.Parse("https://www.myget.org/F/nuget/api/v2/symbolpackage/")
+	require.NoError(t, err)
+	invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%eth"
+
+	smbsrcUrl, err := url.Parse("https://nuget.smbsrc.net/")
+	require.NoError(t, err)
+
+	_, client := setup(t, index_V3)
+	require.NotNil(t, client)
+
+	tests := []struct {
+		name        string
+		sourceUrl   *url.URL
+		packagePath string
+		error       error
+	}{
+		{
+			name:        "open not find file",
+			packagePath: "notfind/file",
+			error: &fs.PathError{
+				Op:   "open",
+				Path: "notfind/file",
+				Err:  syscall.Errno(2),
+			},
+		},
+		{
+			name:        "endpoint url fail",
+			sourceUrl:   invalidSchemeUrlTemplate,
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			error: &url.Error{
+				Op:  "parse",
+				URL: invalidSchemeUrlTemplate.String(),
+				Err: errors.New("missing protocol scheme"),
+			},
+		},
+		{
+			name:        "uploadRequest file",
+			sourceUrl:   invalidUrlTemplate,
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			error:       url.EscapeError("%et"),
+		},
+		{
+			name:        "api interface does not exist",
+			sourceUrl:   smbsrcUrl,
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			error:       errors.New("404 Not Found"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var err error
+			packageUrl := tt.sourceUrl
+			if tt.sourceUrl == nil {
+				packageUrl, err = client.UpdateResource.getResourceUrl(PackagePublish)
+				require.NoError(t, err)
+			}
+			_, err = client.UpdateResource.push(
+				tt.packagePath,
+				packageUrl,
+				func(request *retryablehttp.Request) error {
+					request.URL.Scheme = "http"
+					request.URL.Host = client.baseURL.Host
+					request.Host = client.baseURL.Host
+					return nil
+				},
+			)
+			require.Equal(t, tt.error, err, "PackageUpdateResource.push returns an error")
+		})
+	}
 }
+
+func TestCreateVerificationApiKey(t *testing.T) {
+	tmpDir := t.TempDir()
+	emptyPackage := filepath.Join(tmpDir, "empty.nupkg")
+	createFile(t, emptyPackage, "")
+	tests := []struct {
+		name             string
+		packagePath      string
+		handleConfigFunc func(client *Client, mux *http.ServeMux)
+		wantApiKey       string
+		error            error
+	}{
+		{
+			name:        "open not find file",
+			packagePath: "notfind/file",
+			error: &fs.PathError{
+				Op:   "open",
+				Path: "notfind/file",
+				Err:  syscall.Errno(2),
+			},
+		},
+		{
+			name:        "empty package",
+			packagePath: emptyPackage,
+			error:       errors.New("package is empty"),
+		},
+		{
+			name:        "api interface does not exist",
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			error:       errors.New("404 Not Found"),
+		},
+		{
+			name:        "create a apikey",
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			handleConfigFunc: func(client *Client, mux *http.ServeMux) {
+				baseURL := client.getResourceUrl(PackagePublish)
+				apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
+				path := fmt.Sprintf("%s/%s", baseURL.Path, apiKeyEndpoint)
+				addTestVerificationApiKeyHandler(t, path, client.apiKey, "0309f180-c810-45dd-bcae-9f0a94557abc", mux)
+			},
+			wantApiKey: "0309f180-c810-45dd-bcae-9f0a94557abc",
+			error:      nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_V3)
+			require.NotNil(t, client)
+			if tt.handleConfigFunc != nil {
+				tt.handleConfigFunc(client, mux)
+			}
+			key, err := client.UpdateResource.createVerificationApiKey(tt.packagePath, func(request *retryablehttp.Request) error {
+				request.URL.Scheme = "http"
+				request.URL.Host = client.baseURL.Host
+				request.Host = client.baseURL.Host
+				return nil
+			})
+			require.Equal(t, tt.error, err)
+			require.Equal(t, tt.wantApiKey, key)
+		})
+	}
+}
+
 func addTestUploadHandler(t *testing.T, path string, mux *http.ServeMux) {
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
