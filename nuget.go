@@ -556,7 +556,7 @@ func (d DecoderType) Invoke(r io.Reader, v interface{}) error {
 }
 func parseID(id string) (string, error) {
 	if strings.TrimSpace(id) == "" {
-		return "", fmt.Errorf("id is null or empty")
+		return "", fmt.Errorf("id is empty")
 	}
 	return strings.ToLower(id), nil
 }

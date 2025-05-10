@@ -64,7 +64,7 @@ func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 		error      error
 	}{
 		{
-			name:       "push empty package return fail",
+			name:       "push empty package return error",
 			opt:        &PushPackageOptions{},
 			packageBuf: os.Stdout,
 			error: &fs.PathError{
@@ -107,7 +107,7 @@ func TestPackageUpdateResource_Delete(t *testing.T) {
 		error       error
 	}{
 		{
-			name: "valid resource url",
+			name: "valid resource url return error",
 			configFunc: func(client *Client) {
 				u := createUrl(t, "http://abc")
 				u.Scheme = ":"
@@ -120,7 +120,7 @@ func TestPackageUpdateResource_Delete(t *testing.T) {
 			},
 		},
 		{
-			name: "valid resource url scheme",
+			name: "valid resource url scheme return error",
 			configFunc: func(client *Client) {
 				invalidUrlTemplate := createUrl(t, "file:///localhost:5000/api/v2/package")
 				client.serviceUrls[PackagePublish] = invalidUrlTemplate
@@ -128,13 +128,13 @@ func TestPackageUpdateResource_Delete(t *testing.T) {
 			error: errors.New("no support file system delete"),
 		},
 		{
-			name:    "new request return fail",
+			name:    "new request return error",
 			id:      "newtonsoft.json",
 			version: "1.0.0",
 			optionsFunc: []RequestOptionFunc{func(request *retryablehttp.Request) error {
-				return errors.New("request fail")
+				return errors.New("new request fail")
 			}},
-			error: errors.New("request fail"),
+			error: errors.New("new request fail"),
 		},
 		{
 			name:    "delete a package return success",
@@ -191,7 +191,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 		error       error
 	}{
 		{
-			name: "valid resource url",
+			name: "valid resource url return error",
 			opt: &PushPackageOptions{
 				TimeoutInDuration: defaultTimeOut,
 			},
@@ -206,7 +206,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 				Err: errors.New("missing protocol scheme"),
 			},
 		}, {
-			name: "valid symbolSource",
+			name: "valid symbolSource return error",
 			opt: &PushPackageOptions{
 				TimeoutInDuration: defaultTimeOut,
 				SymbolSource:      "://abc",
@@ -217,7 +217,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 				Err: errors.New("missing protocol scheme"),
 			},
 		}, {
-			name: "push request timeout for 5 millisecond",
+			name: "push request timeout for 5 millisecond ",
 			opt: &PushPackageOptions{
 				TimeoutInDuration: time.Millisecond * 5,
 			},
@@ -233,7 +233,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			error: context.DeadlineExceeded,
 		},
 		{
-			name: "push package empty",
+			name: "push package empty return error",
 			opt: &PushPackageOptions{
 				TimeoutInDuration: defaultTimeOut,
 			},
@@ -241,7 +241,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			error:       errors.New("{error: package content size is 0}"),
 		},
 		{
-			name: "allows apiKey when pushing",
+			name: "allows apiKey when pushing return success",
 			opt: &PushPackageOptions{
 				TimeoutInDuration: defaultTimeOut,
 			},
@@ -249,7 +249,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			error:       nil,
 		},
 		{
-			name: "push with symbol package",
+			name: "push with symbol package return success",
 			opt: &PushPackageOptions{
 				TimeoutInDuration: defaultTimeOut,
 				SymbolSource:      "https://nuget.smbsrc.net/",
@@ -303,7 +303,7 @@ func TestPushPackagePath(t *testing.T) {
 		error       error
 	}{
 		{
-			name:        "directory does not exist",
+			name:        "directory does not exist return error",
 			packagePath: "notfind/test",
 			error: &fs.PathError{
 				Op:   "lstat",
@@ -312,12 +312,12 @@ func TestPushPackagePath(t *testing.T) {
 			},
 		},
 		{
-			name:        "url empty",
+			name:        "url empty return error",
 			packagePath: "",
 			error:       errors.New("unable to find file "),
 		},
 		{
-			name:        "api key empty",
+			name:        "api key empty return error",
 			packagePath: "testdata/go.nuget.test.1.0.0.nupkg",
 			configFunc: func(client *Client) {
 				client.apiKey = ""
@@ -325,7 +325,7 @@ func TestPushPackagePath(t *testing.T) {
 			error: errors.New("api key is required"),
 		},
 		{
-			name:        "not fund suffix .symbols.nupkg package",
+			name:        "not fund suffix .symbols.nupkg package return error",
 			packagePath: "testdata/go.nuget.test.1.0.0.nupkg",
 			opt: &PushPackageOptions{
 				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
@@ -334,7 +334,7 @@ func TestPushPackagePath(t *testing.T) {
 			error: nil,
 		},
 		{
-			name:        "push package to file system",
+			name:        "push package to file system return error",
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			opt: &PushPackageOptions{
 				SymbolSource: "file:///F/nuget/api/v2/symbolpackage/",
@@ -379,7 +379,7 @@ func TestPushWithSymbol(t *testing.T) {
 		error       error
 	}{
 		{
-			name:        "directory does not exist",
+			name:        "directory does not exist return error",
 			packagePath: "notfind/test",
 			opt: &PushPackageOptions{
 				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
@@ -392,7 +392,7 @@ func TestPushWithSymbol(t *testing.T) {
 			},
 		},
 		{
-			name:        "url empty",
+			name:        "url empty return error",
 			packagePath: "",
 			opt: &PushPackageOptions{
 				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
@@ -400,7 +400,7 @@ func TestPushWithSymbol(t *testing.T) {
 			error: errors.New("unable to find file "),
 		},
 		{
-			name:        "api key empty",
+			name:        "api key empty return error",
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			opt: &PushPackageOptions{
 				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
@@ -465,7 +465,7 @@ func TestPushPackage(t *testing.T) {
 		error       error
 	}{
 		{
-			name:        "open not find file",
+			name:        "open not find file return error",
 			packagePath: "notfind/file",
 			error: &fs.PathError{
 				Op:   "open",
@@ -474,7 +474,7 @@ func TestPushPackage(t *testing.T) {
 			},
 		},
 		{
-			name:        "endpoint url fail",
+			name:        "endpoint url error",
 			sourceUrl:   invalidSchemeUrlTemplate,
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			error: &url.Error{
@@ -484,13 +484,13 @@ func TestPushPackage(t *testing.T) {
 			},
 		},
 		{
-			name:        "uploadRequest file",
+			name:        "upload request file return error",
 			sourceUrl:   invalidUrlTemplate,
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			error:       url.EscapeError("%et"),
 		},
 		{
-			name:        "api interface does not exist",
+			name:        "api interface does not exist return error",
 			sourceUrl:   smbsrcUrl,
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			error:       errors.New("404 Not Found"),
@@ -531,7 +531,7 @@ func TestCreateVerificationApiKey(t *testing.T) {
 		error            error
 	}{
 		{
-			name:        "open not find file",
+			name:        "open not find file return error",
 			packagePath: "notfind/file",
 			error: &fs.PathError{
 				Op:   "open",
@@ -540,17 +540,17 @@ func TestCreateVerificationApiKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "empty package",
+			name:        "empty package return error",
 			packagePath: emptyPackage,
 			error:       errors.New("package is empty"),
 		},
 		{
-			name:        "api interface does not exist",
+			name:        "api interface does not exist return error",
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			error:       errors.New("404 Not Found"),
 		},
 		{
-			name:        "create a apikey",
+			name:        "create a apikey return success",
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			handleConfigFunc: func(client *Client, mux *http.ServeMux) {
 				baseURL := client.getResourceUrl(PackagePublish)

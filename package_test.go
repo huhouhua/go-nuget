@@ -6,15 +6,21 @@ package nuget
 
 import (
 	"bytes"
+	"encoding/json"
+	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 )
 
-// https://api.nuget.org/v3-flatcontainer/newtonsoft.json/index.json
 func TestPackageResource_ListAllVersions(t *testing.T) {
 	mux, client := setup(t, index_V3)
 
@@ -38,13 +44,97 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 	require.Equal(t, want, b)
 }
 
+func TestPackageResource_ListAllVersions_ErrorScenarios(t *testing.T) {
+	tmpDir := t.TempDir()
+	tests := []struct {
+		name        string
+		id          string
+		handleFunc  func(client *Client, mux *http.ServeMux)
+		optionsFunc []RequestOptionFunc
+		error       error
+	}{
+		{
+			name:  "parse id return error",
+			error: errors.New("id is empty"),
+		},
+		{
+			name: "new request return error",
+			id:   "newtonsoft.json",
+			optionsFunc: []RequestOptionFunc{
+				func(request *retryablehttp.Request) error {
+					return errors.New("new request fail")
+				},
+			},
+			error: errors.New("new request fail"),
+		},
+		{
+			name: "api interface does not exist return error",
+			id:   "newtonsoft.json",
+			handleFunc: func(client *Client, mux *http.ServeMux) {
+			},
+			error: errors.New("404 Not Found"),
+		},
+		{
+			name: "version parse return error",
+			id:   "newtonsoft.json",
+			handleFunc: func(client *Client, mux *http.ServeMux) {
+				baseURL := client.getResourceUrl(PackageBaseAddress)
+				u := fmt.Sprintf("%s/newtonsoft.json/index.json", baseURL.Path)
+
+				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
+					testMethod(t, r, http.MethodGet)
+
+					testDataUrl := "testdata/list_all_versions.json"
+					data, err := os.ReadFile(testDataUrl)
+					require.NoError(t, err)
+
+					var version struct {
+						Versions []string `json:"versions"`
+					}
+					err = json.Unmarshal(data, &version)
+					require.NoError(t, err)
+
+					for i := 0; i < len(version.Versions); i++ {
+						version.Versions[i] = "^0.0.1"
+					}
+					testData, err := json.Marshal(version)
+					require.NoError(t, err)
+
+					fileUrl := filepath.Join(tmpDir, "list_all_versions.json")
+					createFile(t, fileUrl, string(testData))
+					mustWriteHTTPResponse(t, w, fileUrl)
+				})
+			},
+			error: errors.New("Invalid Semantic Version"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_V3)
+			if tt.handleFunc != nil {
+				tt.handleFunc(client, mux)
+			} else {
+				baseURL := client.getResourceUrl(PackageBaseAddress)
+				u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, PathEscape(tt.id))
+
+				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
+					testMethod(t, r, http.MethodGet)
+					mustWriteHTTPResponse(t, w, "testdata/list_all_versions.json")
+				})
+			}
+			_, _, err := client.FindPackageResource.ListAllVersions(tt.id, tt.optionsFunc...)
+			require.Equal(t, tt.error, err)
+		})
+	}
+}
+
 func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	mux, client := setup(t, index_V3)
 
 	baseURL := client.getResourceUrl(PackageBaseAddress)
-	url := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape("1.0.0"))
+	u := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape("1.0.0"))
 
-	mux.HandleFunc(url, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		mustWriteHTTPResponse(t, w, "testdata/testDependency.nuspec")
 	})
@@ -108,6 +198,93 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	require.Equal(t, want, b)
 }
 
+func TestPackageResource_GetDependencyInfo_ErrorScenarios(t *testing.T) {
+	tmpDir := t.TempDir()
+	tests := []struct {
+		name        string
+		id          string
+		version     string
+		handleFunc  func(client *Client, mux *http.ServeMux)
+		optionsFunc []RequestOptionFunc
+		error       error
+	}{
+		{
+			name:  "parse id return error",
+			error: errors.New("id is empty"),
+		},
+		{
+			name: "new request return error",
+			id:   "newtonsoft.json",
+			optionsFunc: []RequestOptionFunc{
+				func(request *retryablehttp.Request) error {
+					return errors.New("new request fail")
+				},
+			},
+			error: errors.New("new request fail"),
+		},
+		{
+			name: "api interface does not exist return error",
+			id:   "newtonsoft.json",
+			handleFunc: func(client *Client, mux *http.ServeMux) {
+			},
+			error: errors.New("404 Not Found"),
+		},
+		{
+			name:    "version parse return error",
+			id:      "testdependency",
+			version: "1.0.0",
+			handleFunc: func(client *Client, mux *http.ServeMux) {
+				baseURL := client.getResourceUrl(PackageBaseAddress)
+				u := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape("1.0.0"))
+
+				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
+					testMethod(t, r, http.MethodGet)
+
+					testDataUrl := "testdata/testDependency.nuspec"
+					file, err := os.Open(testDataUrl)
+					require.NoError(t, err)
+
+					t.Cleanup(func() {
+						_ = file.Close()
+					})
+					var nuspec Nuspec
+					err = xml.NewDecoder(file).Decode(&nuspec)
+					require.NoError(t, err)
+
+					for _, assembly := range nuspec.Metadata.FrameworkAssemblies.FrameworkAssembly {
+						assembly.AssemblyName = nil
+					}
+					testData, err := xml.Marshal(nuspec)
+					require.NoError(t, err)
+
+					fileUrl := filepath.Join(tmpDir, "testDependency.nuspec")
+					createFile(t, fileUrl, string(testData))
+					mustWriteHTTPResponse(t, w, fileUrl)
+				})
+			},
+			error: errors.New("items cannot be nil"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_V3)
+			if tt.handleFunc != nil {
+				tt.handleFunc(client, mux)
+			} else {
+				baseURL := client.getResourceUrl(PackageBaseAddress)
+				u := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape(tt.version))
+
+				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
+					testMethod(t, r, http.MethodGet)
+					mustWriteHTTPResponse(t, w, "testdata/testDependency.nuspec")
+				})
+			}
+			_, _, err := client.FindPackageResource.GetDependencyInfo(tt.id, tt.version, tt.optionsFunc...)
+			require.Equal(t, tt.error, err)
+		})
+	}
+}
+
 func TestPackageResource_CopyNupkgToStream(t *testing.T) {
 	mux, client := setup(t, index_V3)
 	opt := &CopyNupkgOptions{
@@ -139,4 +316,67 @@ func TestPackageResource_CopyNupkgToStream(t *testing.T) {
 	spec, err := reader.Nuspec()
 	require.NoError(t, err)
 	require.NotNil(t, spec)
+}
+
+func TestPackageResource_CopyNupkgToStream_ErrorScenarios(t *testing.T) {
+	tests := []struct {
+		name        string
+		id          string
+		opt         *CopyNupkgOptions
+		handleFunc  func(client *Client, mux *http.ServeMux)
+		optionsFunc []RequestOptionFunc
+		error       error
+	}{
+		{
+			name:  "parse id return error",
+			error: errors.New("id is empty"),
+		},
+		{
+			name: "new request return error",
+			id:   "newtonsoft.json",
+			opt: &CopyNupkgOptions{
+				Version: "1.0.0",
+			},
+			optionsFunc: []RequestOptionFunc{
+				func(request *retryablehttp.Request) error {
+					return errors.New("new request fail")
+				},
+			},
+			error: errors.New("new request fail"),
+		},
+		{
+			name: "api interface does not exist return error",
+			id:   "newtonsoft.json",
+			opt: &CopyNupkgOptions{
+				Version: "1.0.0",
+			},
+			handleFunc: func(client *Client, mux *http.ServeMux) {
+			},
+			error: errors.New("404 Not Found"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_V3)
+			if tt.handleFunc != nil {
+				tt.handleFunc(client, mux)
+			} else if tt.opt != nil {
+				packageId, version := PathEscape(tt.id), PathEscape(tt.opt.Version)
+				baseURL := client.getResourceUrl(PackageBaseAddress)
+				url := fmt.Sprintf("%s/%s/%s/%s.%s.nupkg",
+					baseURL.Path,
+					packageId,
+					version,
+					packageId,
+					version)
+
+				mux.HandleFunc(url, func(w http.ResponseWriter, r *http.Request) {
+					testMethod(t, r, http.MethodGet)
+					mustWriteHTTPResponse(t, w, "testdata/newtonsoft.json.6.0.1-beta1.nupkg")
+				})
+			}
+			_, err := client.FindPackageResource.CopyNupkgToStream(tt.id, tt.opt, tt.optionsFunc...)
+			require.Equal(t, tt.error, err)
+		})
+	}
 }
