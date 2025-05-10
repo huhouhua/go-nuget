@@ -177,7 +177,7 @@ func (p *PackageUpdateResource) pushPackagePath(
 			continue
 		}
 		symbolPackagePath := GetSymbolsPath(nupkgToPush, opt.IsSnupkg)
-		if _, err = os.Stat(symbolPackagePath); !os.IsNotExist(err) {
+		if _, err = os.Stat(symbolPackagePath); os.IsNotExist(err) {
 			continue
 		}
 		if resp, err := p.pushPackageCore(symbolPackagePath, symbolUrl, opt, options...); err != nil {

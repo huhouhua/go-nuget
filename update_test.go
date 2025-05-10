@@ -9,11 +9,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -21,25 +24,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-func TestPackageUpdateResource_AllowsApiKeyWhenPushing(t *testing.T) {
-	mux, client := setup(t, index_V3)
-	baseURL := client.getResourceUrl(PackagePublish)
-	addTestUploadHandler(t, baseURL.Path, mux)
-
-	tmpDir := t.TempDir()
-	nupkgPath := filepath.Join(tmpDir, "mynuget.nupkg")
-	createFile(t, nupkgPath, "TestPackageUpdateResource_AllowsApiKeyWhenPushing")
-
-	var opt = &PushPackageOptions{
-		TimeoutInDuration: time.Second * 5,
-		SymbolSource:      "",
-	}
-	_, err := client.UpdateResource.Push(nupkgPath, opt)
-	if err != nil {
-		t.Fatalf("PackageUpdateResource.Push returns an error: %v", err)
-	}
-}
 
 func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 	mux, client := setup(t, index_V3)
@@ -93,14 +77,16 @@ func TestPackageUpdateResource_Delete(t *testing.T) {
 func TestPackageUpdateResource_Push(t *testing.T) {
 	tmpDir := t.TempDir()
 	emptyPath := filepath.Join(tmpDir, "empty.nupkg")
+	nupkgPath := filepath.Join(tmpDir, "mynuget.nupkg")
 	createFile(t, emptyPath, "")
+	createFile(t, nupkgPath, "TestPackageUpdateResource_Push allows apikey when pushing")
 
 	defaultTimeOut := time.Second * 10
 	tests := []struct {
 		name        string
 		opt         *PushPackageOptions
 		packagePath string
-		clientFunc  func(client *Client)
+		configFunc  func(client *Client, mux *http.ServeMux)
 		error       error
 	}{
 		{
@@ -108,7 +94,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			opt: &PushPackageOptions{
 				TimeoutInDuration: defaultTimeOut,
 			},
-			clientFunc: func(client *Client) {
+			configFunc: func(client *Client, mux *http.ServeMux) {
 				u := createUrl(t, "http://abc")
 				u.Scheme = ":"
 				client.serviceUrls[PackagePublish] = u
@@ -135,7 +121,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 				TimeoutInDuration: time.Millisecond * 5,
 			},
 			packagePath: emptyPath,
-			clientFunc: func(client *Client) {
+			configFunc: func(client *Client, mux *http.ServeMux) {
 				u := client.getResourceUrl(PackagePublish)
 				require.NotNil(t, u)
 				q := u.Query()
@@ -153,6 +139,32 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			packagePath: emptyPath,
 			error:       errors.New("{error: package content size is 0}"),
 		},
+		{
+			name: "allows apiKey when pushing",
+			opt: &PushPackageOptions{
+				TimeoutInDuration: defaultTimeOut,
+			},
+			packagePath: nupkgPath,
+			error:       nil,
+		},
+		{
+			name: "push with symbol package",
+			opt: &PushPackageOptions{
+				TimeoutInDuration: defaultTimeOut,
+				SymbolSource:      "https://nuget.smbsrc.net/",
+				IsSnupkg:          true,
+			},
+			configFunc: func(client *Client, mux *http.ServeMux) {
+				baseURL := client.getResourceUrl(PackagePublish)
+				wantKey := "0309f180-c810-45dd-bcae-9f0a94557abc"
+				apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
+
+				path := fmt.Sprintf("%s/%s", baseURL.Path, apiKeyEndpoint)
+				addTestVerificationApiKeyHandler(t, path, client.apiKey, wantKey, mux)
+			},
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			error:       nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -160,44 +172,103 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			require.NotNil(t, client)
 			baseURL := client.getResourceUrl(PackagePublish)
 			addTestUploadHandler(t, baseURL.Path, mux)
-			if tt.clientFunc != nil {
-				tt.clientFunc(client)
+			if tt.configFunc != nil {
+				tt.configFunc(client, mux)
 			}
-			_, err := client.UpdateResource.Push(tt.packagePath, tt.opt)
+			_, err := client.UpdateResource.Push(tt.packagePath, tt.opt, func(request *retryablehttp.Request) error {
+				request.URL.Scheme = "http"
+				request.URL.Host = client.baseURL.Host
+				request.Host = client.baseURL.Host
+				return nil
+			})
 			var errResp *ErrorResponse
 			if errors.As(err, &errResp) {
-				require.Equal(t, tt.error.Error(), errResp.Message)
+				require.Equal(t, tt.error.Error(), errResp.Message, "PackageUpdateResource.Push returns an error")
 			} else {
-				require.Equal(t, tt.error, err)
+				require.Equal(t, tt.error, err, "PackageUpdateResource.Push returns an error")
 			}
 		})
 	}
 }
 
-func TestPackageUpdateResource_PushWithSymbol(t *testing.T) {
-	mux, client := setup(t, index_V3)
-	require.NotNil(t, client)
-	baseURL := client.getResourceUrl(PackagePublish)
-	addTestUploadHandler(t, baseURL.Path, mux)
-
-	wantKey := "0309f180-c810-45dd-bcae-9f0a94557abc"
-	apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
-	path := fmt.Sprintf("%s/%s", baseURL.Path, apiKeyEndpoint)
-	addTestVerificationApiKeyHandler(t, path, client.apiKey, wantKey, mux)
-
-	packagePath := "testdata/go.nuget.test.1.0.0.snupkg"
-	opt := &PushPackageOptions{
-		TimeoutInDuration: time.Minute * 10,
-		SymbolSource:      "https://nuget.smbsrc.net/",
-		IsSnupkg:          true,
-	}
-	_, err := client.UpdateResource.Push(packagePath, opt, func(request *retryablehttp.Request) error {
-		request.URL.Scheme = "http"
-		request.URL.Host = client.baseURL.Host
-		request.Host = client.baseURL.Host
-		return nil
-	})
+func TestPushPackagePath(t *testing.T) {
+	dir, err := os.Getwd()
 	require.NoError(t, err)
+	tests := []struct {
+		name        string
+		opt         *PushPackageOptions
+		configFunc  func(client *Client)
+		packagePath string
+		error       error
+	}{
+		{
+			name:        "directory does not exist",
+			packagePath: "notfind/test",
+			error: &fs.PathError{
+				Op:   "lstat",
+				Path: fmt.Sprintf("%s/notfind", dir),
+				Err:  syscall.Errno(2),
+			},
+		},
+		{
+			name:        "url empty",
+			packagePath: "",
+			error:       errors.New("no packages found in "),
+		},
+		{
+			name:        "api key empty",
+			packagePath: "testdata/go.nuget.test.1.0.0.nupkg",
+			configFunc: func(client *Client) {
+				client.apiKey = ""
+			},
+			error: errors.New("api key is required"),
+		},
+		{
+			name:        "not fund suffix .symbols.nupkg package",
+			packagePath: "testdata/go.nuget.test.1.0.0.nupkg",
+			opt: &PushPackageOptions{
+				SymbolSource: "https://www.myget.org/F/nuget/api/v2/symbolpackage/",
+				IsSnupkg:     false,
+			},
+			error: nil,
+		},
+		{
+			name:        "push package to file system",
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			opt: &PushPackageOptions{
+				SymbolSource: "file:///F/nuget/api/v2/symbolpackage/",
+				IsSnupkg:     true,
+			},
+			error: errors.New("no support file system push"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_V3)
+			require.NotNil(t, client)
+
+			baseURL := client.getResourceUrl(PackagePublish)
+			addTestUploadHandler(t, baseURL.Path, mux)
+
+			if tt.configFunc != nil {
+				tt.configFunc(client)
+			}
+
+			packageUrl, err := client.UpdateResource.getResourceUrl(PackagePublish)
+			require.NoError(t, err)
+			symbolUrl := &url.URL{}
+			if tt.opt != nil && tt.opt.SymbolSource != "" {
+				symbolUrl, err = createSourceUri(tt.opt.SymbolSource)
+				require.NoError(t, err)
+				require.NotNil(t, symbolUrl)
+			}
+			_, err = client.UpdateResource.pushPackagePath(tt.opt, tt.packagePath, packageUrl, symbolUrl)
+			require.Equal(t, tt.error, err, "PackageUpdateResource.pushPackagePath returns an error")
+		})
+	}
+}
+func TestPushWithSymbol(t *testing.T) {
+
 }
 
 func TestCreateVerificationApiKey(t *testing.T) {
