@@ -73,7 +73,7 @@ verify-copyright: tools.verify.licctl
 ## add-copyright: Ensures source code files have copyright license headers.
 .PHONY: add-copyright
 add-copyright: tools.verify.licctl
-	@licctl -v -f $(ROOT_DIR)/scripts/boilerplate.txt $(ROOT_DIR) --skip-dirs=_output,testdata,.github
+	@licctl -v -f $(ROOT_DIR)/scripts/boilerplate.txt $(ROOT_DIR) --skip-dirs=_output,testdata,.github,.idea
 
 ## tools: install dependent tools.
 .PHONY: tools

@@ -254,7 +254,6 @@ func TestClient_configureLimiter(t *testing.T) {
 	resp, err := c.Do(r, nil, DecoderEmpty)
 	require.NoError(t, err)
 	require.Equal(t, wantRateLimit, resp.Header.Get(headerRateLimit))
-
 }
 
 func TestCheckResponseOnHeadRequestError(t *testing.T) {
