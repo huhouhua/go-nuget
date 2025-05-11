@@ -140,7 +140,6 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 		},
 		{
 			name:    "parse id return error",
-			id:      "gitlabapiclient",
 			version: "1.8.1-beta.5",
 			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
 				wantErr := errors.New("id is empty")
