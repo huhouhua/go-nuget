@@ -8,18 +8,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/go-retryablehttp"
-
-	"github.com/Masterminds/semver/v3"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestPackageMetadataResource_ListMetadata(t *testing.T) {
