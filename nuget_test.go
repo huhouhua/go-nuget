@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -136,6 +137,65 @@ func TestNewClient(t *testing.T) {
 	if c.UserAgent != userAgent {
 		t.Errorf("NewClient UserAgent is %s, want %s", c.UserAgent, userAgent)
 	}
+}
+
+func TestNewOAuthClient(t *testing.T) {
+	t.Run("new a oath client return success", func(t *testing.T) {
+		_, server := createHttpServer(t, index_V3)
+		c, err := NewOAuthClient("", WithBaseURL(server.URL))
+
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
+		}
+		if c.BaseURL().String() != server.URL {
+			t.Errorf("NewOAuthClient BaseURL is %s, want %s", c.BaseURL().String(), server.URL)
+		}
+		if c.UserAgent != userAgent {
+			t.Errorf("NewOAuthClient UserAgent is %s, want %s", c.UserAgent, userAgent)
+		}
+	})
+	t.Run("new client return error", func(t *testing.T) {
+		wantError := fmt.Errorf("options fail")
+		_, err := NewOAuthClient("", nil, func(client *Client) error {
+			return wantError
+		})
+		require.Equal(t, wantError, err)
+	})
+}
+
+func TestClientRetry(t *testing.T) {
+	mux, server := createHttpServer(t, index_V3)
+	c, err := NewClient(WithBaseURL(server.URL))
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 0)
+	defer cancel()
+
+	ok, err := c.retryHTTPCheck(ctx, nil, nil)
+	require.False(t, ok)
+	require.Equal(t, context.DeadlineExceeded, err)
+
+	r, err := c.NewRequest(http.MethodGet, "", nil, nil, nil)
+	require.NoError(t, err)
+
+	r.URL = nil
+	_, err = c.Do(r, nil, DecoderEmpty)
+	wantErr := &url.Error{
+		Op:  "Get",
+		Err: errors.New("http: nil Request.URL"),
+	}
+	require.Equal(t, wantErr, err)
+
+	mux.HandleFunc("/retryHTTPBackoff", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	})
+	r, err = c.NewRequest(http.MethodGet, "retryHTTPBackoff", nil, nil, nil)
+	require.NoError(t, err)
+
+	_, err = c.Do(r, nil, DecoderEmpty)
+	respErr := &ErrorResponse{}
+	require.True(t, errors.As(err, &respErr))
+	require.Equal(t, http.StatusTooManyRequests, respErr.Response.StatusCode)
 }
 
 func TestCheckResponseOnHeadRequestError(t *testing.T) {
