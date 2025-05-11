@@ -5,8 +5,13 @@
 package nuget
 
 import (
+	"bytes"
 	"encoding/xml"
+	"errors"
+	"io"
+	"io/fs"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,13 +25,13 @@ func TestReaderNupkg(t *testing.T) {
 	t.Cleanup(func() {
 		_ = file.Close()
 	})
-	require.NoError(t, err)
 
 	reader, err := NewPackageArchiveReader(file)
 	require.NoError(t, err, "Failed to parse nuget package archive")
 
 	spec, err := reader.Nuspec()
 	require.NoErrorf(t, err, "Failed Get nuspec file content: %v", err)
+	spec, _ = reader.Nuspec()
 
 	want := &Nuspec{
 		XMLName: xml.Name{
@@ -142,4 +147,47 @@ func TestReaderNupkg(t *testing.T) {
 	}
 
 	require.Equal(t, want, spec)
+}
+
+func TestReaderNupkg_ErrorScenarios(t *testing.T) {
+	buf := &bytes.Buffer{}
+	buf.WriteString("test")
+
+	emptyNupkgPath := "testdata/empty.nuspec.test.nupkg"
+	emptyFile, err := os.Open(emptyNupkgPath)
+	require.NoError(t, err, "open file %s failed %v", emptyNupkgPath, err)
+	t.Cleanup(func() {
+		_ = emptyFile.Close()
+	})
+	tests := []struct {
+		name   string
+		reader io.Reader
+		error  error
+	}{
+		{
+			name:   "read stream return error",
+			reader: os.Stdout,
+			error: &fs.PathError{
+				Op:   "read",
+				Path: "/dev/stdout",
+				Err:  syscall.Errno(9),
+			},
+		},
+		{
+			name:   "zip reader return error",
+			reader: buf,
+			error:  errors.New("zip: not a valid zip file"),
+		},
+		{
+			name:   "empty nuspec return error",
+			reader: emptyFile,
+			error:  errors.New("no .nuspec file found in the .nupkg archive"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewPackageArchiveReader(tt.reader)
+			require.Equal(t, tt.error, err)
+		})
+	}
 }
