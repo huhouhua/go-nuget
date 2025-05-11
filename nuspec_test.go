@@ -31,7 +31,7 @@ func TestReaderNupkg(t *testing.T) {
 
 	_, err = reader.Nuspec()
 	require.NoErrorf(t, err, "Failed Get nuspec file content: %v", err)
-	cacheSpec, _ := reader.Nuspec()
+	spec, _ := reader.Nuspec()
 
 	want := &Nuspec{
 		XMLName: xml.Name{
@@ -146,7 +146,7 @@ func TestReaderNupkg(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, want, cacheSpec)
+	require.Equal(t, want, spec)
 }
 
 func TestReaderNupkg_ErrorScenarios(t *testing.T) {

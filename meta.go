@@ -164,10 +164,12 @@ func (p *PackageMetadataResource) GetMetadata(
 	versionRange := NewVersionRange(v, v, true, true)
 	if list, resp, err := p.getMetadata(id, opt, versionRange, options...); err != nil {
 		return nil, nil, err
-	} else if len(list) >= 0 {
-		return list[0], resp, nil
+	} else {
+		if len(list) > 0 {
+			return list[0], resp, nil
+		}
+		return nil, resp, fmt.Errorf("%s %s not find", id, version)
 	}
-	return nil, nil, err
 }
 
 // getMetadata retrieves metadata for a given package ID and version range.

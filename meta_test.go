@@ -5,10 +5,14 @@
 package nuget
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -119,106 +123,247 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 }
 
 func TestPackageMetadataResource_GetMetadata(t *testing.T) {
-	mux, client := setup(t, index_Baget)
-
-	baseURL := client.getResourceUrl(RegistrationsBaseUrl)
-	u := fmt.Sprintf("%s/gitlabapiclient/index.json", baseURL.Path)
-
-	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, http.MethodGet)
-		mustWriteHTTPResponse(t, w, "testdata/medata.json")
-	})
-
-	versionrange1203, err := ParseVersionRange("[12.0.3, )")
-	require.NoError(t, err)
-
-	publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
-	require.NoError(t, err)
-
-	rawURL := fmt.Sprintf(
-		"%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse",
-		client.baseURL.Scheme,
-		client.baseURL.Host,
-	)
-	reportUrl, err := url.Parse(rawURL)
-	require.NoError(t, err)
-
-	want := &PackageSearchMetadataRegistration{
-		ReportAbuseUrl: reportUrl,
-		Authors:        "nmklotas",
-		SearchMetadata: &SearchMetadata{
-			PackageId: "GitLabApiClient",
-			Version:   "1.8.1-beta.5",
-			DependencySets: []*PackageDependencyGroup{
-				{
-					TargetFramework: "net48",
-					Packages: []*Dependency{
-						{
-							Id:              "Newtonsoft.Json",
-							VersionRangeRaw: "[12.0.3, )",
-							VersionRange:    versionrange1203,
-						},
-					},
-				},
-				{
-					TargetFramework: "netcoreapp3.1",
-					Packages: []*Dependency{
-						{
-							Id:              "Newtonsoft.Json",
-							VersionRangeRaw: "[12.0.3, )",
-							VersionRange:    versionrange1203,
-						},
-					},
-				},
-				{
-					TargetFramework: "net5.0",
-					Packages: []*Dependency{
-						{
-							Id:              "Newtonsoft.Json",
-							VersionRangeRaw: "[12.0.3, )",
-							VersionRange:    versionrange1203,
-						},
-					},
-				},
-				{
-					TargetFramework: "netstandard2.0",
-					Packages: []*Dependency{
-						{
-							Id:              "Newtonsoft.Json",
-							VersionRangeRaw: "[12.0.3, )",
-							VersionRange:    versionrange1203,
-						},
-					},
+	tests := []struct {
+		name        string
+		id          string
+		version     string
+		optionsFunc []RequestOptionFunc
+		handleFunc  func(http.ResponseWriter, *http.Request)
+		wantFunc    func(client *Client, err error, meta *PackageSearchMetadataRegistration)
+	}{
+		{
+			name:    "invalid version",
+			id:      "json",
+			version: "x.0.0",
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				wantErr := errors.New("Invalid Semantic Version")
+				require.Equal(t, wantErr, err)
+			},
+		},
+		{
+			name:    "parse id return error",
+			id:      "gitlabapiclient",
+			version: "1.8.1-beta.5",
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				wantErr := errors.New("id is empty")
+				require.Equal(t, wantErr, err)
+			},
+		},
+		{
+			name:    "new request return error",
+			id:      "gitlabapiclient",
+			version: "1.8.1-beta.5",
+			optionsFunc: []RequestOptionFunc{
+				func(request *retryablehttp.Request) error {
+					return errors.New("new request fail")
 				},
 			},
-			Description:              "GitLabApiClient is a .NET rest client for GitLab API v4.",
-			DownloadCount:            0,
-			LicenseUrl:               "https://licenses.nuget.org/MIT",
-			ProjectUrl:               "https://github.com/nmklotas/GitLabApiClient",
-			Published:                publishedTime,
-			RequireLicenseAcceptance: false,
-			Tags: []string{
-				"GitLab",
-				"REST",
-				"API",
-				"CI",
-				"Client",
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				wantErr := errors.New("new request fail")
+				require.Equal(t, wantErr, err)
 			},
-			IsListed:       true,
-			PrefixReserved: false,
+		},
+		{
+			name:    "status bad gateway api return error",
+			id:      "newtonsoft.json",
+			version: "1.8.5",
+			handleFunc: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusBadGateway)
+				_, err := fmt.Fprint(w, `{"msg":"gateway fail"}`)
+				require.NoError(t, err)
+			},
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				var errResp *ErrorResponse
+				require.True(t, errors.As(err, &errResp), "TestPackageMetadataResource_GetMetadata returns an error")
+				wantErr := `{msg: gateway fail}`
+				require.Equal(t, wantErr, errResp.Message)
+			},
+		},
+		{
+			name:    "not find return error",
+			id:      "gitlabapiclient",
+			version: "1.8.1-beta.5",
+			handleFunc: func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, http.MethodGet)
+
+				tmpDir := t.TempDir()
+				index := registrationIndex{
+					Items: []*registrationPage{},
+				}
+				testData, err := json.Marshal(index)
+				require.NoError(t, err)
+
+				fileUrl := filepath.Join(tmpDir, "medata.json")
+				createFile(t, fileUrl, string(testData))
+				mustWriteHTTPResponse(t, w, fileUrl)
+			},
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				wantErr := errors.New("gitlabapiclient 1.8.1-beta.5 not find")
+				require.Equal(t, wantErr, err)
+			},
+		},
+		{
+			name:    "registration items has nil return error",
+			id:      "gitlabapiclient",
+			version: "1.8.1-beta.5",
+			handleFunc: func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, http.MethodGet)
+
+				tmpDir := t.TempDir()
+				index := registrationIndex{
+					Items: []*registrationPage{
+						nil,
+					},
+				}
+				testData, err := json.Marshal(index)
+				require.NoError(t, err)
+
+				fileUrl := filepath.Join(tmpDir, "medata.json")
+				createFile(t, fileUrl, string(testData))
+				mustWriteHTTPResponse(t, w, fileUrl)
+			},
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				if !strings.HasPrefix(err.Error(), "invalid") {
+					t.Fatalf("TestPackageMetadataResource_GetMetadata return error %s want prefix invalid", err.Error())
+				}
+			},
+		},
+		{
+			name:    "add metadata to packages return error",
+			id:      "gitlabapiclient",
+			version: "1.8.1-beta.5",
+			handleFunc: func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, http.MethodGet)
+
+				tmpDir := t.TempDir()
+				index := registrationIndex{
+					Items: []*registrationPage{
+						{
+							Lower: "^1.0.0",
+						},
+					},
+				}
+				testData, err := json.Marshal(index)
+				require.NoError(t, err)
+
+				fileUrl := filepath.Join(tmpDir, "medata.json")
+				createFile(t, fileUrl, string(testData))
+				mustWriteHTTPResponse(t, w, fileUrl)
+			},
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				wantErr := errors.New("Invalid Semantic Version")
+				require.Equal(t, wantErr, err)
+			},
+		},
+		{
+			name:    "query return success",
+			id:      "gitlabapiclient",
+			version: "1.8.1-beta.5",
+			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+				versionrange1203, err := ParseVersionRange("[12.0.3, )")
+				require.NoError(t, err)
+
+				publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
+				require.NoError(t, err)
+
+				rawURL := fmt.Sprintf(
+					"%s://%s/packages/gitlabapiclient/1.8.1-beta.5/ReportAbuse",
+					client.baseURL.Scheme,
+					client.baseURL.Host,
+				)
+				reportUrl, err := url.Parse(rawURL)
+				require.NoError(t, err)
+
+				want := &PackageSearchMetadataRegistration{
+					ReportAbuseUrl: reportUrl,
+					Authors:        "nmklotas",
+					SearchMetadata: &SearchMetadata{
+						PackageId: "GitLabApiClient",
+						Version:   "1.8.1-beta.5",
+						DependencySets: []*PackageDependencyGroup{
+							{
+								TargetFramework: "net48",
+								Packages: []*Dependency{
+									{
+										Id:              "Newtonsoft.Json",
+										VersionRangeRaw: "[12.0.3, )",
+										VersionRange:    versionrange1203,
+									},
+								},
+							},
+							{
+								TargetFramework: "netcoreapp3.1",
+								Packages: []*Dependency{
+									{
+										Id:              "Newtonsoft.Json",
+										VersionRangeRaw: "[12.0.3, )",
+										VersionRange:    versionrange1203,
+									},
+								},
+							},
+							{
+								TargetFramework: "net5.0",
+								Packages: []*Dependency{
+									{
+										Id:              "Newtonsoft.Json",
+										VersionRangeRaw: "[12.0.3, )",
+										VersionRange:    versionrange1203,
+									},
+								},
+							},
+							{
+								TargetFramework: "netstandard2.0",
+								Packages: []*Dependency{
+									{
+										Id:              "Newtonsoft.Json",
+										VersionRangeRaw: "[12.0.3, )",
+										VersionRange:    versionrange1203,
+									},
+								},
+							},
+						},
+						Description:              "GitLabApiClient is a .NET rest client for GitLab API v4.",
+						DownloadCount:            0,
+						LicenseUrl:               "https://licenses.nuget.org/MIT",
+						ProjectUrl:               "https://github.com/nmklotas/GitLabApiClient",
+						Published:                publishedTime,
+						RequireLicenseAcceptance: false,
+						Tags: []string{
+							"GitLab",
+							"REST",
+							"API",
+							"CI",
+							"Client",
+						},
+						IsListed:       true,
+						PrefixReserved: false,
+					},
+				}
+				require.Equal(t, want, meta)
+			},
 		},
 	}
-	t.Run("compare results", func(t *testing.T) {
-		b, resp, err := client.MetadataResource.GetMetadata("gitlabapiclient", "1.8.1-beta.5")
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-		require.Equal(t, want, b)
-	})
-	t.Run("invalid version", func(t *testing.T) {
-		wantErr := errors.New("Invalid Semantic Version")
-		_, _, err = client.MetadataResource.GetMetadata("json", "x.0.0")
-		require.Equal(t, wantErr, err)
-	})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mux, client := setup(t, index_Baget)
+
+			baseURL := client.getResourceUrl(RegistrationsBaseUrl)
+			u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, tt.id)
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				testMethod(t, r, http.MethodGet)
+				mustWriteHTTPResponse(t, w, "testdata/medata.json")
+			}
+			if tt.handleFunc != nil {
+				handler = tt.handleFunc
+			}
+			mux.HandleFunc(u, handler)
+			b, _, err := client.MetadataResource.GetMetadata(tt.id, tt.version, tt.optionsFunc...)
+			if tt.wantFunc != nil {
+				tt.wantFunc(client, err, b)
+			}
+		})
+	}
 }
 
 func TestPackageSearchMetadataRegistration(t *testing.T) {
@@ -554,7 +699,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 			wantPkg []*PackageSearchMetadataRegistration
 		}{
 			{
-				name: "Valid package in range",
+				name: "valid package in range return success",
 				page: &registrationPage{
 					Lower: "1.0.0",
 					Upper: "2.0.0",
@@ -598,7 +743,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				},
 			},
 			{
-				name: "Invalid lower version in page",
+				name: "invalid lower version in page return error",
 				page: &registrationPage{
 					Lower: "invalid-lower-version",
 					Upper: "2.0.0",
@@ -611,7 +756,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				error:   errors.New("Invalid Semantic Version"),
 			},
 			{
-				name: "Invalid upper version in page",
+				name: "invalid upper version in page return error",
 				page: &registrationPage{
 					Lower: "1.0.0",
 					Upper: "invalid-upper-version",
@@ -624,7 +769,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				error:   errors.New("Invalid Semantic Version"),
 			},
 			{
-				name: "Version out of range",
+				name: "version out of range",
 				page: &registrationPage{
 					Lower: "3.0.0",
 					Upper: "4.0.0",
@@ -637,7 +782,29 @@ func TestAddMetadataToPackages(t *testing.T) {
 				error:   nil,
 			},
 			{
-				name: "IncludeUnlisted is false and package is unlisted",
+				name: "invalid version in catalog entry return error",
+				page: &registrationPage{
+					Lower: "3.0.0",
+					Upper: "4.0.0",
+					Items: []*registrationLeafItem{
+						{
+							CatalogEntry: &PackageSearchMetadataRegistration{
+								SearchMetadata: &SearchMetadata{
+									Version: "^4.0.0",
+								},
+							},
+						},
+					},
+				},
+				options: &ListMetadataOptions{
+					IncludePrerelease: true,
+					IncludeUnlisted:   true,
+				},
+				wantPkg: emptyPkg,
+				error:   errors.New("Invalid Semantic Version"),
+			},
+			{
+				name: "includeUnlisted is false and package is unlisted return success",
 				page: &registrationPage{
 					Lower: "1.0.0",
 					Upper: "2.0.0",
@@ -661,7 +828,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				error:   nil,
 			},
 			{
-				name: "parse dependencySets",
+				name: "parse dependencySets return success",
 				page: &registrationPage{
 					Lower: "1.5.0",
 					Upper: "1.5.0",
@@ -729,7 +896,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				},
 			},
 			{
-				name: "parse dependencySets fail",
+				name: "parse dependencySets return error",
 				page: &registrationPage{
 					Lower: "1.5.0",
 					Upper: "1.5.0",
