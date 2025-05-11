@@ -29,9 +29,9 @@ func TestReaderNupkg(t *testing.T) {
 	reader, err := NewPackageArchiveReader(file)
 	require.NoError(t, err, "Failed to parse nuget package archive")
 
-	spec, err := reader.Nuspec()
+	_, err = reader.Nuspec()
 	require.NoErrorf(t, err, "Failed Get nuspec file content: %v", err)
-	spec, _ = reader.Nuspec()
+	cacheSpec, _ := reader.Nuspec()
 
 	want := &Nuspec{
 		XMLName: xml.Name{
@@ -146,7 +146,7 @@ func TestReaderNupkg(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, want, spec)
+	require.Equal(t, want, cacheSpec)
 }
 
 func TestReaderNupkg_ErrorScenarios(t *testing.T) {
