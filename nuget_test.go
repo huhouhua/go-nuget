@@ -14,6 +14,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -163,39 +165,96 @@ func TestNewOAuthClient(t *testing.T) {
 	})
 }
 
-func TestClientRetry(t *testing.T) {
+func TestClient_Retry(t *testing.T) {
+	mux, server := createHttpServer(t, index_V3)
+	c, err := NewClient(WithBaseURL(server.URL))
+	require.NoError(t, err)
+	c.client.RetryMax = 1
+
+	t.Run("retry http check return error", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 0)
+		defer cancel()
+
+		ok, err := c.retryHTTPCheck(ctx, nil, nil)
+		require.False(t, ok)
+		require.Equal(t, context.DeadlineExceeded, err)
+
+		r, err := c.NewRequest(http.MethodGet, "", nil, nil, nil)
+		require.NoError(t, err)
+
+		r.URL = nil
+		_, err = c.Do(r, nil, DecoderEmpty)
+		wantErr := &url.Error{
+			Op:  "Get",
+			Err: errors.New("http: nil Request.URL"),
+		}
+		require.Equal(t, wantErr, err)
+	})
+	t.Run("retry http backoff with statusTooMany return error", func(t *testing.T) {
+		mux.HandleFunc("/retryHTTPBackoff/statusTooMany", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusTooManyRequests)
+		})
+		r, err := c.NewRequest(http.MethodGet, "retryHTTPBackoff/statusTooMany", nil, nil, nil)
+		require.NoError(t, err)
+
+		_, err = c.Do(r, nil, DecoderEmpty)
+		respErr := &ErrorResponse{}
+		require.True(t, errors.As(err, &respErr))
+		require.Equal(t, http.StatusTooManyRequests, respErr.Response.StatusCode)
+	})
+	t.Run("retry http backoff with statusBadGateway return error", func(t *testing.T) {
+		mux.HandleFunc("/retryHTTPBackoff/statusBadGateway", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+		})
+		r, err := c.NewRequest(http.MethodGet, "retryHTTPBackoff/statusBadGateway", nil, nil, nil)
+		require.NoError(t, err)
+
+		_, err = c.Do(r, nil, DecoderEmpty)
+		respErr := &ErrorResponse{}
+		require.True(t, errors.As(err, &respErr))
+		require.Equal(t, http.StatusBadGateway, respErr.Response.StatusCode)
+	})
+	t.Run("retry http backoff header include rateLimit-reset return error", func(t *testing.T) {
+		wantRateReset := strconv.FormatInt(int64(c.client.RetryWaitMax*time.Millisecond+1), 10)
+
+		mux.HandleFunc("/retryHTTPBackoff/header/statusTooMany", func(w http.ResponseWriter, r *http.Request) {
+			header := w.Header()
+			header.Add(headerRateReset, wantRateReset)
+			w.WriteHeader(http.StatusTooManyRequests)
+		})
+
+		r, err := c.NewRequest(http.MethodGet, "retryHTTPBackoff/header/statusTooMany", nil, nil, nil)
+		require.NoError(t, err)
+
+		resp, err := c.Do(r, nil, DecoderEmpty)
+		respErr := &ErrorResponse{}
+		require.True(t, errors.As(err, &respErr))
+		require.Equal(t, http.StatusTooManyRequests, respErr.Response.StatusCode)
+
+		require.Equal(t, wantRateReset, resp.Header.Get(headerRateReset))
+	})
+}
+
+func TestClient_configureLimiter(t *testing.T) {
 	mux, server := createHttpServer(t, index_V3)
 	c, err := NewClient(WithBaseURL(server.URL))
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 0)
-	defer cancel()
+	c.configureLimiterOnce = sync.Once{}
+	wantRateLimit := strconv.FormatInt(int64(c.client.RetryWaitMax*time.Millisecond+1), 10)
 
-	ok, err := c.retryHTTPCheck(ctx, nil, nil)
-	require.False(t, ok)
-	require.Equal(t, context.DeadlineExceeded, err)
-
-	r, err := c.NewRequest(http.MethodGet, "", nil, nil, nil)
-	require.NoError(t, err)
-
-	r.URL = nil
-	_, err = c.Do(r, nil, DecoderEmpty)
-	wantErr := &url.Error{
-		Op:  "Get",
-		Err: errors.New("http: nil Request.URL"),
-	}
-	require.Equal(t, wantErr, err)
-
-	mux.HandleFunc("/retryHTTPBackoff", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusTooManyRequests)
+	mux.HandleFunc("/configureLimiter", func(w http.ResponseWriter, r *http.Request) {
+		header := w.Header()
+		header.Add(headerRateLimit, wantRateLimit)
+		w.WriteHeader(http.StatusOK)
 	})
-	r, err = c.NewRequest(http.MethodGet, "retryHTTPBackoff", nil, nil, nil)
+	r, err := c.NewRequest(http.MethodGet, "configureLimiter", nil, nil, nil)
 	require.NoError(t, err)
 
-	_, err = c.Do(r, nil, DecoderEmpty)
-	respErr := &ErrorResponse{}
-	require.True(t, errors.As(err, &respErr))
-	require.Equal(t, http.StatusTooManyRequests, respErr.Response.StatusCode)
+	resp, err := c.Do(r, nil, DecoderEmpty)
+	require.NoError(t, err)
+	require.Equal(t, wantRateLimit, resp.Header.Get(headerRateLimit))
+
 }
 
 func TestCheckResponseOnHeadRequestError(t *testing.T) {
