@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -139,6 +140,14 @@ func TestNewClient(t *testing.T) {
 	if c.UserAgent != userAgent {
 		t.Errorf("NewClient UserAgent is %s, want %s", c.UserAgent, userAgent)
 	}
+
+	err = c.setBaseURL("http://abc/%eth")
+	wantErr := &url.Error{
+		Op:  "parse",
+		URL: "http://abc/%eth",
+		Err: url.EscapeError("%et"),
+	}
+	require.Equalf(t, wantErr, err, "NewClient BaseURL is %+v, want %+v", err, wantErr)
 }
 
 func TestNewOAuthClient(t *testing.T) {
@@ -287,6 +296,35 @@ func TestCheckResponseOnHeadRequestError(t *testing.T) {
 	}
 }
 
+func TestCheckResponseOnUnknownErrorFormat(t *testing.T) {
+	c, err := NewClient()
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	req, err := c.NewRequest(http.MethodGet, "test", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	resp := &http.Response{
+		Request:    req.Request,
+		StatusCode: http.StatusBadRequest,
+		Body:       io.NopCloser(strings.NewReader("some error message but not JSON")),
+	}
+
+	errResp := CheckResponse(resp)
+	if errResp == nil {
+		t.Fatal("Expected error response.")
+	}
+
+	want := "GET https://api.nuget.org/test: 400 failed to parse unknown error format: some error message but not JSON "
+
+	if errResp.Error() != want {
+		t.Errorf("Expected error: %s, got %s", want, errResp.Error())
+	}
+}
+
 func TestRequestWithContext(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
 	c, err := NewClient(WithBaseURL(server.URL))
@@ -307,7 +345,13 @@ func TestRequestWithContext(t *testing.T) {
 		t.Fatal("Context was not set correctly")
 	}
 }
-
+func TestPathEscape(t *testing.T) {
+	want := "diaspora%2Fdiaspora"
+	got := PathEscape("diaspora/diaspora")
+	if want != got {
+		t.Errorf("Expected: %s, got %s", want, got)
+	}
+}
 func TestServiceUrls(t *testing.T) {
 	tests := []struct {
 		name          string
