@@ -8,13 +8,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/Masterminds/semver/v3"
 
@@ -259,7 +260,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 			name:    "query return success",
 			id:      "gitlabapiclient",
 			version: "1.8.1-beta.5",
-			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
+			wantFunc: func(client *Client, _ error, meta *PackageSearchMetadataRegistration) {
 				versionrange1203, err := ParseVersionRange("[12.0.3, )")
 				require.NoError(t, err)
 
