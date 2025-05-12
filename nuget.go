@@ -486,7 +486,7 @@ func (c *Client) Do(req *retryablehttp.Request, v interface{}, decoder DecoderTy
 		if w, ok := v.(io.Writer); ok {
 			_, err = io.Copy(w, resp.Body)
 		} else {
-			err = decoder.Invoke(resp.Body, v)
+			err = decoder.invoke(resp.Body, v)
 		}
 	}
 
@@ -544,7 +544,7 @@ func (c *Client) getResourceUrl(value ServiceType) *url.URL {
 	return &u
 }
 
-func (d DecoderType) Invoke(r io.Reader, v interface{}) error {
+func (d DecoderType) invoke(r io.Reader, v interface{}) error {
 	switch d {
 	case DecoderTypeXML:
 		return xml.NewDecoder(r).Decode(v)

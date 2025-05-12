@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,8 +18,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
+	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/require"
 )
@@ -265,6 +270,35 @@ func TestClient_configureLimiter(t *testing.T) {
 	require.Equal(t, wantRateLimit, resp.Header.Get(headerRateLimit))
 }
 
+func TestSendRequest(t *testing.T) {
+	mux, server := createHttpServer(t, index_V3)
+	c, err := NewClient(WithBaseURL(server.URL))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+	req, err := c.NewRequest(http.MethodHead, "test", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		_, err := fmt.Fprint(w, `{"Name":"test"}`)
+		require.NoError(t, err)
+	})
+	t.Run("limiter wait return error", func(t *testing.T) {
+		c.limiter = new(errorRateLimiter)
+		_, err = c.Do(req, new(interface{}), DecoderEmpty)
+		wantErr := fmt.Errorf("wait fail")
+		require.Equal(t, wantErr, err)
+	})
+	t.Run("unsupported decoder type return error", func(t *testing.T) {
+		c.limiter = rate.NewLimiter(rate.Inf, 0)
+		vMap := map[string]string{}
+		_, err = c.Do(req, &vMap, "unsupported")
+		wantErr := fmt.Errorf("unsupported decoder type: unsupported")
+		require.Equal(t, wantErr, err)
+	})
+}
+
 func TestCheckResponseOnHeadRequestError(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
 	c, err := NewClient(WithBaseURL(server.URL))
@@ -323,6 +357,117 @@ func TestCheckResponseOnUnknownErrorFormat(t *testing.T) {
 	if errResp.Error() != want {
 		t.Errorf("Expected error: %s, got %s", want, errResp.Error())
 	}
+	errResp = &ErrorResponse{
+		Message:  "",
+		Response: resp,
+	}
+	want = "GET https://api.nuget.org/test: 400"
+	require.Equal(t, want, errResp.Error())
+}
+
+func TestParseError(t *testing.T) {
+	t.Run("parse return success", func(t *testing.T) {
+		input := []interface{}{
+			"test",
+		}
+		expected := parseError(input)
+		actual := "[test]"
+		require.Equal(t, actual, expected)
+	})
+	t.Run("unexpected type return error", func(t *testing.T) {
+		input := new(interface{})
+		expected := parseError(input)
+		actual := "failed to parse unexpected error type: *interface {}"
+		require.Equal(t, actual, expected)
+	})
+}
+
+func TestNewRequest(t *testing.T) {
+	_, server := createHttpServer(t, index_V3)
+	c, err := NewClient(WithBaseURL(server.URL))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+	t.Run("marshal return error", func(t *testing.T) {
+		opt := struct {
+			Ch chan int
+		}{
+			Ch: make(chan int),
+		}
+		_, actualErr := c.NewRequest(http.MethodPost, "test", nil, &opt, nil)
+		require.IsType(t, new(json.UnsupportedTypeError), actualErr)
+	})
+	t.Run("values return error", func(t *testing.T) {
+		_, actualErr := c.NewRequest(http.MethodGet, "test", nil, new(interface{}), nil)
+		wantErr := errors.New("query: Values() expects struct input. Got interface")
+		require.Equal(t, wantErr, actualErr)
+	})
+	t.Run("new request return error", func(t *testing.T) {
+		u := createUrl(t, "http://localhost:5000")
+		u.Scheme = "://abc"
+		_, actualErr := c.NewRequest(http.MethodGet, "test", u, nil, nil)
+		wantErr := &url.Error{
+			Op:  "parse",
+			URL: u.String() + "/test",
+			Err: errors.New("missing protocol scheme"),
+		}
+		require.Equal(t, wantErr, actualErr)
+	})
+}
+
+func TestUploadRequest(t *testing.T) {
+	_, server := createHttpServer(t, index_V3)
+	c, err := NewClient(WithBaseURL(server.URL))
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+	t.Run("writer content return error", func(t *testing.T) {
+		_, actualErr := c.UploadRequest(http.MethodGet, "", nil,
+			os.Stderr, "", "", nil, nil)
+		wantErr := &os.PathError{
+			Op:   "read",
+			Path: "/dev/stderr",
+			Err:  syscall.Errno(9),
+		}
+		require.Equal(t, wantErr, actualErr)
+	})
+	t.Run("values return error", func(t *testing.T) {
+		_, actualErr := c.UploadRequest(http.MethodGet, "test", nil,
+			strings.NewReader("test"), "", "", new(interface{}), nil)
+		wantErr := errors.New("query: Values() expects struct input. Got interface")
+		require.Equal(t, wantErr, actualErr)
+	})
+	t.Run("new request return error", func(t *testing.T) {
+		u := createUrl(t, "http://localhost:5000")
+		u.Scheme = "://abc"
+		_, actualErr := c.UploadRequest(http.MethodGet, "test", u,
+			strings.NewReader("test"), "", "", nil, nil)
+		wantErr := &url.Error{
+			Op:  "parse",
+			URL: u.String() + "/test",
+			Err: errors.New("missing protocol scheme"),
+		}
+		require.Equal(t, wantErr, actualErr)
+	})
+	t.Run("request options return error", func(t *testing.T) {
+		u := createUrl(t, "http://localhost:5000")
+		wantErr := errors.New("request options fail")
+		_, actualErr := c.UploadRequest(
+			http.MethodGet,
+			"test",
+			u,
+			strings.NewReader(
+				"test",
+			),
+			"",
+			"",
+			nil,
+			[]RequestOptionFunc{nil, func(request *retryablehttp.Request) error {
+				return wantErr
+			}},
+		)
+		require.Equal(t, wantErr, actualErr)
+	})
 }
 
 func TestRequestWithContext(t *testing.T) {
@@ -352,6 +497,72 @@ func TestPathEscape(t *testing.T) {
 		t.Errorf("Expected: %s, got %s", want, got)
 	}
 }
+
+func TestLoadResource(t *testing.T) {
+	tests := []struct {
+		name             string
+		configClientFunc func(client *Client)
+		handleFunc       func(http.ResponseWriter, *http.Request)
+		wantErr          error
+	}{
+		{
+			name: "indexResource is null return error",
+			configClientFunc: func(client *Client) {
+				client.IndexResource = nil
+			},
+			wantErr: fmt.Errorf("IndexResource is null"),
+		},
+		{
+			name: "url parse return error",
+			handleFunc: func(w http.ResponseWriter, r *http.Request) {
+				svc := &ServiceIndex{
+					Resources: []*Resource{
+						{
+							Id:   "http://localhost:5000/query/%eth",
+							Type: "SearchQueryService/Versioned",
+						},
+					},
+				}
+				data, err := json.Marshal(svc)
+				require.NoError(t, err)
+				_, err = w.Write(data)
+				require.NoError(t, err)
+			},
+			wantErr: &url.Error{
+				Op:  "parse",
+				URL: "http://localhost:5000/query/%eth",
+				Err: url.EscapeError("%et"),
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mux := http.NewServeMux()
+			if tc.handleFunc != nil {
+				mux.HandleFunc("/v3/index.json", tc.handleFunc)
+			}
+			// server is a test HTTP server used to provide mock API responses.
+			server := httptest.NewServer(mux)
+			t.Cleanup(server.Close)
+
+			c := &Client{
+				client: retryablehttp.NewClient(),
+			}
+			c.IndexResource = &ServiceResource{client: c}
+			c.limiter = rate.NewLimiter(rate.Inf, 0)
+			err := c.setBaseURL(server.URL)
+			require.NoError(t, err)
+			c.serviceUrls = make(map[ServiceType]*url.URL)
+
+			if tc.configClientFunc != nil {
+				tc.configClientFunc(c)
+			}
+			err = c.loadResource()
+			require.Equal(t, tc.wantErr, err)
+		})
+	}
+}
+
 func TestServiceUrls(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -462,4 +673,11 @@ func TestServiceUrls(t *testing.T) {
 			}
 		})
 	}
+}
+
+type errorRateLimiter struct {
+}
+
+func (t *errorRateLimiter) Wait(context.Context) error {
+	return fmt.Errorf("wait fail")
 }
