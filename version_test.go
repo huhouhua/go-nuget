@@ -5,11 +5,20 @@
 package nuget
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNuGetVersion(t *testing.T) {
+	v := &NuGetVersion{
+		semver.New(1, 0, 0, "beta", ""),
+	}
+	require.True(t, true, v.IsSemVer2())
+	require.True(t, true, v.IsPrerelease())
+}
 
 func TestParseVersionRange(t *testing.T) {
 	tests := []struct {
@@ -161,6 +170,28 @@ func TestParseVersionRange(t *testing.T) {
 			},
 		},
 		{
+			name:  "symbol range",
+			input: "*-",
+			want: &VersionRange{
+				Float: Prerelease,
+			},
+		},
+		{
+			name:    "parse symbol range error",
+			input:   "-*[1.0.0]",
+			wantErr: true,
+		},
+		{
+			name:    "parse prefix symbol error",
+			input:   "~1.0.0*",
+			wantErr: true,
+		},
+		{
+			name:    "unsupported prefix symbol error",
+			input:   "*1.0.0",
+			wantErr: true,
+		},
+		{
 			name:    "invalid version",
 			input:   "invalid",
 			wantErr: true,
@@ -173,6 +204,11 @@ func TestParseVersionRange(t *testing.T) {
 		{
 			name:    "invalid range format with extra comma",
 			input:   "[1.0.0,,2.0.0]",
+			wantErr: true,
+		},
+		{
+			name:    "empty range",
+			input:   "",
 			wantErr: true,
 		},
 	}
@@ -188,6 +224,12 @@ func TestParseVersionRange(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestParseFloatingRange(t *testing.T) {
+	_, actualErr := parseFloatingRange("^*")
+	expectedErr := fmt.Errorf("invalid version in ^ range: Invalid Semantic Version")
+	require.Equal(t, expectedErr, actualErr)
 }
 
 func TestVersionRange_Satisfies(t *testing.T) {
