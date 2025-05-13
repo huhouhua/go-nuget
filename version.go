@@ -348,15 +348,8 @@ func (vr *VersionRange) IsBetter(current, considering *semver.Version) bool {
 	if vr.Float != None {
 		// check if either version is in the floating range
 		curInRange := vr.satisfiesFloat(current)
-		conInRange := vr.satisfiesFloat(considering)
 
-		if curInRange && !conInRange {
-			// take the version in the range
-			return false
-		} else if conInRange && !curInRange {
-			// take the version in the range
-			return true
-		} else if curInRange && conInRange {
+		if curInRange {
 			// prefer the highest one if both are in the range
 			return current.LessThan(considering)
 		} else {
@@ -368,12 +361,11 @@ func (vr *VersionRange) IsBetter(current, considering *semver.Version) bool {
 				// favor the version above the range
 				return true
 			} else if !curToLower && conToLower {
-				// favor the version above the range
 				return false
-			} else if !curToLower && !conToLower {
+			} else if !curToLower {
 				// favor the lower version if we are above the range
 				return current.GreaterThan(considering)
-			} else if curToLower && conToLower {
+			} else {
 				// favor the higher version if we are below the range
 				return current.LessThan(considering)
 			}

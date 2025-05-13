@@ -211,6 +211,16 @@ func TestParseVersionRange(t *testing.T) {
 			input:   "",
 			wantErr: true,
 		},
+		{
+			name:    "parse min version error",
+			input:   "[~1.0.0, 2.0.0]",
+			wantErr: true,
+		},
+		{
+			name:    "parse max version error",
+			input:   "[1.0.0, ~2.0.0]",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -227,9 +237,43 @@ func TestParseVersionRange(t *testing.T) {
 }
 
 func TestParseFloatingRange(t *testing.T) {
-	_, actualErr := parseFloatingRange("^*")
-	expectedErr := fmt.Errorf("invalid version in ^ range: Invalid Semantic Version")
+	_, actualErr := parseFloatingRange("*")
+	expectedErr := fmt.Errorf("invalid floating range format: *")
 	require.Equal(t, expectedErr, actualErr)
+
+	_, actualErr = parseFloatingRange("^*")
+	expectedErr = fmt.Errorf("invalid version in ^ range: Invalid Semantic Version")
+	require.Equal(t, expectedErr, actualErr)
+}
+
+func TestNewVersionRange(t *testing.T) {
+	minVersion := semver.New(1, 0, 0, "", "")
+	minVersionPre := semver.New(1, 0, 0, "beta", "")
+
+	maxVersion := semver.New(2, 0, 0, "", "")
+	maxVersionPre := semver.New(2, 0, 0, "beta", "")
+
+	//minorVersion1 := semver.New(1, 2, 3, "", "")
+	//minorVersion2 := semver.New(1, 5, 1, "", "")
+
+	rangeVersion := NewVersionRange(minVersion, maxVersion, true, true)
+	require.NotNil(t, rangeVersion)
+
+	require.False(t, rangeVersion.satisfiesFloat(maxVersion))
+	require.Empty(t, rangeVersion.stringFloat())
+
+	rangeVersion.Float = Prerelease
+	require.Equal(t, "*-", rangeVersion.stringFloat())
+	require.False(t, rangeVersion.IsBetter(minVersion, minVersion))
+	require.False(t, rangeVersion.IsBetter(minVersion, nil))
+
+	rangeVersion.Float = None
+	require.False(t, rangeVersion.IsBetter(nil, minVersionPre))
+
+	rangeVersion.Float = Prerelease
+	require.False(t, rangeVersion.IsBetter(minVersion, maxVersionPre))
+
+	//require.True(t, rangeVersion.IsBetter(minVersion, maxVersion))
 }
 
 func TestVersionRange_Satisfies(t *testing.T) {
