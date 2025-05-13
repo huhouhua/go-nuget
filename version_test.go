@@ -253,8 +253,11 @@ func TestNewVersionRange(t *testing.T) {
 	maxVersion := semver.New(2, 0, 0, "", "")
 	maxVersionPre := semver.New(2, 0, 0, "beta", "")
 
-	//minorVersion1 := semver.New(1, 2, 3, "", "")
-	//minorVersion2 := semver.New(1, 5, 1, "", "")
+	minMinorVersion := semver.New(1, 2, 3, "", "")
+	maxMinorVersion := semver.New(1, 5, 1, "", "")
+
+	minMinorBetaVersion := semver.New(1, 2, 3, "beta", "")
+	maxMinorBetaVersion := semver.New(1, 5, 1, "beta", "")
 
 	rangeVersion := NewVersionRange(minVersion, maxVersion, true, true)
 	require.NotNil(t, rangeVersion)
@@ -266,14 +269,22 @@ func TestNewVersionRange(t *testing.T) {
 	require.Equal(t, "*-", rangeVersion.stringFloat())
 	require.False(t, rangeVersion.IsBetter(minVersion, minVersion))
 	require.False(t, rangeVersion.IsBetter(minVersion, nil))
+	require.False(t, rangeVersion.IsBetter(minVersion, maxVersionPre))
 
 	rangeVersion.Float = None
 	require.False(t, rangeVersion.IsBetter(nil, minVersionPre))
 
-	rangeVersion.Float = Prerelease
-	require.False(t, rangeVersion.IsBetter(minVersion, maxVersionPre))
+	rangeMinorVersion := NewVersionRange(maxMinorVersion, minMinorVersion, true, true)
+	require.NotNil(t, rangeMinorVersion)
 
-	//require.True(t, rangeVersion.IsBetter(minVersion, maxVersion))
+	rangeMinorVersion.Float = Prerelease
+	require.True(t, rangeMinorVersion.IsBetter(minMinorVersion, maxVersionPre))
+
+	rangeMinorBetaVersion := NewVersionRange(maxMinorBetaVersion, minMinorBetaVersion, true, true)
+	require.NotNil(t, rangeMinorBetaVersion)
+
+	rangeMinorBetaVersion.Float = Prerelease
+	require.False(t, rangeMinorBetaVersion.IsBetter(maxVersion, minMinorBetaVersion))
 }
 
 func TestVersionRange_Satisfies(t *testing.T) {
