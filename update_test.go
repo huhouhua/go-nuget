@@ -524,11 +524,12 @@ func TestCreateVerificationApiKey(t *testing.T) {
 	emptyPackage := filepath.Join(tmpDir, "empty.nupkg")
 	createFile(t, emptyPackage, "")
 	tests := []struct {
-		name             string
-		packagePath      string
-		handleConfigFunc func(client *Client, mux *http.ServeMux)
-		wantApiKey       string
-		error            error
+		name              string
+		packagePath       string
+		handleConfigFunc  func(client *Client, mux *http.ServeMux)
+		requestOptionFunc []RequestOptionFunc
+		wantApiKey        string
+		error             error
 	}{
 		{
 			name:        "open not find file return error",
@@ -550,6 +551,14 @@ func TestCreateVerificationApiKey(t *testing.T) {
 			error:       errors.New("404 Not Found"),
 		},
 		{
+			name:        "new request return error",
+			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
+			requestOptionFunc: []RequestOptionFunc{func(r *retryablehttp.Request) error {
+				return fmt.Errorf("request error")
+			}},
+			error: errors.New("request error"),
+		},
+		{
 			name:        "create a apikey return success",
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			handleConfigFunc: func(client *Client, mux *http.ServeMux) {
@@ -569,14 +578,19 @@ func TestCreateVerificationApiKey(t *testing.T) {
 			if tt.handleConfigFunc != nil {
 				tt.handleConfigFunc(client, mux)
 			}
+			requestFunks := make([]RequestOptionFunc, 0)
+			if tt.requestOptionFunc != nil {
+				requestFunks = tt.requestOptionFunc
+			}
+			requestFunks = append(requestFunks, func(request *retryablehttp.Request) error {
+				request.URL.Scheme = "http"
+				request.URL.Host = client.baseURL.Host
+				request.Host = client.baseURL.Host
+				return nil
+			})
 			key, err := client.UpdateResource.createVerificationApiKey(
 				tt.packagePath,
-				func(request *retryablehttp.Request) error {
-					request.URL.Scheme = "http"
-					request.URL.Host = client.baseURL.Host
-					request.Host = client.baseURL.Host
-					return nil
-				},
+				requestFunks...,
 			)
 			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.wantApiKey, key)

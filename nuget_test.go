@@ -468,6 +468,30 @@ func TestUploadRequest(t *testing.T) {
 		)
 		require.Equal(t, wantErr, actualErr)
 	})
+
+	t.Run("write field return success", func(t *testing.T) {
+		u := createUrl(t, "http://localhost:5000")
+		opt := struct {
+			Name string
+		}{
+			Name: "test",
+		}
+
+		r, err := c.UploadRequest(
+			http.MethodGet,
+			"test",
+			u,
+			strings.NewReader(
+				"test",
+			),
+			"",
+			"",
+			&opt,
+			nil,
+		)
+		require.NoError(t, err)
+		require.NotNil(t, r)
+	})
 }
 
 func TestRequestWithContext(t *testing.T) {

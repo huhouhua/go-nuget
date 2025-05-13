@@ -683,42 +683,39 @@ func TestAddMetadataToPackages(t *testing.T) {
 	versionRange, err := ParseVersionRange("[1.5.0, )")
 	require.NoError(t, err)
 
-	_, client := setup(t, index_V3)
-	require.NotNil(t, client)
-
 	emptyPkg := make([]*PackageSearchMetadataRegistration, 0)
 
-	var (
-		tests = []struct {
-			name    string
-			page    *registrationPage
-			options *ListMetadataOptions
-			error   error
-			wantPkg []*PackageSearchMetadataRegistration
-		}{
-			{
-				name: "valid package in range return success",
-				page: &registrationPage{
-					Lower: "1.0.0",
-					Upper: "2.0.0",
-					Items: []*registrationLeafItem{
-						{
-							CatalogEntry: &PackageSearchMetadataRegistration{
-								SearchMetadata: &SearchMetadata{
-									PackageId: "TestPackage",
-									Version:   "1.5.0",
-									IsListed:  true,
-								},
+	tests := []struct {
+		name             string
+		page             *registrationPage
+		options          *ListMetadataOptions
+		configClientFunc func(client *Client)
+		wantPkgFunc      func(baseURL string) []*PackageSearchMetadataRegistration
+		error            error
+	}{
+		{
+			name: "valid package in range return success",
+			page: &registrationPage{
+				Lower: "1.0.0",
+				Upper: "2.0.0",
+				Items: []*registrationLeafItem{
+					{
+						CatalogEntry: &PackageSearchMetadataRegistration{
+							SearchMetadata: &SearchMetadata{
+								PackageId: "TestPackage",
+								Version:   "1.5.0",
+								IsListed:  true,
 							},
 						},
 					},
 				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   false,
-				},
-				error: nil,
-				wantPkg: []*PackageSearchMetadataRegistration{
+			},
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   false,
+			},
+			wantPkgFunc: func(baseURL string) []*PackageSearchMetadataRegistration {
+				return []*PackageSearchMetadataRegistration{
 					{
 						SearchMetadata: &SearchMetadata{
 							PackageId: "TestPackage",
@@ -727,125 +724,91 @@ func TestAddMetadataToPackages(t *testing.T) {
 						},
 						PackageDetailsUrl: createUrl(
 							t,
-							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String()),
+							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", baseURL),
 						),
 						ReadmeFileUrl: createUrl(
 							t,
-							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String()),
+							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", baseURL),
 						),
 						ReportAbuseUrl: createUrl(
 							t,
-							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String()),
+							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", baseURL),
 						),
 					},
-				},
+				}
 			},
-			{
-				name: "invalid lower version in page return error",
-				page: &registrationPage{
-					Lower: "invalid-lower-version",
-					Upper: "2.0.0",
-				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   true,
-				},
-				wantPkg: emptyPkg,
-				error:   errors.New("Invalid Semantic Version"),
+			error: nil,
+		},
+		{
+			name: "invalid lower version in page return error",
+			page: &registrationPage{
+				Lower: "invalid-lower-version",
+				Upper: "2.0.0",
 			},
-			{
-				name: "invalid upper version in page return error",
-				page: &registrationPage{
-					Lower: "1.0.0",
-					Upper: "invalid-upper-version",
-				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   true,
-				},
-				wantPkg: emptyPkg,
-				error:   errors.New("Invalid Semantic Version"),
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   true,
 			},
-			{
-				name: "version out of range",
-				page: &registrationPage{
-					Lower: "3.0.0",
-					Upper: "4.0.0",
-				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   true,
-				},
-				wantPkg: emptyPkg,
-				error:   nil,
+			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
+				return emptyPkg
 			},
-			{
-				name: "invalid version in catalog entry return error",
-				page: &registrationPage{
-					Lower: "3.0.0",
-					Upper: "4.0.0",
-					Items: []*registrationLeafItem{
-						{
-							CatalogEntry: &PackageSearchMetadataRegistration{
-								SearchMetadata: &SearchMetadata{
-									Version: "^4.0.0",
-								},
-							},
-						},
-					},
-				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   true,
-				},
-				wantPkg: emptyPkg,
-				error:   errors.New("Invalid Semantic Version"),
+			error: errors.New("Invalid Semantic Version"),
+		},
+		{
+			name: "invalid upper version in page return error",
+			page: &registrationPage{
+				Lower: "1.0.0",
+				Upper: "invalid-upper-version",
 			},
-			{
-				name: "includeUnlisted is false and package is unlisted return success",
-				page: &registrationPage{
-					Lower: "1.0.0",
-					Upper: "2.0.0",
-					Items: []*registrationLeafItem{
-						{
-							CatalogEntry: &PackageSearchMetadataRegistration{
-								SearchMetadata: &SearchMetadata{
-									PackageId: "TestPackage",
-									Version:   "1.5.0",
-									IsListed:  false,
-								},
-							},
-						},
-					},
-				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   false,
-				},
-				wantPkg: emptyPkg,
-				error:   nil,
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   true,
 			},
-			{
-				name: "parse dependencySets return success",
-				page: &registrationPage{
-					Lower: "1.5.0",
-					Upper: "1.5.0",
-					Items: []*registrationLeafItem{
-						{
-							CatalogEntry: &PackageSearchMetadataRegistration{
-								SearchMetadata: &SearchMetadata{
-									PackageId: "TestPackage",
-									Version:   "1.5.0",
-									IsListed:  true,
-									DependencySets: []*PackageDependencyGroup{
-										{
-											TargetFramework: "net48",
-											Packages: []*Dependency{
-												{
-													Id:              "Newtonsoft.Json",
-													VersionRangeRaw: "[1.5.0, )",
-													VersionRange:    versionRange,
-												},
+			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
+				return emptyPkg
+			},
+			error: errors.New("Invalid Semantic Version"),
+		},
+		{
+			name: "version out of range",
+			page: &registrationPage{
+				Lower: "3.0.0",
+				Upper: "4.0.0",
+			},
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   true,
+			},
+			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
+				return emptyPkg
+			},
+			error: nil,
+		},
+		{
+			name: "parse template url error",
+			configClientFunc: func(client *Client) {
+				invalidUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}")
+				invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%%ReportAbuse"
+				client.serviceUrls[ReportAbuseUriTemplate] = invalidUrlTemplate
+			},
+			page: &registrationPage{
+				Lower: "1.5.0",
+				Upper: "1.5.0",
+				Items: []*registrationLeafItem{
+					{
+						CatalogEntry: &PackageSearchMetadataRegistration{
+							SearchMetadata: &SearchMetadata{
+								PackageId: "TestPackage",
+								Version:   "1.5.0",
+								IsListed:  true,
+								DependencySets: []*PackageDependencyGroup{
+									{
+										TargetFramework: "net48",
+										Packages: []*Dependency{
+											{
+												Id:              "Newtonsoft.Json",
+												VersionRangeRaw: "[1.5.0, )",
+												VersionRange:    versionRange,
 											},
 										},
 									},
@@ -854,12 +817,106 @@ func TestAddMetadataToPackages(t *testing.T) {
 						},
 					},
 				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   true,
+			},
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   true,
+			},
+			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
+				return emptyPkg
+			},
+			error: &url.Error{
+				Op:  "parse",
+				URL: "https://example.com/packages/testpackage/1.5.0%%ReportAbuse",
+				Err: url.EscapeError("%%R"),
+			},
+		},
+		{
+			name: "invalid version in catalog entry return error",
+			page: &registrationPage{
+				Lower: "3.0.0",
+				Upper: "4.0.0",
+				Items: []*registrationLeafItem{
+					{
+						CatalogEntry: &PackageSearchMetadataRegistration{
+							SearchMetadata: &SearchMetadata{
+								Version: "^4.0.0",
+							},
+						},
+					},
 				},
-				error: nil,
-				wantPkg: []*PackageSearchMetadataRegistration{
+			},
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   true,
+			},
+			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
+				return emptyPkg
+			},
+			error: errors.New("Invalid Semantic Version"),
+		},
+		{
+			name: "includeUnlisted is false and package is unlisted return success",
+			page: &registrationPage{
+				Lower: "1.0.0",
+				Upper: "2.0.0",
+				Items: []*registrationLeafItem{
+					{
+						CatalogEntry: &PackageSearchMetadataRegistration{
+							SearchMetadata: &SearchMetadata{
+								PackageId: "TestPackage",
+								Version:   "1.5.0",
+								IsListed:  false,
+							},
+						},
+					},
+				},
+			},
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   false,
+			},
+			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
+				return emptyPkg
+			},
+			error: nil,
+		},
+		{
+			name: "parse dependencySets return success",
+			page: &registrationPage{
+				Lower: "1.5.0",
+				Upper: "1.5.0",
+				Items: []*registrationLeafItem{
+					{
+						CatalogEntry: &PackageSearchMetadataRegistration{
+							SearchMetadata: &SearchMetadata{
+								PackageId: "TestPackage",
+								Version:   "1.5.0",
+								IsListed:  true,
+								DependencySets: []*PackageDependencyGroup{
+									{
+										TargetFramework: "net48",
+										Packages: []*Dependency{
+											{
+												Id:              "Newtonsoft.Json",
+												VersionRangeRaw: "[1.5.0, )",
+												VersionRange:    versionRange,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   true,
+			},
+			error: nil,
+			wantPkgFunc: func(baseURL string) []*PackageSearchMetadataRegistration {
+				return []*PackageSearchMetadataRegistration{
 					{
 						SearchMetadata: &SearchMetadata{
 							PackageId: "TestPackage",
@@ -880,41 +937,41 @@ func TestAddMetadataToPackages(t *testing.T) {
 						},
 						PackageDetailsUrl: createUrl(
 							t,
-							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", client.baseURL.String()),
+							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", baseURL),
 						),
 						ReadmeFileUrl: createUrl(
 							t,
-							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", client.baseURL.String()),
+							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", baseURL),
 						),
 						ReportAbuseUrl: createUrl(
 							t,
-							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", client.baseURL.String()),
+							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", baseURL),
 						),
 					},
-				},
+				}
 			},
-			{
-				name: "parse dependencySets return error",
-				page: &registrationPage{
-					Lower: "1.5.0",
-					Upper: "1.5.0",
-					Items: []*registrationLeafItem{
-						{
-							CatalogEntry: &PackageSearchMetadataRegistration{
-								SearchMetadata: &SearchMetadata{
-									PackageId: "TestPackage",
-									Version:   "1.5.0",
-									IsListed:  true,
-									DependencySets: []*PackageDependencyGroup{
-										{
-											TargetFramework: "net48",
-											Packages: []*Dependency{
-												{
-													Id:              "Newtonsoft.Json",
-													VersionRangeRaw: "[1.5.0, )",
-													VersionRange:    versionRange,
-													VersionRaw:      "1.0.0%",
-												},
+		},
+		{
+			name: "parse dependencySets return error",
+			page: &registrationPage{
+				Lower: "1.5.0",
+				Upper: "1.5.0",
+				Items: []*registrationLeafItem{
+					{
+						CatalogEntry: &PackageSearchMetadataRegistration{
+							SearchMetadata: &SearchMetadata{
+								PackageId: "TestPackage",
+								Version:   "1.5.0",
+								IsListed:  true,
+								DependencySets: []*PackageDependencyGroup{
+									{
+										TargetFramework: "net48",
+										Packages: []*Dependency{
+											{
+												Id:              "Newtonsoft.Json",
+												VersionRangeRaw: "[1.5.0, )",
+												VersionRange:    versionRange,
+												VersionRaw:      "1.0.0%",
 											},
 										},
 									},
@@ -923,23 +980,30 @@ func TestAddMetadataToPackages(t *testing.T) {
 						},
 					},
 				},
-				options: &ListMetadataOptions{
-					IncludePrerelease: true,
-					IncludeUnlisted:   true,
-				},
-				error:   errors.New("invalid version: Invalid Semantic Version"),
-				wantPkg: emptyPkg,
 			},
-		}
-	)
+			options: &ListMetadataOptions{
+				IncludePrerelease: true,
+				IncludeUnlisted:   true,
+			},
+			error: errors.New("invalid version: Invalid Semantic Version"),
+			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
+				return emptyPkg
+			},
+		},
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			packages := make([]*PackageSearchMetadataRegistration, 0)
-
+			_, client := setup(t, index_V3)
+			if tt.configClientFunc != nil {
+				tt.configClientFunc(client)
+			}
+			require.NotNil(t, client)
 			err = client.MetadataResource.addMetadataToPackages(&packages, tt.page, tt.options, versionRange)
 			require.Equal(t, tt.error, err)
 
-			require.Equal(t, tt.wantPkg, packages)
+			require.Equal(t, tt.wantPkgFunc(client.baseURL.String()), packages)
 		})
 	}
 }
