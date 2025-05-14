@@ -90,6 +90,13 @@ func TestPerformWildcardSearch(t *testing.T) {
 			includeEmptyDirs: false,
 			expectedFiles:    []string{filepath.Join("sub1", "b.txt")},
 		},
+		{
+			name:             "search root directory",
+			basePath:         tmpDir,
+			searchPath:       "/",
+			includeEmptyDirs: false,
+			expectedFiles:    []string{filepath.Join("sub1", "b.txt")},
+		},
 	}
 
 	for _, tt := range tests {
@@ -157,6 +164,11 @@ func TestEnsurePackageExtension(t *testing.T) {
 			isSnupkg:    false,
 			expected:    "example-package*.nupkg",
 		},
+		{
+			packagePath: "**",
+			isSnupkg:    false,
+			expected:    "**/*.nupkg",
+		},
 	}
 
 	for _, tt := range tests {
@@ -178,51 +190,72 @@ func TestEnsurePackageExtension(t *testing.T) {
 
 func TestWildcardToRegex(t *testing.T) {
 	tests := []struct {
-		wildcard string
-		match    []string
-		nomatch  []string
+		name          string
+		wildcard      string
+		pathSeparator rune
+		match         []string
+		nomatch       []string
 	}{
 		{
-			wildcard: "*.txt",
-			match:    []string{"notes.txt", "README.TXT"},
-			nomatch:  []string{"image.png", "notes.txt.bak"},
+			name:          "Match .txt files",
+			wildcard:      "*.txt",
+			pathSeparator: os.PathSeparator,
+			match:         []string{"notes.txt", "README.TXT"},
+			nomatch:       []string{"image.png", "notes.txt.bak"},
 		},
 		{
-			wildcard: "data/*.csv",
-			match:    []string{"data/file.csv", "data/test.CSV"},
-			nomatch:  []string{"data/file.csvx", "databack/file.csv"},
+			name:          "Match CSV files in data/ directory",
+			wildcard:      "data/*.csv",
+			pathSeparator: os.PathSeparator,
+			match:         []string{"data/file.csv", "data/test.CSV"},
+			nomatch:       []string{"data/file.csvx", "databack/file.csv"},
 		},
 		{
-			wildcard: "**/*.go",
-			match:    []string{"main.go", "src/util/main.go", "lib/test/hello.go"},
-			nomatch:  []string{"main.go.old", "main.go.bak"},
+			name:          "Match all .go files recursively",
+			wildcard:      "**/*.go",
+			pathSeparator: os.PathSeparator,
+			match:         []string{"main.go", "src/util/main.go", "lib/test/hello.go"},
+			nomatch:       []string{"main.go.old", "main.go.bak"},
 		},
 		{
-			wildcard: "config?.json",
-			match:    []string{"config1.json", "configA.json"},
-			nomatch:  []string{"config10.json", "conf.json"},
+			name:          "Match config files with a single character suffix",
+			wildcard:      "config?.json",
+			pathSeparator: os.PathSeparator,
+			match:         []string{"config1.json", "configA.json"},
+			nomatch:       []string{"config10.json", "conf.json"},
 		},
 		{
-			wildcard: "**/test?.*",
-			match:    []string{"test1.py", "src/test2.go", "lib/testA.java"},
-			nomatch:  []string{"test10.py", "test.py", "lib/test.py"},
+			name:          "Match test files with a single character suffix in any directory",
+			wildcard:      "**/test?.*",
+			pathSeparator: os.PathSeparator,
+			match:         []string{"test1.py", "src/test2.go", "lib/testA.java"},
+			nomatch:       []string{"test10.py", "test.py", "lib/test.py"},
+		},
+		{
+			name:          "windows",
+			wildcard:      "**\\test?.*",
+			pathSeparator: '\\',
+			match:         []string{"test1.py"},
+			nomatch:       []string{"test10.py", "test.py"},
 		},
 	}
 
 	for _, tc := range tests {
-		re := wildcardToRegex(tc.wildcard)
+		t.Run(tc.name, func(t *testing.T) {
+			re := wildcardToRegex(tc.wildcard, tc.pathSeparator)
 
-		for _, input := range tc.match {
-			if !re.MatchString(input) {
-				t.Errorf("Expected match: pattern=%q input=%q", tc.wildcard, input)
+			for _, input := range tc.match {
+				if !re.MatchString(input) {
+					t.Errorf("Expected match: pattern=%q input=%q", tc.wildcard, input)
+				}
 			}
-		}
 
-		for _, input := range tc.nomatch {
-			if re.MatchString(input) {
-				t.Errorf("Expected no match: pattern=%q input=%q", tc.wildcard, input)
+			for _, input := range tc.nomatch {
+				if re.MatchString(input) {
+					t.Errorf("Expected no match: pattern=%q input=%q", tc.wildcard, input)
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -307,6 +340,13 @@ func TestNormalizeBasePath(t *testing.T) {
 			searchPath:     "test.1.0.0.nupkg",
 			expectedBase:   mustAbs("testdata"),
 			expectedSearch: "test.1.0.0.nupkg",
+		},
+		{
+			name:           "search ../test.1.0.0.nupkg",
+			basePath:       "testdata",
+			searchPath:     "../test.1.0.0.nupkg",
+			expectedBase:   mustAbs(""),
+			expectedSearch: "/test.1.0.0.nupkg",
 		},
 	}
 
@@ -415,4 +455,20 @@ func TestIsEmptyDirectory(t *testing.T) {
 			t.Errorf("Expected error, but directory was considered empty")
 		}
 	})
+}
+
+func TestFixSourceURI(t *testing.T) {
+	actual := fixSourceURI("/abc")
+	expected := "file:///abc"
+	require.Equal(t, expected, actual)
+}
+
+func TestPathCombine(t *testing.T) {
+	actual := pathCombine()
+	expected := ""
+	require.Equal(t, expected, actual)
+}
+func TestGetFileNameWithoutExtension(t *testing.T) {
+	require.Equal(t, "abc", getFileNameWithoutExtension(":\\abc"))
+	require.Equal(t, "abc", getFileNameWithoutExtension(":/abc"))
 }

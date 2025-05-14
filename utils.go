@@ -24,12 +24,12 @@ type SearchPathResult struct {
 }
 
 // wildcardToRegex converts a wildcard string to a regular expression.
-func wildcardToRegex(wildcard string) *regexp.Regexp {
+func wildcardToRegex(wildcard string, sep rune) *regexp.Regexp {
 	// Escape all regular special characters
 	escaped := regexp.QuoteMeta(wildcard)
 
 	var pattern string
-	if os.PathSeparator != '/' {
+	if sep != '/' {
 		pattern = strings.ReplaceAll(escaped, "/", "\\\\")
 		pattern = strings.ReplaceAll(pattern, "\\.\\*\\*", "\\.[^\\\\.]*")
 		pattern = strings.ReplaceAll(pattern, "\\*\\*\\\\", `(\\\\)?([^\\\\]+\\\\)*?`)
@@ -70,7 +70,7 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 	searchPattern := pathCombine(basePath, searchPath)
 
 	// Convert wildcard search pattern to regex
-	searchRegex := wildcardToRegex(searchPattern)
+	searchRegex := wildcardToRegex(searchPattern, os.PathSeparator)
 
 	searchRecursively := strings.Contains(searchPath, "**") || strings.Contains(filepath.Dir(searchPath), "*")
 
