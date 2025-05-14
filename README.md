@@ -18,7 +18,6 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Service Resources
 - [x] Package Search
 - [x] Package Metadata
-- [x] Package Content
 - [x] Package Publish
 - [x] Package Delete
 - [x] Package Download
