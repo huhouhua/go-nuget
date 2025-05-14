@@ -42,7 +42,7 @@ access different parts of the NuGet API. For example, to get the service index:
 ```go
 client, err := nuget.NewClient()
 if err != nil {
-    log.Fatalf("Failed to create client: %v", err)
+    panic(fmt.Sprintf("Failed to create client: %v", err))
 }
 
 ```
@@ -57,7 +57,7 @@ client, err := nuget.NewClient(
     nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 )
 if err != nil {
-    log.Fatalf("Failed to create client: %v", err)
+    panic(fmt.Sprintf("Failed to create client: %v", err))
 }
 ```
 
@@ -83,7 +83,7 @@ func main() {
 		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 	)
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		panic(fmt.Sprintf("Failed to create client: %v", err))
 	}
 
 	// Get all versions of a package

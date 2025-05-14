@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -20,7 +21,7 @@ func pushPackageExample() {
 		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 	)
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		panic(fmt.Sprintf("Failed to create client: %v", err))
 	}
 
 	opt := &nuget.PushPackageOptions{

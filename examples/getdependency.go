@@ -20,7 +20,7 @@ func getPackageDependencyInfoExample() {
 		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 	)
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		panic(fmt.Sprintf("Failed to create client: %v", err))
 	}
 
 	// Get the dependency information for a specific package
