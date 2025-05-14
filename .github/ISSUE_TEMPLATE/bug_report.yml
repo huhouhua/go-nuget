@@ -1,0 +1,121 @@
+name: 🐛 Bug report
+description: Report a bug to help us improve go-nuget
+labels: [kind/bug]
+body:
+- type: markdown
+  attributes:
+  value: |
+  Thank you for submitting a bug report!
+
+      Please fill out the template below to make it easier to debug your problem.
+
+      If you are not sure if it is a bug or not, you can contact us via the available [support channels](https://github.com/huhouhua/go-nuget/issues/new/choose).
+- type: checkboxes
+  attributes:
+  label: Preflight Checklist
+  description: Please ensure you've completed all of the following.
+  options:
+  - label: I have searched the [issue tracker](https://www.github.com/huhouhua/go-nuget/issues) for an issue that matches the one I want to file, without success.
+  required: true
+  - label: I am not looking for support or already pursued the available [support channels](https://github.com/huhouhua/go-nuget/issues/new/choose) without success.
+  required: true
+- type: input
+  attributes:
+  label: Go-nuget Version
+  description: What version of go-nuget are you using?
+  placeholder: 0.0.1
+  validations:
+  required: true
+- type: input
+  attributes:
+  label: Go Version
+  description: What version of Go are you using?
+  placeholder: "1.23"
+  validations:
+  required: true
+- type: input
+  attributes:
+  label: source URL
+  description: Are you using nuget repository source?
+  placeholder: "https://api.nuget.org/v3/index.json"
+  validations:
+  required: false
+- type: textarea
+  attributes:
+  label: repository source content
+  description: Provides nuget repository API resource content.
+  render: json
+  placeholder: |
+    {
+      version: "3.0.0",
+      resources: [
+      {
+        @id: "https://azuresearch-usnc.nuget.org/query",
+        @type: "SearchQueryService",
+        comment: "Query endpoint of NuGet Search service (primary)"
+      },
+      {
+        @id: "https://azuresearch-ussc.nuget.org/query",
+        @type: "SearchQueryService",
+        comment: "Query endpoint of NuGet Search service (secondary)"
+      },
+      {
+        @id: "https://azuresearch-usnc.nuget.org/autocomplete",
+        @type: "SearchAutocompleteService",
+        comment: "Autocomplete endpoint of NuGet Search service (primary)"
+      }
+     ]
+    }
+  required: true
+- type: input
+  attributes:
+  label: Repl.it link
+  description: Complete example on Repl.it reproducing the issue. [Here](https://replit.com/@huhouhuam/go-nuget-example) is an example you can use.
+  placeholder: https://replit.com/@huhouhuam/go-nuget-example
+- type: textarea
+  attributes:
+  label: Code reproducing the issue
+  description: Please provide a Repl.it link if possible.
+  render: go
+  placeholder: |
+  package main
+
+      import (
+        "fmt"
+        "github.com/huhouhua/go-nuget"
+        )
+
+      func main() {
+        client, err := nuget.NewClient(
+              nuget.WithSourceURL("https://your-private-feed.com/v3/index.json"),
+            )
+            if err != nil {
+                 panic(fmt.Sprintf("Failed to create client: %v", err))
+            }
+          // ...
+      }
+- type: textarea
+  attributes:
+  label: Expected Behavior
+  description: A clear and concise description of what you expected to happen.
+  validations:
+  required: true
+- type: textarea
+  attributes:
+  label: Actual Behavior
+  description: A clear description of what actually happens.
+  validations:
+  required: true
+- type: textarea
+  attributes:
+  label: Steps To Reproduce
+  description: Steps to reproduce the behavior if it is not self-explanatory.
+  placeholder: |
+  1. In this environment...
+  2. With this config...
+  3. Run '...'
+  4. See error...
+- type: textarea
+  attributes:
+  label: Additional Information
+  description: Links? References? Anything that will give us more context about the issue that you are encountering!
