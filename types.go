@@ -28,18 +28,18 @@ const (
 	Version6110                           = "/6.11.0"
 	Version6130                           = "/6.13.0"
 	SearchQueryService        ServiceType = "SearchQueryService"
-	RegistrationsBaseUrl      ServiceType = "RegistrationsBaseUrl"
+	RegistrationsBaseURL      ServiceType = "RegistrationsBaseUrl"
 	SearchAutocompleteService ServiceType = "SearchAutocompleteService"
-	ReportAbuseUriTemplate    ServiceType = "ReportAbuseUriTemplate"
-	ReadmeUriTemplate         ServiceType = "ReadmeUriTemplate"
-	PackageDetailsUriTemplate ServiceType = "PackageDetailsUriTemplate"
+	ReportAbuseURLTemplate    ServiceType = "ReportAbuseUriTemplate"
+	ReadmeURLTemplate         ServiceType = "ReadmeUriTemplate"
+	PackageDetailsURLTemplate ServiceType = "PackageDetailsUriTemplate"
 	LegacyGallery             ServiceType = "LegacyGallery"
 	PackagePublish            ServiceType = "PackagePublish"
 	PackageBaseAddress        ServiceType = "PackageBaseAddress"
 	RepositorySignatures      ServiceType = "RepositorySignatures"
 	SymbolPackagePublish      ServiceType = "SymbolPackagePublish"
 	VulnerabilityInfo         ServiceType = "VulnerabilityInfo"
-	OwnerDetailsUriTemplate   ServiceType = "OwnerDetailsUriTemplate"
+	OwnerDetailsURLTemplate   ServiceType = "OwnerDetailsUriTemplate"
 )
 
 var (
@@ -49,13 +49,13 @@ var (
 		string(SearchQueryService + Version300beta),
 	}
 
-	RegistrationsBaseUrlTypes = ServiceTypes{
-		string(RegistrationsBaseUrl + Versioned),
-		string(RegistrationsBaseUrl + Version360),
-		string(RegistrationsBaseUrl + Version340),
-		string(RegistrationsBaseUrl + Version300rc),
-		string(RegistrationsBaseUrl + Version300beta),
-		string(RegistrationsBaseUrl),
+	RegistrationsBaseURLTypes = ServiceTypes{
+		string(RegistrationsBaseURL + Versioned),
+		string(RegistrationsBaseURL + Version360),
+		string(RegistrationsBaseURL + Version340),
+		string(RegistrationsBaseURL + Version300rc),
+		string(RegistrationsBaseURL + Version300beta),
+		string(RegistrationsBaseURL),
 	}
 
 	SearchAutocompleteServiceTypes = ServiceTypes{
@@ -64,17 +64,17 @@ var (
 	}
 
 	ReportAbuseTypes = ServiceTypes{
-		string(ReportAbuseUriTemplate + Versioned),
-		string(ReportAbuseUriTemplate + Version300),
+		string(ReportAbuseURLTemplate + Versioned),
+		string(ReportAbuseURLTemplate + Version300),
 	}
 
-	ReadmeFileUrlTypes = ServiceTypes{
-		string(ReadmeUriTemplate + Versioned),
-		string(ReadmeUriTemplate + Version6130),
+	ReadmeFileURLTypes = ServiceTypes{
+		string(ReadmeURLTemplate + Versioned),
+		string(ReadmeURLTemplate + Version6130),
 	}
 
-	PackageDetailsUriTemplateTypes = ServiceTypes{
-		string(PackageDetailsUriTemplate + Version510),
+	PackageDetailsURLTemplateTypes = ServiceTypes{
+		string(PackageDetailsURLTemplate + Version510),
 	}
 
 	LegacyGalleryTypes = ServiceTypes{
@@ -106,43 +106,43 @@ var (
 		string(VulnerabilityInfo + Version670),
 	}
 
-	OwnerDetailsUriTemplateTypes = ServiceTypes{
-		string(OwnerDetailsUriTemplate + Version6110),
+	OwnerDetailsURLTemplateTypes = ServiceTypes{
+		string(OwnerDetailsURLTemplate + Version6110),
 	}
 	typesMap map[ServiceType]*ServiceTypeOptions
 )
 
 type ServiceTypeOptions struct {
 	Types      ServiceTypes
-	DefaultUrl string
+	DefaultURL string
 }
 
 func init() {
 	typesMap = map[ServiceType]*ServiceTypeOptions{
 		SearchQueryService:        newTypeOptions(SearchQueryServiceTypes, ""),
-		RegistrationsBaseUrl:      newTypeOptions(RegistrationsBaseUrlTypes, ""),
+		RegistrationsBaseURL:      newTypeOptions(RegistrationsBaseURLTypes, ""),
 		SearchAutocompleteService: newTypeOptions(SearchAutocompleteServiceTypes, ""),
-		ReportAbuseUriTemplate: newTypeOptions(
+		ReportAbuseURLTemplate: newTypeOptions(
 			ReportAbuseTypes,
 			"https://www.nuget.org/packages/{id}/{version}/ReportAbuse",
 		),
-		ReadmeUriTemplate:         newTypeOptions(ReadmeFileUrlTypes, ""),
-		PackageDetailsUriTemplate: newTypeOptions(PackageDetailsUriTemplateTypes, ""),
+		ReadmeURLTemplate:         newTypeOptions(ReadmeFileURLTypes, ""),
+		PackageDetailsURLTemplate: newTypeOptions(PackageDetailsURLTemplateTypes, ""),
 		LegacyGallery:             newTypeOptions(LegacyGalleryTypes, ""),
 		PackagePublish:            newTypeOptions(PackagePublishTypes, ""),
 		PackageBaseAddress:        newTypeOptions(PackageBaseAddressTypes, ""),
 		RepositorySignatures:      newTypeOptions(RepositorySignaturesTypes, ""),
 		SymbolPackagePublish:      newTypeOptions(SymbolPackagePublishTypes, ""),
 		VulnerabilityInfo:         newTypeOptions(VulnerabilityInfoTypes, ""),
-		OwnerDetailsUriTemplate:   newTypeOptions(OwnerDetailsUriTemplateTypes, ""),
+		OwnerDetailsURLTemplate:   newTypeOptions(OwnerDetailsURLTemplateTypes, ""),
 	}
 }
 
 // newTypeOptions creates a new ServiceTypeOptions instance with the given types and default URL.
-func newTypeOptions(types ServiceTypes, defaultUrl string) *ServiceTypeOptions {
+func newTypeOptions(types ServiceTypes, defaultURL string) *ServiceTypeOptions {
 	return &ServiceTypeOptions{
 		Types:      types,
-		DefaultUrl: defaultUrl,
+		DefaultURL: defaultURL,
 	}
 }
 
@@ -193,6 +193,6 @@ const (
 	SymbolsExtension          = ".symbols" + PackageExtension
 	NuGetSymbolHostName       = "nuget.smbsrc.net"
 	ServiceEndpoint           = "/api/v2/package"
-	DefaultGalleryServerUrl   = "https://www.nuget.org"
+	DefaultGalleryServerURL   = "https://www.nuget.org"
 	TempApiKeyServiceEndpoint = "create-verification-key/%s/%s"
 )

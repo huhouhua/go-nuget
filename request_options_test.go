@@ -52,11 +52,9 @@ func TestWithHeader(t *testing.T) {
 	_, err = client.Do(req, nil, DecoderEmpty)
 	require.NoError(t, err)
 
-	// ensure that X-CUSTOM-HEADER is set for all client requests
-	addr := client.BaseURL().String()
 	client, err = NewClient(
 		// same base options as setup
-		WithBaseURL(addr),
+		WithSourceURL(client.SourceURL().String()),
 		// Disable backoff to speed up tests that expect errors.
 		WithCustomBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
 			return 0
@@ -125,11 +123,9 @@ func TestWithHeaders(t *testing.T) {
 	_, err = client.Do(req, nil, DecoderEmpty)
 	require.NoError(t, err)
 
-	// ensure that X-CUSTOM-HEADER is set for all client requests
-	addr := client.BaseURL().String()
 	client, err = NewClient(
 		// same base options as setup
-		WithBaseURL(addr),
+		WithSourceURL(client.SourceURL().String()),
 		// Disable backoff to speed up tests that expect errors.
 		WithCustomBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
 			return 0

@@ -23,7 +23,7 @@ import (
 func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 	mux, client := setup(t, index_Baget)
 
-	baseURL := client.getResourceUrl(RegistrationsBaseUrl)
+	baseURL := client.getResourceURL(RegistrationsBaseURL)
 	u := fmt.Sprintf("%s/gitlabapiclient/index.json", baseURL.Path)
 
 	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +47,7 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 
 	want := []*PackageSearchMetadataRegistration{
 		{
-			ReportAbuseUrl: reportUrl,
+			ReportAbuseURL: reportUrl,
 			Authors:        "nmklotas",
 			SearchMetadata: &SearchMetadata{
 				PackageId: "GitLabApiClient",
@@ -96,8 +96,8 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 				},
 				Description:              "GitLabApiClient is a .NET rest client for GitLab API v4.",
 				DownloadCount:            0,
-				LicenseUrl:               "https://licenses.nuget.org/MIT",
-				ProjectUrl:               "https://github.com/nmklotas/GitLabApiClient",
+				LicenseURL:               "https://licenses.nuget.org/MIT",
+				ProjectURL:               "https://github.com/nmklotas/GitLabApiClient",
 				Published:                publishedTime,
 				RequireLicenseAcceptance: false,
 				Tags: []string{
@@ -273,7 +273,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 				require.NoError(t, err)
 
 				want := &PackageSearchMetadataRegistration{
-					ReportAbuseUrl: reportUrl,
+					ReportAbuseURL: reportUrl,
 					Authors:        "nmklotas",
 					SearchMetadata: &SearchMetadata{
 						PackageId: "GitLabApiClient",
@@ -322,8 +322,8 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 						},
 						Description:              "GitLabApiClient is a .NET rest client for GitLab API v4.",
 						DownloadCount:            0,
-						LicenseUrl:               "https://licenses.nuget.org/MIT",
-						ProjectUrl:               "https://github.com/nmklotas/GitLabApiClient",
+						LicenseURL:               "https://licenses.nuget.org/MIT",
+						ProjectURL:               "https://github.com/nmklotas/GitLabApiClient",
 						Published:                publishedTime,
 						RequireLicenseAcceptance: false,
 						Tags: []string{
@@ -346,7 +346,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mux, client := setup(t, index_Baget)
 
-			baseURL := client.getResourceUrl(RegistrationsBaseUrl)
+			baseURL := client.getResourceURL(RegistrationsBaseURL)
 			u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, tt.id)
 			handler := func(w http.ResponseWriter, r *http.Request) {
 				testMethod(t, r, http.MethodGet)
@@ -399,7 +399,7 @@ func TestPackageSearchMetadataRegistration(t *testing.T) {
 	})
 }
 
-func TestParseAndReplaceUrl(t *testing.T) {
+func TestParseAndReplaceURL(t *testing.T) {
 	invalidUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}")
 	invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%%details"
 
@@ -455,14 +455,14 @@ func TestParseAndReplaceUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			actual, err := parseAndReplaceUrl(tt.urlTemplate, tt.replacements)
+			actual, err := parseAndReplaceURL(tt.urlTemplate, tt.replacements)
 			require.Equal(t, tt.error, err)
 			require.Equal(t, tt.want, actual)
 		})
 	}
 }
 
-func TestWithReportAbuseUrl(t *testing.T) {
+func TestWithReportAbuseURL(t *testing.T) {
 	unescapeUrlTemplate := createUrl(t, "")
 	unescapeUrlTemplate.Scheme = "%eth0"
 	tests := []struct {
@@ -509,14 +509,14 @@ func TestWithReportAbuseUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WithReportAbuseUrl(tt.urlTemplate)(tt.metadata)
+			err := WithReportAbuseURL(tt.urlTemplate)(tt.metadata)
 			require.Equal(t, tt.error, err)
-			require.Equal(t, tt.want, tt.metadata.ReportAbuseUrl)
+			require.Equal(t, tt.want, tt.metadata.ReportAbuseURL)
 		})
 	}
 }
 
-func TestWithPackageDetailsUrl(t *testing.T) {
+func TestWithPackageDetailsURL(t *testing.T) {
 	unescapeUrlTemplate := createUrl(t, "")
 	unescapeUrlTemplate.Scheme = "%eth0"
 	tests := []struct {
@@ -563,14 +563,14 @@ func TestWithPackageDetailsUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WithPackageDetailsUrl(tt.urlTemplate)(tt.metadata)
+			err := WithPackageDetailsURL(tt.urlTemplate)(tt.metadata)
 			require.Equal(t, tt.error, err)
-			require.Equal(t, tt.want, tt.metadata.PackageDetailsUrl)
+			require.Equal(t, tt.want, tt.metadata.PackageDetailsURL)
 		})
 	}
 }
 
-func TestWithReadmeFileUrl(t *testing.T) {
+func TestWithReadmeFileURL(t *testing.T) {
 	unescapeUrlTemplate := createUrl(t, "")
 	unescapeUrlTemplate.Scheme = "%eth0"
 	tests := []struct {
@@ -616,9 +616,9 @@ func TestWithReadmeFileUrl(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := WithReadmeFileUrl(tt.urlTemplate)(tt.metadata)
+			err := WithReadmeFileURL(tt.urlTemplate)(tt.metadata)
 			require.Equal(t, tt.error, err)
-			require.Equal(t, tt.want, tt.metadata.ReadmeFileUrl)
+			require.Equal(t, tt.want, tt.metadata.ReadmeFileURL)
 		})
 	}
 }
@@ -637,22 +637,22 @@ func TestApplyMetadataRegistration(t *testing.T) {
 		}
 
 		err := ApplyMetadataRegistration(metadata,
-			WithReportAbuseUrl(reportAbuseUrlTemplate),
-			WithPackageDetailsUrl(detailsUrlTemplate),
-			WithReadmeFileUrl(readmeUrlTemplate),
+			WithReportAbuseURL(reportAbuseUrlTemplate),
+			WithPackageDetailsURL(detailsUrlTemplate),
+			WithReadmeFileURL(readmeUrlTemplate),
 		)
 
 		require.NoError(t, err)
-		require.Equal(t, "https://example.com/packages/testpackage/1.0.0/ReportAbuse", metadata.ReportAbuseUrl.String())
+		require.Equal(t, "https://example.com/packages/testpackage/1.0.0/ReportAbuse", metadata.ReportAbuseURL.String())
 		require.Equal(
 			t,
 			"https://example.com/packages/testpackage/1.0.0?_src=template",
-			metadata.PackageDetailsUrl.String(),
+			metadata.PackageDetailsURL.String(),
 		)
 		require.Equal(
 			t,
 			"https://example.com/v3-flatcontainer/testpackage/1.0.0/readme",
-			metadata.ReadmeFileUrl.String(),
+			metadata.ReadmeFileURL.String(),
 		)
 	})
 
@@ -668,7 +668,7 @@ func TestApplyMetadataRegistration(t *testing.T) {
 		}
 
 		err := ApplyMetadataRegistration(metadata,
-			WithReportAbuseUrl(invalidUrlTemplate),
+			WithReportAbuseURL(invalidUrlTemplate),
 		)
 		wantErr := &url.Error{
 			Op:  "parse",
@@ -722,15 +722,15 @@ func TestAddMetadataToPackages(t *testing.T) {
 							Version:   "1.5.0",
 							IsListed:  true,
 						},
-						PackageDetailsUrl: createUrl(
+						PackageDetailsURL: createUrl(
 							t,
 							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", baseURL),
 						),
-						ReadmeFileUrl: createUrl(
+						ReadmeFileURL: createUrl(
 							t,
 							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", baseURL),
 						),
-						ReportAbuseUrl: createUrl(
+						ReportAbuseURL: createUrl(
 							t,
 							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", baseURL),
 						),
@@ -789,7 +789,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 			configClientFunc: func(client *Client) {
 				invalidUrlTemplate := createUrl(t, "https://example.com/packages/{id}/{version}")
 				invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%%ReportAbuse"
-				client.serviceUrls[ReportAbuseUriTemplate] = invalidUrlTemplate
+				client.serviceURLs[ReportAbuseURLTemplate] = invalidUrlTemplate
 			},
 			page: &registrationPage{
 				Lower: "1.5.0",
@@ -935,15 +935,15 @@ func TestAddMetadataToPackages(t *testing.T) {
 							},
 							IsListed: true,
 						},
-						PackageDetailsUrl: createUrl(
+						PackageDetailsURL: createUrl(
 							t,
 							fmt.Sprintf("%s/packages/testpackage/1.5.0?_src=template", baseURL),
 						),
-						ReadmeFileUrl: createUrl(
+						ReadmeFileURL: createUrl(
 							t,
 							fmt.Sprintf("%s/v3-flatcontainer/testpackage/1.5.0/readme", baseURL),
 						),
-						ReportAbuseUrl: createUrl(
+						ReportAbuseURL: createUrl(
 							t,
 							fmt.Sprintf("%s/packages/testpackage/1.5.0/ReportAbuse", baseURL),
 						),

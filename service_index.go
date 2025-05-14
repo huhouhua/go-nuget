@@ -32,7 +32,7 @@ type ServiceResource struct {
 
 // GetIndex retrieves the service resources from the NuGet server.
 func (s *ServiceResource) GetIndex(options ...RequestOptionFunc) (*ServiceIndex, *http.Response, error) {
-	req, err := s.client.NewRequest(http.MethodGet, "/v3/index.json", nil, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, s.client.SourceURL().Path, nil, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -19,7 +19,7 @@ import (
 func TestPackageSearchResource_Search(t *testing.T) {
 	mux, client := setup(t, index_V3)
 
-	baseURL := client.getResourceUrl(SearchQueryService)
+	baseURL := client.getResourceURL(SearchQueryService)
 	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		mustWriteHTTPResponse(t, w, "testdata/search.json")
@@ -34,9 +34,9 @@ func TestPackageSearchResource_Search(t *testing.T) {
 				Version:                  "13.0.3",
 				Description:              "Json.NET is a popular high-performance JSON framework for .NET",
 				DownloadCount:            6111703093,
-				IconUrl:                  "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/icon",
-				LicenseUrl:               "https://www.nuget.org/packages/Newtonsoft.Json/13.0.3/license",
-				ProjectUrl:               "https://www.newtonsoft.com/json",
+				IconURL:                  "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/icon",
+				LicenseURL:               "https://www.nuget.org/packages/Newtonsoft.Json/13.0.3/license",
+				ProjectURL:               "https://www.newtonsoft.com/json",
 				Published:                publishedTime,
 				RequireLicenseAcceptance: false,
 				Tags:                     []string{"json"},
@@ -79,7 +79,7 @@ func TestSearchPackageUrl(t *testing.T) {
 	u.Path = "%query"
 	require.NoError(t, err)
 
-	client.serviceUrls[SearchQueryService] = u
+	client.serviceURLs[SearchQueryService] = u
 
 	_, _, err = client.SearchResource.Search(&SearchOptions{})
 	require.Equal(t, wantError, err)
@@ -88,7 +88,7 @@ func TestSearchPackageUrl(t *testing.T) {
 func TestSearchOptions(t *testing.T) {
 	mux, client := setup(t, index_V3)
 	require.NotNil(t, client)
-	baseURL := client.getResourceUrl(SearchQueryService)
+	baseURL := client.getResourceURL(SearchQueryService)
 	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodGet)
 		if r.URL.Query().Get("q") == "" {

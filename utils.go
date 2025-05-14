@@ -240,13 +240,13 @@ func isEmptyDirectory(directory string) bool {
 	return len(entries) == 0
 }
 
-// createSourceUri Same as "new Uri" except that it can handle UNIX style paths that start with '/'
-func createSourceUri(source string) (*url.URL, error) {
-	source = fixSourceURI(source)
+// createSourceURL Same as "new Uri" except that it can handle UNIX style paths that start with '/'
+func createSourceURL(source string) (*url.URL, error) {
+	source = fixSourceURL(source)
 	return url.Parse(source)
 }
 
-func fixSourceURI(source string) string {
+func fixSourceURL(source string) string {
 	if filepath.Separator == '/' && source != "" && strings.HasPrefix(source, "/") {
 		source = "file://" + source
 	}
@@ -332,5 +332,5 @@ func ensureTrailingSlash(value string) (*url.URL, error) {
 	if !strings.HasSuffix(value, "/") {
 		value = fmt.Sprintf("%s%s", value, "/")
 	}
-	return createSourceUri(value)
+	return createSourceURL(value)
 }

@@ -28,7 +28,7 @@ import (
 func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 	defaultTimeOut := time.Second * 10
 	mux, client := setup(t, index_V3)
-	baseURL := client.getResourceUrl(PackagePublish)
+	baseURL := client.getResourceURL(PackagePublish)
 	mux.HandleFunc(baseURL.Path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, http.MethodPut)
 		apiKey := r.Header.Get("X-NuGet-ApiKey")
@@ -111,7 +111,7 @@ func TestPackageUpdateResource_Delete(t *testing.T) {
 			configFunc: func(client *Client) {
 				u := createUrl(t, "http://abc")
 				u.Scheme = ":"
-				client.serviceUrls[PackagePublish] = u
+				client.serviceURLs[PackagePublish] = u
 			},
 			error: &url.Error{
 				Op:  "parse",
@@ -123,7 +123,7 @@ func TestPackageUpdateResource_Delete(t *testing.T) {
 			name: "valid resource url scheme return error",
 			configFunc: func(client *Client) {
 				invalidUrlTemplate := createUrl(t, "file:///localhost:5000/api/v2/package")
-				client.serviceUrls[PackagePublish] = invalidUrlTemplate
+				client.serviceURLs[PackagePublish] = invalidUrlTemplate
 			},
 			error: errors.New("no support file system delete"),
 		},
@@ -148,7 +148,7 @@ func TestPackageUpdateResource_Delete(t *testing.T) {
 			if tt.configFunc != nil {
 				tt.configFunc(client)
 			}
-			baseURL := client.getResourceUrl(PackagePublish)
+			baseURL := client.getResourceURL(PackagePublish)
 			u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape(tt.id), PathEscape(tt.version))
 			mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
 				testMethod(t, r, http.MethodDelete)
@@ -198,7 +198,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			configFunc: func(client *Client, mux *http.ServeMux) {
 				u := createUrl(t, "http://abc")
 				u.Scheme = ":"
-				client.serviceUrls[PackagePublish] = u
+				client.serviceURLs[PackagePublish] = u
 			},
 			error: &url.Error{
 				Op:  "parse",
@@ -223,12 +223,12 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 			},
 			packagePath: emptyPath,
 			configFunc: func(client *Client, mux *http.ServeMux) {
-				u := client.getResourceUrl(PackagePublish)
+				u := client.getResourceURL(PackagePublish)
 				require.NotNil(t, u)
 				q := u.Query()
 				q.Add("timeout_millisecond", strconv.FormatInt(int64(time.Millisecond*5), 10))
 				u.RawQuery = q.Encode()
-				client.serviceUrls[PackagePublish] = u
+				client.serviceURLs[PackagePublish] = u
 			},
 			error: context.DeadlineExceeded,
 		},
@@ -256,7 +256,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 				IsSnupkg:          true,
 			},
 			configFunc: func(client *Client, mux *http.ServeMux) {
-				baseURL := client.getResourceUrl(PackagePublish)
+				baseURL := client.getResourceURL(PackagePublish)
 				wantKey := "0309f180-c810-45dd-bcae-9f0a94557abc"
 				apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
 
@@ -271,7 +271,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mux, client := setup(t, index_V3)
 			require.NotNil(t, client)
-			baseURL := client.getResourceUrl(PackagePublish)
+			baseURL := client.getResourceURL(PackagePublish)
 			addTestUploadHandler(t, baseURL.Path, mux)
 			if tt.configFunc != nil {
 				tt.configFunc(client, mux)
@@ -348,18 +348,18 @@ func TestPushPackagePath(t *testing.T) {
 			mux, client := setup(t, index_V3)
 			require.NotNil(t, client)
 
-			baseURL := client.getResourceUrl(PackagePublish)
+			baseURL := client.getResourceURL(PackagePublish)
 			addTestUploadHandler(t, baseURL.Path, mux)
 
 			if tt.configFunc != nil {
 				tt.configFunc(client)
 			}
 
-			packageUrl, err := client.UpdateResource.getResourceUrl(PackagePublish)
+			packageUrl, err := client.UpdateResource.getResourceURL(PackagePublish)
 			require.NoError(t, err)
 			symbolUrl := &url.URL{}
 			if tt.opt != nil && tt.opt.SymbolSource != "" {
-				symbolUrl, err = createSourceUri(tt.opt.SymbolSource)
+				symbolUrl, err = createSourceURL(tt.opt.SymbolSource)
 				require.NoError(t, err)
 				require.NotNil(t, symbolUrl)
 			}
@@ -418,7 +418,7 @@ func TestPushWithSymbol(t *testing.T) {
 
 			symbolUrl := &url.URL{}
 			if tt.opt != nil && tt.opt.SymbolSource != "" {
-				symbolUrl, err = createSourceUri(tt.opt.SymbolSource)
+				symbolUrl, err = createSourceURL(tt.opt.SymbolSource)
 				require.NoError(t, err)
 				require.NotNil(t, symbolUrl)
 			}
@@ -501,7 +501,7 @@ func TestPushPackage(t *testing.T) {
 			var err error
 			packageUrl := tt.sourceUrl
 			if tt.sourceUrl == nil {
-				packageUrl, err = client.UpdateResource.getResourceUrl(PackagePublish)
+				packageUrl, err = client.UpdateResource.getResourceURL(PackagePublish)
 				require.NoError(t, err)
 			}
 			_, err = client.UpdateResource.push(
@@ -562,7 +562,7 @@ func TestCreateVerificationApiKey(t *testing.T) {
 			name:        "create a apikey return success",
 			packagePath: "testdata/go.nuget.test.1.0.0.snupkg",
 			handleConfigFunc: func(client *Client, mux *http.ServeMux) {
-				baseURL := client.getResourceUrl(PackagePublish)
+				baseURL := client.getResourceURL(PackagePublish)
 				apiKeyEndpoint := fmt.Sprintf(TempApiKeyServiceEndpoint, "go.nuget.test", "1.0.0")
 				path := fmt.Sprintf("%s/%s", baseURL.Path, apiKeyEndpoint)
 				addTestVerificationApiKeyHandler(t, path, client.apiKey, "0309f180-c810-45dd-bcae-9f0a94557abc", mux)

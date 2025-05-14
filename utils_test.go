@@ -457,8 +457,8 @@ func TestIsEmptyDirectory(t *testing.T) {
 	})
 }
 
-func TestFixSourceURI(t *testing.T) {
-	actual := fixSourceURI("/abc")
+func TestFixSourceURL(t *testing.T) {
+	actual := fixSourceURL("/abc")
 	expected := "file:///abc"
 	require.Equal(t, expected, actual)
 }

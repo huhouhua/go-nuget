@@ -25,7 +25,7 @@ func (f *FindPackageResource) ListAllVersions(
 	if err != nil {
 		return nil, nil, err
 	}
-	baseURL := f.client.getResourceUrl(PackageBaseAddress)
+	baseURL := f.client.getResourceURL(PackageBaseAddress)
 	u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, PathEscape(packageId))
 
 	req, err := f.client.NewRequest(http.MethodGet, u, baseURL, nil, options)
@@ -63,7 +63,7 @@ func (f *FindPackageResource) GetDependencyInfo(
 		return nil, nil, err
 	}
 	packageId = PathEscape(packageId)
-	baseURL := f.client.getResourceUrl(PackageBaseAddress)
+	baseURL := f.client.getResourceURL(PackageBaseAddress)
 	u := fmt.Sprintf("%s/%s/%s/%s.nuspec", baseURL.Path, packageId, PathEscape(version), packageId)
 
 	req, err := f.client.NewRequest(http.MethodGet, u, baseURL, nil, options)
@@ -102,7 +102,7 @@ func (f *FindPackageResource) CopyNupkgToStream(
 		return nil, err
 	}
 	packageId, version := PathEscape(packageId), PathEscape(opt.Version)
-	baseURL := f.client.getResourceUrl(PackageBaseAddress)
+	baseURL := f.client.getResourceURL(PackageBaseAddress)
 	// Construct the download URL
 	u := fmt.Sprintf("%s/%s/%s/%s.%s.nupkg", baseURL.Path, packageId, version, packageId, version)
 

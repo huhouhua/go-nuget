@@ -31,15 +31,15 @@ type resultContext struct {
 // Delete deletes a package from the server.
 // please note that this package can only be soft deleted
 func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOptionFunc) (*http.Response, error) {
-	baseURL, err := p.getResourceUrl(PackagePublish)
+	baseURL, err := p.getResourceURL(PackagePublish)
 	if err != nil {
 		return nil, err
 	}
-	sourceUri, err := getServiceEndpointUrl(baseURL.String(), "", false)
+	sourceURL, err := getServiceEndpointUrl(baseURL.String(), "", false)
 	if err != nil {
 		return nil, err
 	}
-	if sourceUri.Scheme == "file" {
+	if sourceURL.Scheme == "file" {
 		return nil, fmt.Errorf("no support file system delete")
 	}
 	u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape(id), PathEscape(version))
@@ -90,9 +90,9 @@ func (p *PackageUpdateResource) PushWithStream(
 	return p.Push(tempFilePath, opt, options...)
 }
 
-// Push pushes a package to the server. It supports pushing multiple packages.
-// please note that it takes a while to see the successfully pushed packages.
-// the pushed packages can only be soft-deleted.
+// Push push the package to the server.
+// please note that if the push is successful, it will take some time to see the successfully pushed package.
+// pushed packages can only be soft deleted.
 func (p *PackageUpdateResource) Push(
 	packagePath string,
 	opt *PushPackageOptions,
@@ -100,13 +100,13 @@ func (p *PackageUpdateResource) Push(
 ) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), opt.TimeoutInDuration)
 	defer cancel()
-	packageUrl, err := p.getResourceUrl(PackagePublish)
+	packageUrl, err := p.getResourceURL(PackagePublish)
 	if err != nil {
 		return nil, err
 	}
-	symbolUrl := &url.URL{}
+	symbolURL := &url.URL{}
 	if opt.SymbolSource != "" {
-		if symbolUrl, err = createSourceUri(opt.SymbolSource); err != nil {
+		if symbolURL, err = createSourceURL(opt.SymbolSource); err != nil {
 			return nil, err
 		}
 	}
@@ -116,12 +116,12 @@ func (p *PackageUpdateResource) Push(
 		var resp *http.Response
 		var err error
 		if !strings.HasSuffix(packagePath, SnupkgExtension) {
-			resp, err = p.pushPackagePath(opt, packagePath, packageUrl, symbolUrl, options...)
+			resp, err = p.pushPackagePath(opt, packagePath, packageUrl, symbolURL, options...)
 		} else if strings.TrimSpace(opt.SymbolSource) != "" {
 			// symbolSource is only set when:
 			// - The user specified it on the command line
 			// - The endpoint for main package supports pushing snupkgs
-			resp, err = p.pushWithSymbol(opt, packagePath, symbolUrl, options...)
+			resp, err = p.pushWithSymbol(opt, packagePath, symbolURL, options...)
 		}
 		resultChan <- &resultContext{
 			Resp:  resp,
@@ -140,21 +140,21 @@ func (p *PackageUpdateResource) Push(
 	}
 }
 
-// getResourceUrl returns the resource URL for the given service type.
-func (p *PackageUpdateResource) getResourceUrl(value ServiceType) (*url.URL, error) {
-	baseURL := p.client.getResourceUrl(value)
-	sourceUri, err := createSourceUri(baseURL.String())
+// getResourceURL returns the resource URL for the given service type.
+func (p *PackageUpdateResource) getResourceURL(value ServiceType) (*url.URL, error) {
+	baseURL := p.client.getResourceURL(value)
+	sourceURL, err := createSourceURL(baseURL.String())
 	if err != nil {
 		return nil, err
 	}
-	return sourceUri, nil
+	return sourceURL, nil
 }
 
 // pushPackagePath Push nupkgs, and if successful, push any corresponding symbols.
 func (p *PackageUpdateResource) pushPackagePath(
 	opt *PushPackageOptions,
 	path string,
-	sourceUri, symbolUrl *url.URL,
+	sourceURL, symbolURL *url.URL,
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
 	paths, err := resolvePackageFromPath(path, false)
@@ -165,11 +165,11 @@ func (p *PackageUpdateResource) pushPackagePath(
 		return nil, fmt.Errorf("unable to find file %s", path)
 	}
 
-	if p.client.apiKey == "" && sourceUri.Scheme != "file" {
+	if p.client.apiKey == "" && sourceURL.Scheme != "file" {
 		return nil, fmt.Errorf("api key is required")
 	}
 	for _, nupkgToPush := range paths {
-		if resp, err := p.pushPackageCore(nupkgToPush, sourceUri, opt, options...); err != nil {
+		if resp, err := p.pushPackageCore(nupkgToPush, sourceURL, options...); err != nil {
 			return resp, err
 		}
 		// If the package was pushed successfully, push the symbol package.
@@ -180,7 +180,7 @@ func (p *PackageUpdateResource) pushPackagePath(
 		if _, err = os.Stat(symbolPackagePath); os.IsNotExist(err) {
 			continue
 		}
-		if resp, err := p.pushPackageCore(symbolPackagePath, symbolUrl, opt, options...); err != nil {
+		if resp, err := p.pushPackageCore(symbolPackagePath, symbolURL, options...); err != nil {
 			return resp, err
 		}
 	}
@@ -189,24 +189,23 @@ func (p *PackageUpdateResource) pushPackagePath(
 
 func (p *PackageUpdateResource) pushPackageCore(
 	packageToPush string,
-	sourceUri *url.URL,
-	opt *PushPackageOptions,
+	sourceURL *url.URL,
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
-	log.Printf("push package %s to %s", filepath.Base(packageToPush), sourceUri.Path)
+	log.Printf("push package %s to %s", filepath.Base(packageToPush), sourceURL.String())
 
 	// TODO: file system push
-	if sourceUri.Scheme == "file" {
+	if sourceURL.Scheme == "file" {
 		return nil, fmt.Errorf("no support file system push")
 	}
-	return p.push(packageToPush, sourceUri, options...)
+	return p.push(packageToPush, sourceURL, options...)
 }
 
 // pushWithSymbol handle push to https://nuget.smbsrc.net/
 func (p *PackageUpdateResource) pushWithSymbol(
 	opt *PushPackageOptions,
 	path string,
-	symbolUrl *url.URL,
+	symbolURL *url.URL,
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
 	// Get the symbol package for this package
@@ -221,11 +220,11 @@ func (p *PackageUpdateResource) pushWithSymbol(
 		return nil, fmt.Errorf("unable to find file %s", path)
 	}
 	// See if the api key exists
-	if p.client.apiKey == "" && symbolUrl.Scheme != "file" {
+	if p.client.apiKey == "" && symbolURL.Scheme != "file" {
 		log.Printf("warning symbol server not configured %s", filepath.Base(symbolPackagePath))
 	}
 	for _, packageToPush := range paths {
-		if resp, err := p.pushPackageCore(packageToPush, symbolUrl, opt, options...); err != nil {
+		if resp, err := p.pushPackageCore(packageToPush, symbolURL, options...); err != nil {
 			return resp, err
 		}
 	}
@@ -253,11 +252,11 @@ func (p *PackageUpdateResource) createVerificationApiKey(
 		return "", err
 	}
 	u := fmt.Sprintf(TempApiKeyServiceEndpoint, nuspec.Metadata.ID, nuspec.Metadata.Version)
-	sourceUri, err := getServiceEndpointUrl(DefaultGalleryServerUrl, u, false)
+	endpointURL, err := getServiceEndpointUrl(DefaultGalleryServerURL, u, false)
 	if err != nil {
 		return "", err
 	}
-	req, err := p.client.NewRequest(http.MethodPost, sourceUri.Path, sourceUri, nil, options)
+	req, err := p.client.NewRequest(http.MethodPost, endpointURL.Path, endpointURL, nil, options)
 	if err != nil {
 		return "", err
 	}
@@ -272,21 +271,21 @@ func (p *PackageUpdateResource) createVerificationApiKey(
 // push pushes a package to the server.
 func (p *PackageUpdateResource) push(
 	pathToPackage string,
-	sourceUrl *url.URL,
+	sourceURL *url.URL,
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
 	file, err := os.Open(pathToPackage)
 	if err != nil {
 		return nil, err
 	}
-	endpointUrl, err := getServiceEndpointUrl(sourceUrl.String(), "", false)
+	endpointURL, err := getServiceEndpointUrl(sourceURL.String(), "", false)
 	if err != nil {
 		return nil, err
 	}
 	req, err := p.client.UploadRequest(
 		http.MethodPut,
-		endpointUrl.Path,
-		endpointUrl,
+		endpointURL.Path,
+		endpointURL,
 		file,
 		"package",
 		"package.nupkg",
@@ -296,7 +295,7 @@ func (p *PackageUpdateResource) push(
 	if err != nil {
 		return nil, err
 	}
-	if isSourceNuGetSymbolServer(sourceUrl) {
+	if isSourceNuGetSymbolServer(sourceURL) {
 		if key, err := p.createVerificationApiKey(pathToPackage, options...); err != nil {
 			return nil, err
 		} else {

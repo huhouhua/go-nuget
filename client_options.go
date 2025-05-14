@@ -14,10 +14,10 @@ import (
 // ClientOptionFunc can be used to customize a new NuGet API client.
 type ClientOptionFunc func(*Client) error
 
-// WithBaseURL sets the base URL for API requests to a custom endpoint.
-func WithBaseURL(urlStr string) ClientOptionFunc {
+// WithSourceURL sets the source URL for API requests to a custom endpoint.
+func WithSourceURL(urlStr string) ClientOptionFunc {
 	return func(c *Client) error {
-		return c.setBaseURL(urlStr)
+		return c.setSourceURL(urlStr)
 	}
 }
 

@@ -53,7 +53,7 @@ the API client. For example, to set a custom base URL:
 
 ```go
 client, err := nuget.NewClient(
-    nuget.WithBaseURL("https://your-private-feed.com/"),
+    nuget.WithSourceURL("https://your-private-feed.com/v3/index.json"),
     nuget.WithCustomRetryMax(5),
     nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 )
@@ -79,7 +79,7 @@ import (
 func main() {
 	// Create a new NuGet client with custom retry settings
 	client, err := nuget.NewClient(
-		nuget.WithBaseURL("https://your-private-feed.com/"),
+		nuget.WithSourceURL("https://your-private-feed.com/v3/index.json"),
 		nuget.WithCustomRetryMax(5),
 		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 	)

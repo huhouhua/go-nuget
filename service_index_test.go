@@ -58,8 +58,11 @@ func TestServiceResource_GetIndexResponseFatal(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	wantError := `{error: test request error}`
-	_, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	_, err := NewClient(WithSourceURL(sourceURL))
 	require.NotNil(t, err)
+
 	var errResp *ErrorResponse
 	require.True(t, errors.As(err, &errResp))
 	require.Equal(t, wantError, errResp.Message)

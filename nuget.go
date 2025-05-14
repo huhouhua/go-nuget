@@ -24,22 +24,19 @@ import (
 	"time"
 
 	"github.com/google/go-querystring/query"
-
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/time/rate"
 )
 
 const (
-	defaultBaseURL = "https://api.nuget.org/"
-	apiVersionPath = "v3"
-	userAgent      = "go-nuget"
-
-	headerRateLimit             = "RateLimit-Limit"
-	headerRateReset             = "RateLimit-Reset"
-	DecoderTypeXML  DecoderType = "xml"
-	DecoderTypeJSON DecoderType = "json"
-	DecoderEmpty    DecoderType = ""
+	defaultSourceURL             = "https://api.nuget.org/v3/index.json"
+	userAgent                    = "go-nuget"
+	headerRateLimit              = "RateLimit-Limit"
+	headerRateReset              = "RateLimit-Reset"
+	DecoderTypeXML   DecoderType = "xml"
+	DecoderTypeJSON  DecoderType = "json"
+	DecoderEmpty     DecoderType = ""
 )
 
 type DecoderType string
@@ -52,7 +49,10 @@ type Client struct {
 	// HTTP client used to communicate with the API.
 	client *retryablehttp.Client
 
-	// Base URL for API requests. Defaults to the public NuGet API, but can be
+	// sourceURL api resources url
+	sourceURL *url.URL
+
+	//baseURL Base URL for API requests. Defaults to the public NuGet API, but can be
 	// set to a domain endpoint to use with a self hosted NuGet server. baseURL
 	// should always be specified with a trailing slash.
 	baseURL *url.URL
@@ -70,8 +70,8 @@ type Client struct {
 	// apiKey used to make authenticated API calls.
 	apiKey string
 
-	// serviceUrls is used to store the service Resource of the NuGet API.
-	serviceUrls map[ServiceType]*url.URL
+	// serviceURLs is used to store the service Resource of the NuGet API.
+	serviceURLs map[ServiceType]*url.URL
 
 	// Default request options applied to every request.
 	defaultRequestOptions []RequestOptionFunc
@@ -129,8 +129,8 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 		RetryMax:     5,
 	}
 
-	// Set the default base URL.
-	c.setBaseURL(defaultBaseURL)
+	// Set the source URL.
+	c.setSourceURL(defaultSourceURL)
 
 	// Apply any given client options.
 	for _, fn := range options {
@@ -155,7 +155,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.UpdateResource = &PackageUpdateResource{client: c}
 	c.IndexResource = &ServiceResource{client: c}
 
-	c.serviceUrls = make(map[ServiceType]*url.URL)
+	c.serviceURLs = make(map[ServiceType]*url.URL)
 	err := c.loadResource()
 	if err != nil {
 		return nil, err
@@ -163,9 +163,9 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	return c, nil
 }
 
-// BaseURL return a copy of the baseURL.
-func (c *Client) BaseURL() *url.URL {
-	u := *c.baseURL
+// SourceURL return a copy of the sourceURL.
+func (c *Client) SourceURL() *url.URL {
+	u := *c.sourceURL
 	return &u
 }
 
@@ -263,25 +263,16 @@ func (c *Client) configureLimiter(ctx context.Context, headers http.Header) {
 	}
 }
 
-// setBaseURL sets the base URL for API requests to a custom endpoint.
-func (c *Client) setBaseURL(urlStr string) error {
-	// Make sure the given URL end with a slash
-	//if !strings.HasSuffix(urlStr, "/") {
-	//	urlStr += "/"
-	//}
-
-	baseURL, err := url.Parse(urlStr)
+// setSourceURL sets the source URL for API requests to a custom endpoint.
+func (c *Client) setSourceURL(urlStr string) error {
+	sourceURL, err := url.Parse(urlStr)
 	if err != nil {
 		return err
 	}
-
-	//if !strings.HasSuffix(baseURL.Path, apiVersionPath) {
-	//	baseURL.Path += apiVersionPath
-	//}
-
-	// Update the base URL of the client.
+	// Update the source URL of the client.
+	c.sourceURL = sourceURL
+	baseURL, _ := url.Parse(fmt.Sprintf("%s://%s", c.sourceURL.Scheme, c.sourceURL.Host))
 	c.baseURL = baseURL
-
 	return nil
 }
 
@@ -515,27 +506,27 @@ func (c *Client) loadResource() error {
 				if u, err := url.Parse(strings.TrimSuffix(id, "/")); err != nil {
 					return err
 				} else {
-					c.serviceUrls[t] = u
+					c.serviceURLs[t] = u
 					find = true
 					break
 				}
 			}
 		}
-		if !find && typeVariants.DefaultUrl != "" {
-			if u, err := url.Parse(strings.TrimSuffix(typeVariants.DefaultUrl, "/")); err != nil {
+		if !find && typeVariants.DefaultURL != "" {
+			if u, err := url.Parse(strings.TrimSuffix(typeVariants.DefaultURL, "/")); err != nil {
 				return err
 			} else {
-				c.serviceUrls[t] = u
+				c.serviceURLs[t] = u
 			}
 		}
 	}
 	return nil
 }
 
-// getResourceUrl returns the resource URL for the given resource value.
-func (c *Client) getResourceUrl(value ServiceType) *url.URL {
+// getResourceURL returns the resource URL for the given resource value.
+func (c *Client) getResourceURL(value ServiceType) *url.URL {
 	var u url.URL
-	if svcUrl, ok := c.serviceUrls[value]; ok {
+	if svcUrl, ok := c.serviceURLs[value]; ok {
 		u = *svcUrl
 	}
 	if u.String() == "" {

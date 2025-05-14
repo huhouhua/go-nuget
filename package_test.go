@@ -15,16 +15,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-retryablehttp"
-
 	"github.com/Masterminds/semver/v3"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPackageResource_ListAllVersions(t *testing.T) {
 	mux, client := setup(t, index_V3)
 
-	baseURL := client.getResourceUrl(PackageBaseAddress)
+	baseURL := client.getResourceURL(PackageBaseAddress)
 	u := fmt.Sprintf("%s/newtonsoft.json/index.json", baseURL.Path)
 
 	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +77,7 @@ func TestPackageResource_ListAllVersions_ErrorScenarios(t *testing.T) {
 			name: "version parse return error",
 			id:   "newtonsoft.json",
 			handleFunc: func(client *Client, mux *http.ServeMux) {
-				baseURL := client.getResourceUrl(PackageBaseAddress)
+				baseURL := client.getResourceURL(PackageBaseAddress)
 				u := fmt.Sprintf("%s/newtonsoft.json/index.json", baseURL.Path)
 
 				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +113,7 @@ func TestPackageResource_ListAllVersions_ErrorScenarios(t *testing.T) {
 			if tt.handleFunc != nil {
 				tt.handleFunc(client, mux)
 			} else {
-				baseURL := client.getResourceUrl(PackageBaseAddress)
+				baseURL := client.getResourceURL(PackageBaseAddress)
 				u := fmt.Sprintf("%s/%s/index.json", baseURL.Path, PathEscape(tt.id))
 
 				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +130,7 @@ func TestPackageResource_ListAllVersions_ErrorScenarios(t *testing.T) {
 func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	mux, client := setup(t, index_V3)
 
-	baseURL := client.getResourceUrl(PackageBaseAddress)
+	baseURL := client.getResourceURL(PackageBaseAddress)
 	u := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape("1.0.0"))
 
 	mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
@@ -234,7 +233,7 @@ func TestPackageResource_GetDependencyInfo_ErrorScenarios(t *testing.T) {
 			id:      "testdependency",
 			version: "1.0.0",
 			handleFunc: func(client *Client, mux *http.ServeMux) {
-				baseURL := client.getResourceUrl(PackageBaseAddress)
+				baseURL := client.getResourceURL(PackageBaseAddress)
 				u := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape("1.0.0"))
 
 				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
@@ -271,7 +270,7 @@ func TestPackageResource_GetDependencyInfo_ErrorScenarios(t *testing.T) {
 			if tt.handleFunc != nil {
 				tt.handleFunc(client, mux)
 			} else {
-				baseURL := client.getResourceUrl(PackageBaseAddress)
+				baseURL := client.getResourceURL(PackageBaseAddress)
 				u := fmt.Sprintf("%s/testdependency/%s/testdependency.nuspec", baseURL.Path, PathEscape(tt.version))
 
 				mux.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +292,7 @@ func TestPackageResource_CopyNupkgToStream(t *testing.T) {
 	}
 	id := "newtonsoft.json"
 	packageId, version := PathEscape(id), PathEscape(opt.Version)
-	baseURL := client.getResourceUrl(PackageBaseAddress)
+	baseURL := client.getResourceURL(PackageBaseAddress)
 	url := fmt.Sprintf("%s/%s/%s/%s.%s.nupkg",
 		baseURL.Path,
 		packageId,
@@ -362,7 +361,7 @@ func TestPackageResource_CopyNupkgToStream_ErrorScenarios(t *testing.T) {
 				tt.handleFunc(client, mux)
 			} else if tt.opt != nil {
 				packageId, version := PathEscape(tt.id), PathEscape(tt.opt.Version)
-				baseURL := client.getResourceUrl(PackageBaseAddress)
+				baseURL := client.getResourceURL(PackageBaseAddress)
 				url := fmt.Sprintf("%s/%s/%s/%s.%s.nupkg",
 					baseURL.Path,
 					packageId,

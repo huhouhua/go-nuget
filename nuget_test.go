@@ -23,9 +23,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"golang.org/x/time/rate"
-
 	"github.com/stretchr/testify/require"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -41,7 +40,7 @@ func setup(t *testing.T, indexPath string) (*http.ServeMux, *Client) {
 
 	// client is the NuGet client being tested.
 	client, err := NewOAuthClient("test_go_nuget_key",
-		WithBaseURL(server.URL),
+		WithSourceURL(fmt.Sprintf("%s/v3/index.json", server.URL)),
 		// Disable backoff to speed up tests that expect errors.
 		WithCustomBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
 			return 0
@@ -50,7 +49,7 @@ func setup(t *testing.T, indexPath string) (*http.ServeMux, *Client) {
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	for _, u := range client.serviceUrls {
+	for _, u := range client.serviceURLs {
 		u.Host = client.baseURL.Host
 		u.Scheme = client.baseURL.Scheme
 	}
@@ -129,24 +128,26 @@ func createEmptyDir(t *testing.T, path string) {
 
 func TestNewClient(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
-	for serviceType, u := range c.serviceUrls {
+	for serviceType, u := range c.serviceURLs {
 		t.Logf("type:%s url:%s", serviceType.String(), u.String())
 	}
 	//expectedBaseURL := defaultBaseURL+apiVersionPath
 
-	if c.BaseURL().String() != server.URL {
-		t.Errorf("NewClient BaseURL is %s, want %s", c.BaseURL().String(), server.URL)
+	if c.SourceURL().String() != sourceURL {
+		t.Errorf("NewClient BaseURL is %s, want %s", c.SourceURL().String(), sourceURL)
 	}
 	if c.UserAgent != userAgent {
 		t.Errorf("NewClient UserAgent is %s, want %s", c.UserAgent, userAgent)
 	}
 
-	err = c.setBaseURL("http://abc/%eth")
+	err = c.setSourceURL("http://abc/%eth")
 	wantErr := &url.Error{
 		Op:  "parse",
 		URL: "http://abc/%eth",
@@ -158,13 +159,15 @@ func TestNewClient(t *testing.T) {
 func TestNewOAuthClient(t *testing.T) {
 	t.Run("new a oath client return success", func(t *testing.T) {
 		_, server := createHttpServer(t, index_V3)
-		c, err := NewOAuthClient("", WithBaseURL(server.URL))
+
+		sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+		c, err := NewOAuthClient("", WithSourceURL(sourceURL))
 
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
-		if c.BaseURL().String() != server.URL {
-			t.Errorf("NewOAuthClient BaseURL is %s, want %s", c.BaseURL().String(), server.URL)
+		if c.SourceURL().String() != sourceURL {
+			t.Errorf("NewOAuthClient BaseURL is %s, want %s", c.SourceURL().String(), sourceURL)
 		}
 		if c.UserAgent != userAgent {
 			t.Errorf("NewOAuthClient UserAgent is %s, want %s", c.UserAgent, userAgent)
@@ -181,7 +184,9 @@ func TestNewOAuthClient(t *testing.T) {
 
 func TestClient_Retry(t *testing.T) {
 	mux, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 	require.NoError(t, err)
 	c.client.RetryMax = 1
 
@@ -251,7 +256,9 @@ func TestClient_Retry(t *testing.T) {
 
 func TestClient_configureLimiter(t *testing.T) {
 	mux, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 	require.NoError(t, err)
 
 	c.configureLimiterOnce = sync.Once{}
@@ -272,7 +279,9 @@ func TestClient_configureLimiter(t *testing.T) {
 
 func TestSendRequest(t *testing.T) {
 	mux, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -301,8 +310,9 @@ func TestSendRequest(t *testing.T) {
 
 func TestCheckResponseOnHeadRequestError(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
 
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -384,7 +394,9 @@ func TestParseError(t *testing.T) {
 
 func TestNewRequest(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -417,7 +429,9 @@ func TestNewRequest(t *testing.T) {
 
 func TestUploadRequest(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -496,7 +510,9 @@ func TestUploadRequest(t *testing.T) {
 
 func TestRequestWithContext(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
-	c, err := NewClient(WithBaseURL(server.URL))
+
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+	c, err := NewClient(WithSourceURL(sourceURL))
 	if err != nil {
 		t.Fatalf("Failed to create client: %v", err)
 	}
@@ -574,9 +590,12 @@ func TestLoadResource(t *testing.T) {
 			}
 			c.IndexResource = &ServiceResource{client: c}
 			c.limiter = rate.NewLimiter(rate.Inf, 0)
-			err := c.setBaseURL(server.URL)
+
+			sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
+			err := c.setSourceURL(sourceURL)
+
 			require.NoError(t, err)
-			c.serviceUrls = make(map[ServiceType]*url.URL)
+			c.serviceURLs = make(map[ServiceType]*url.URL)
 
 			if tc.configClientFunc != nil {
 				tc.configClientFunc(c)
@@ -600,23 +619,23 @@ func TestServiceUrls(t *testing.T) {
 			wantDataFunc: func(baseUrl *url.URL) map[ServiceType]string {
 				return map[ServiceType]string{
 					SearchQueryService: fmt.Sprintf("%s://%s/query", baseUrl.Scheme, baseUrl.Host),
-					RegistrationsBaseUrl: fmt.Sprintf(
+					RegistrationsBaseURL: fmt.Sprintf(
 						"%s://%s/v3/registration5-gz-semver2",
 						baseUrl.Scheme,
 						baseUrl.Host,
 					),
 					SearchAutocompleteService: fmt.Sprintf("%s://%s/autocomplete", baseUrl.Scheme, baseUrl.Host),
-					ReportAbuseUriTemplate: fmt.Sprintf(
+					ReportAbuseURLTemplate: fmt.Sprintf(
 						"%s://%s/packages/{id}/{version}/ReportAbuse",
 						baseUrl.Scheme,
 						baseUrl.Host,
 					),
-					ReadmeUriTemplate: fmt.Sprintf(
+					ReadmeURLTemplate: fmt.Sprintf(
 						"%s://%s/v3-flatcontainer/{lower_id}/{lower_version}/readme",
 						baseUrl.Scheme,
 						baseUrl.Host,
 					),
-					PackageDetailsUriTemplate: fmt.Sprintf(
+					PackageDetailsURLTemplate: fmt.Sprintf(
 						"%s://%s/packages/{id}/{version}?_src=template",
 						baseUrl.Scheme,
 						baseUrl.Host,
@@ -639,7 +658,7 @@ func TestServiceUrls(t *testing.T) {
 						baseUrl.Scheme,
 						baseUrl.Host,
 					),
-					OwnerDetailsUriTemplate: fmt.Sprintf(
+					OwnerDetailsURLTemplate: fmt.Sprintf(
 						"%s://%s/profiles/{owner}?_src=template",
 						baseUrl.Scheme,
 						baseUrl.Host,
@@ -651,25 +670,25 @@ func TestServiceUrls(t *testing.T) {
 		{
 			name:          "baget index urls",
 			indexDataPath: index_Baget,
-			wantDataFunc: func(baseUrl *url.URL) map[ServiceType]string {
+			wantDataFunc: func(sourceURL *url.URL) map[ServiceType]string {
 				return map[ServiceType]string{
-					SearchQueryService:        fmt.Sprintf("%s://%s/v3/search", baseUrl.Scheme, baseUrl.Host),
-					RegistrationsBaseUrl:      fmt.Sprintf("%s://%s/v3/registration", baseUrl.Scheme, baseUrl.Host),
-					SearchAutocompleteService: fmt.Sprintf("%s://%s/v3/autocomplete", baseUrl.Scheme, baseUrl.Host),
-					ReportAbuseUriTemplate: fmt.Sprintf(
+					SearchQueryService:        fmt.Sprintf("%s://%s/v3/search", sourceURL.Scheme, sourceURL.Host),
+					RegistrationsBaseURL:      fmt.Sprintf("%s://%s/v3/registration", sourceURL.Scheme, sourceURL.Host),
+					SearchAutocompleteService: fmt.Sprintf("%s://%s/v3/autocomplete", sourceURL.Scheme, sourceURL.Host),
+					ReportAbuseURLTemplate: fmt.Sprintf(
 						"%s://%s/packages/{id}/{version}/ReportAbuse",
-						baseUrl.Scheme,
-						baseUrl.Host,
+						sourceURL.Scheme,
+						sourceURL.Host,
 					),
-					ReadmeUriTemplate:         "",
-					PackageDetailsUriTemplate: "",
+					ReadmeURLTemplate:         "",
+					PackageDetailsURLTemplate: "",
 					LegacyGallery:             "",
-					PackagePublish:            fmt.Sprintf("%s://%s/api/v2/package", baseUrl.Scheme, baseUrl.Host),
-					PackageBaseAddress:        fmt.Sprintf("%s://%s/v3/package", baseUrl.Scheme, baseUrl.Host),
+					PackagePublish:            fmt.Sprintf("%s://%s/api/v2/package", sourceURL.Scheme, sourceURL.Host),
+					PackageBaseAddress:        fmt.Sprintf("%s://%s/v3/package", sourceURL.Scheme, sourceURL.Host),
 					RepositorySignatures:      "",
-					SymbolPackagePublish:      fmt.Sprintf("%s://%s/api/v2/symbol", baseUrl.Scheme, baseUrl.Host),
+					SymbolPackagePublish:      fmt.Sprintf("%s://%s/api/v2/symbol", sourceURL.Scheme, sourceURL.Host),
 					VulnerabilityInfo:         "",
-					OwnerDetailsUriTemplate:   "",
+					OwnerDetailsURLTemplate:   "",
 				}
 			},
 			want: true,
@@ -679,7 +698,7 @@ func TestServiceUrls(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			_, client := setup(t, tc.indexDataPath)
-			wantData := tc.wantDataFunc(client.BaseURL())
+			wantData := tc.wantDataFunc(client.SourceURL())
 
 			urls := make(map[ServiceType]*url.URL)
 			for st, item := range wantData {
@@ -691,9 +710,9 @@ func TestServiceUrls(t *testing.T) {
 				urls[st] = u
 			}
 			if tc.want {
-				require.Equal(t, urls, client.serviceUrls)
+				require.Equal(t, urls, client.serviceURLs)
 			} else {
-				require.NotEqual(t, urls, client.serviceUrls)
+				require.NotEqual(t, urls, client.serviceURLs)
 			}
 		})
 	}

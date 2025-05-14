@@ -18,8 +18,9 @@ import (
 func TestClientWithCustomOptions(t *testing.T) {
 	_, server := createHttpServer(t, index_V3)
 
+	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
 	c, err := NewClient(
-		WithBaseURL(server.URL),
+		WithSourceURL(sourceURL),
 		WithCustomLeveledLogger(new(testleveledLogger)),
 		WithCustomLimiter(new(testRateLimiter)),
 		WithCustomLogger(new(testLogger)),

@@ -743,7 +743,6 @@ func TestVersionRange_ToNonSnapshotRange(t *testing.T) {
 		})
 	}
 }
-
 func TestVersionRange_PrettyPrint(t *testing.T) {
 	tests := []struct {
 		name   string
