@@ -11,6 +11,10 @@ github.com/huhouhua/go-nuget v0.0.0-20250411161449-80d791617381 h1:MIg026I/TGwtt
 github.com/huhouhua/go-nuget v0.0.0-20250411161449-80d791617381/go.mod h1:qk6phurkhC/+y97Xvdr6AVMat0GVTnkHQeOhGLZt2zI=
 github.com/huhouhua/go-nuget v0.0.0-20250429032224-5ffab2d7ffa0 h1:06mtR2TtKvI3LhSES83jvGqObBrfJITEYmfihSbAwfc=
 github.com/huhouhua/go-nuget v0.0.0-20250429032224-5ffab2d7ffa0/go.mod h1:o5ELiVGZh7/xfbbeJ1Zc8g2dVHgPYbZOMbPlRIzyAuQ=
+github.com/huhouhua/go-nuget v0.0.0-20250514152931-9558be2a01a4 h1:XUegFz7EaCKOfOsWMxlGStchf8HO5QvSAEE/RpvLoDw=
+github.com/huhouhua/go-nuget v0.0.0-20250514152931-9558be2a01a4/go.mod h1:o5ELiVGZh7/xfbbeJ1Zc8g2dVHgPYbZOMbPlRIzyAuQ=
+github.com/huhouhua/go-nuget v0.0.0-20250514170546-d3735888a7c4 h1:qGx/yfXoTNJHnndc3Z8Gn2ohIQWaiQLrM8fBkIl9fNw=
+github.com/huhouhua/go-nuget v0.0.0-20250514170546-d3735888a7c4/go.mod h1:o5ELiVGZh7/xfbbeJ1Zc8g2dVHgPYbZOMbPlRIzyAuQ=
 golang.org/x/time v0.11.0 h1:/bpjEDfN9tkoN/ryeYHnv5hcMlc8ncjMcM4XBk5NWV0=
 golang.org/x/time v0.11.0/go.mod h1:CDIdPxbZBQxdj6cxyCIdrNogrJKMJ7pr37NYpMcMDSg=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=

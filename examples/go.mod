@@ -9,6 +9,6 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
-	github.com/huhouhua/go-nuget v0.0.0-20250429032224-5ffab2d7ffa0 // indirect
+	github.com/huhouhua/go-nuget v0.0.0-20250514170546-d3735888a7c4 // indirect
 	golang.org/x/time v0.11.0 // indirect
 )

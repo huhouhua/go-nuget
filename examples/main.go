@@ -20,13 +20,13 @@ func main() {
 	listAllVersionsExample()
 
 	logger.Println("Downloading package...")
-	downloadNupkgExample()
+	copyNupkgToStreamExample()
 
 	logger.Println("Get package metadata...")
 	listMetadataExample()
 
 	logger.Println("Get package dependency...")
-	packageDependencyInfoExample()
+	getPackageDependencyInfoExample()
 
 	logger.Println("Searching packages...")
 	searchPackageExample()

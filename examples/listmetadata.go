@@ -15,7 +15,7 @@ import (
 func listMetadataExample() {
 	// Create a new NuGet client with custom retry settings
 	client, err := nuget.NewClient(
-		nuget.WithBaseURL("https://your-private-feed.com/"),
+		nuget.WithSourceURL("https://your-private-feed.com/v3/index.json"),
 		nuget.WithCustomRetryMax(5),
 		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 	)
@@ -35,8 +35,8 @@ func listMetadataExample() {
 	// print the packages
 	for _, p := range packages {
 		fmt.Printf("version:%s", p.Version)
-		fmt.Printf("listed: %s", p.IsListed)
-		fmt.Printf("tags: %s", p.Tags)
+		fmt.Printf("listed: %v", p.IsListed)
+		fmt.Printf("tags: %v", p.Tags)
 		fmt.Printf("description: %s", p.Description)
 	}
 

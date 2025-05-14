@@ -5,9 +5,7 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -21,11 +19,7 @@ func readPackageExample() {
 		log.Fatalf("Failed to open %s package: %v", nupkgPath, err)
 	}
 	defer file.Close()
-	var dest io.Writer = &bytes.Buffer{}
-	if _, err = io.Copy(dest, file); err != nil {
-		log.Fatal(err)
-	}
-	reader, err := nuget.NewPackageArchiveReader(dest)
+	reader, err := nuget.NewPackageArchiveReader(file)
 	if err != nil {
 		log.Fatalf("Failed to parse nuget package archive: %v", err)
 	}

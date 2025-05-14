@@ -15,11 +15,11 @@ import (
 	"github.com/huhouhua/go-nuget"
 )
 
-// downloadNupkgExample demonstrates how to download a NuGet package
-func downloadNupkgExample() {
+// copyNupkgToStreamExample demonstrates how to download a NuGet package
+func copyNupkgToStreamExample() {
 	// Create a new NuGet client with custom retry settings
 	client, err := nuget.NewClient(
-		nuget.WithBaseURL("https://your-private-feed.com/"),
+		nuget.WithSourceURL("https://your-private-feed.com/v3/index.json"),
 		nuget.WithCustomRetryMax(5),
 		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
 	)
@@ -49,9 +49,7 @@ func downloadNupkgExample() {
 
 	// Save the package to a file
 	outputFile := filepath.Join("downloads", fmt.Sprintf("%s.%s.nupkg", packageID, versionStr))
-	if err := os.WriteFile(outputFile, opt.Writer.(*bytes.Buffer).Bytes(), 0644); err != nil {
-		log.Fatalf("Failed to save package: %v", err)
-	}
+	err = os.WriteFile(outputFile, opt.Writer.Bytes(), 0644)
 
 	fmt.Printf("Downloaded package %s %s to %s\n", packageID, versionStr, outputFile)
 

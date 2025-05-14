@@ -15,7 +15,7 @@ A NuGet API v3 client enabling Go programs to interact with NuGet repositories i
 This API client package covers the NuGet API v3 endpoints and is updated regularly
 to add new and/or missing endpoints. Currently, the following services are supported:
 
-- [x] Service Index
+- [x] Service Resources
 - [x] Package Search
 - [x] Package Metadata
 - [x] Package Content
@@ -27,7 +27,6 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Package Dependencies
 - [x] Package Source Configuration
 - [x] Package Source Authentication
-- [x] Package Source Retry Logic
 
 ## Installation
 
@@ -49,7 +48,7 @@ if err != nil {
 ```
 
 There are a few `With...` option functions that can be used to customize
-the API client. For example, to set a custom base URL:
+the API client. For example, to set a custom source URL:
 
 ```go
 client, err := nuget.NewClient(
@@ -102,6 +101,30 @@ func main() {
 
 For complete usage of go-nuget, see the full [package docs](https://godoc.org/github.com/huhouhua/go-nuget).
 
+## Full Examples
+
+### Full Examples : API Resources Operations
+* [index.go](https://github.com/huhouhua/go-nuget/blob/main/examples/index.go)
+
+### Full Examples : Package Find Operations
+* [listversions.go](https://github.com/huhouhua/go-nuget/blob/main/examples/listversions.go)
+* [getdependency.go](https://github.com/huhouhua/go-nuget/blob/main/examples/getdependency.go)
+* [copynupkgtostream.go](https://github.com/huhouhua/go-nuget/blob/main/examples/copynupkgtostream.go)
+
+### Full Examples : Package Read Operations
+* [read.go](https://github.com/huhouhua/go-nuget/blob/main/examples/read.go)
+
+### Full Examples : Package Search Operations
+* [search.go](https://github.com/huhouhua/go-nuget/blob/main/examples/search.go)
+
+### Full Examples : Package Metadata Operations
+* [getmetadata.go](https://github.com/huhouhua/go-nuget/blob/main/examples/getmetadata.go)
+* [listmetadata.go](https://github.com/huhouhua/go-nuget/blob/main/examples/listmetadata.go)
+
+### Full Examples : Package Push Operations
+* [pushpackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/pushpackage.go)
+* [pushwithstreampackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/pushwithstreampackage.go)
+* [deletepackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/deletepackage.go)
 
 ## Issues
 
