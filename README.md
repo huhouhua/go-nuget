@@ -112,7 +112,7 @@ For complete usage of go-nuget, see the full [package docs](https://godoc.org/gi
 * [copynupkgtostream.go](https://github.com/huhouhua/go-nuget/blob/main/examples/copynupkgtostream.go)
 
 ### Full Examples : Package Read Operations
-* [read.go](https://github.com/huhouhua/go-nuget/blob/main/examples/read.go)
+* [readpackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/readpackage.go)
 
 ### Full Examples : Package Search Operations
 * [search.go](https://github.com/huhouhua/go-nuget/blob/main/examples/search.go)
@@ -123,7 +123,7 @@ For complete usage of go-nuget, see the full [package docs](https://godoc.org/gi
 
 ### Full Examples : Package Push Operations
 * [pushpackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/pushpackage.go)
-* [pushwithstreampackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/pushwithstreampackage.go)
+* [pushwithstream.go](https://github.com/huhouhua/go-nuget/blob/main/examples/pushwithstream.go)
 * [deletepackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/deletepackage.go)
 
 ## Issues
