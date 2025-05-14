@@ -35,7 +35,7 @@ body:
     required: true
 - type: input
   attributes:
-    label: source URL
+    label: Source URL
     description: Are you using nuget repository source?
     placeholder: "https://api.nuget.org/v3/index.json"
   validations:
