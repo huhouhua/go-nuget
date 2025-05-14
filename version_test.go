@@ -285,6 +285,25 @@ func TestNewVersionRange(t *testing.T) {
 
 	rangeMinorBetaVersion.Float = Prerelease
 	require.False(t, rangeMinorBetaVersion.IsBetter(maxVersion, minMinorBetaVersion))
+
+	rangeMinorBetaVersion.Float = Patch
+	actualRange := rangeMinorBetaVersion.ToNonSnapshotRange()
+	wantRange := NewVersionRange(maxMinorBetaVersion, semver.New(1, 6, 0, "", ""), true, false)
+	require.Equal(t, wantRange, actualRange)
+
+	betaRange := NewVersionRange(minMinorBetaVersion, maxMinorBetaVersion, true, false)
+	betaRange.Float = Prerelease
+	require.Equal(t, "Latest prerelease version >= 1.2.3-beta", betaRange.PrettyPrint())
+
+	betaRange.MinVersion = nil
+	betaRange.MaxVersion = nil
+	require.Equal(t, "Latest prerelease version", betaRange.PrettyPrint())
+	betaRange.Float = Minor
+	require.Equal(t, "Latest minor version", betaRange.PrettyPrint())
+	betaRange.Float = Patch
+	require.Equal(t, "Latest patch version", betaRange.PrettyPrint())
+	betaRange.Float = None
+	require.Equal(t, "Any version", betaRange.PrettyPrint())
 }
 
 func TestVersionRange_Satisfies(t *testing.T) {
