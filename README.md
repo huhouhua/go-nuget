@@ -37,14 +37,23 @@ go get github.com/huhouhua/go-nuget
 
 ## Usage
 Construct a new NuGet client, then use the various methods on the client to
-access different parts of the NuGet API. For example, to get the service index:
+access different parts of the NuGet API. For example, to get the service resources:
 
 ```go
 client, err := nuget.NewClient()
 if err != nil {
     panic(fmt.Sprintf("Failed to create client: %v", err))
 }
+// Get request resource
+index, _, err := client.IndexResource.GetIndex()
+if err != nil {
+    log.Fatalf("Failed to get resources: %v", err)
+}
 
+// print the resources url
+for _, r := range index.Resources {
+    fmt.Printf("url: %s", r.Id)
+}
 ```
 
 There are a few `With...` option functions that can be used to customize
