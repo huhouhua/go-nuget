@@ -54,7 +54,7 @@ func TestReaderNupkg(t *testing.T) {
 				Copyright:                "Copyright © 2025 Kevin Berger",
 				Tags:                     "utility helper tools awesome",
 				Language:                 "en-US",
-				Repository: &Repository{
+				Repository: &RepositoryMetadata{
 					Type:   "git",
 					URL:    "https://github.com/huhouhua/go-nuget.git",
 					Branch: "main",

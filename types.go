@@ -146,6 +146,24 @@ func newTypeOptions(types ServiceTypes, defaultURL string) *ServiceTypeOptions {
 	}
 }
 
+type LicenseType int
+
+const (
+	File LicenseType = iota
+
+	Expression LicenseType = iota
+)
+
+// LicenseExpressionType Represents the expression type of a NuGetLicenseExpression.
+// License type means that it's a NuGetLicense. Operator means that it's a LicenseOperator
+type LicenseExpressionType int
+
+const (
+	License LicenseExpressionType = iota
+
+	Operator LicenseExpressionType = iota
+)
+
 // SearchFilterType The type of filter to apply to the search.
 type SearchFilterType int
 
