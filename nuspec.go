@@ -10,6 +10,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 )
@@ -18,7 +19,6 @@ type Nuspec struct {
 	XMLName  xml.Name  `xml:"package"`
 	Metadata *Metadata `xml:"metadata"`
 }
-
 type PackageInfo struct {
 	ID                       string      `xml:"id"`
 	Version                  string      `xml:"version"`
@@ -123,6 +123,36 @@ type Reference struct {
 	File string `xml:"file,attr"`
 }
 
+// FromBytes reads a nuspec file from a byte array
+func FromBytes(b []byte) (*Nuspec, error) {
+	nsf := Nuspec{}
+	err := xml.Unmarshal(b, &nsf)
+	if err != nil {
+		return nil, err
+	}
+	return &nsf, nil
+}
+
+// FromReader reads a nuspec file from a byte array
+func FromReader(r io.ReadCloser) (*Nuspec, error) {
+	// Read contents of reader
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return FromBytes(b)
+}
+
+// FromFile reads a nuspec file from the file system
+func FromFile(fn string) (*Nuspec, error) {
+	// Open File
+	xmlFile, err := os.Open(fn)
+	if err != nil {
+		return nil, err
+	}
+	return FromReader(xmlFile)
+}
+
 type PackageArchiveReader struct {
 	nuspec     *Nuspec
 	buf        *bytes.Buffer
@@ -172,11 +202,25 @@ func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
 			_ = p.nuspecFile.Close()
 		}()
 		// Decode the XML content into the Nuspec struct
-		decoder := xml.NewDecoder(p.nuspecFile)
-		err = decoder.Decode(&p.nuspec)
+		p.nuspec, err = FromReader(p.nuspecFile)
 	})
 
 	return p.nuspec, err
+}
+
+func (p *PackageArchiveReader) GetFiles() []*zip.File {
+	return p.archive.File
+}
+
+func (p *PackageArchiveReader) GetFilesFromDir(folder string) []*zip.File {
+	files := make([]*zip.File, 0)
+	prefix := strings.ToLower(folder + "/")
+	for _, file := range p.GetFiles() {
+		if strings.HasPrefix(strings.ToLower(file.Name), prefix) {
+			files = append(files, file)
+		}
+	}
+	return files
 }
 
 func (p *PackageArchiveReader) findNuspecFile() (io.ReadCloser, error) {

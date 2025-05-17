@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -28,7 +29,6 @@ func TestReaderNupkg(t *testing.T) {
 
 	reader, err := NewPackageArchiveReader(file)
 	require.NoError(t, err, "Failed to parse nuget package archive")
-
 	_, err = reader.Nuspec()
 	require.NoErrorf(t, err, "Failed Get nuspec file content: %v", err)
 	spec, _ := reader.Nuspec()
@@ -147,6 +147,10 @@ func TestReaderNupkg(t *testing.T) {
 	}
 
 	require.Equal(t, want, spec)
+
+	for _, f := range reader.GetFilesFromDir("testLibrary") {
+		require.NotEmpty(t, f.Name)
+	}
 }
 
 func TestReaderNupkg_ErrorScenarios(t *testing.T) {
@@ -190,4 +194,78 @@ func TestReaderNupkg_ErrorScenarios(t *testing.T) {
 			require.Equal(t, tt.error, err)
 		})
 	}
+}
+
+func TestFromFile(t *testing.T) {
+	_, err := FromFile("non_existent_file.nuspec")
+	require.Error(t, err, "expected error when file does not exist")
+
+	nuspec, err := FromFile("testdata/myTestLibrary.nuspec")
+	require.NoError(t, err)
+	require.NotNil(t, nuspec)
+}
+func TestFromReader(t *testing.T) {
+	_, err := FromReader(&errorReader{})
+	if err == nil || !strings.Contains(err.Error(), "read error") {
+		t.Fatal("expected read error")
+	}
+	nuspecFile, err := os.Open("testdata/myTestLibrary.nuspec")
+	require.NoError(t, err)
+
+	nuspec, err := FromReader(nuspecFile)
+	require.NoError(t, err)
+	require.NotNil(t, nuspec)
+}
+
+func TestFromBytes(t *testing.T) {
+	t.Run("invalid xml", func(t *testing.T) {
+		invalidXML := []byte("<invalid><xml>")
+		_, err := FromBytes(invalidXML)
+		if err == nil {
+			t.Fatal("expected error for invalid XML")
+		}
+	})
+	t.Run("empty input", func(t *testing.T) {
+		_, err := FromBytes([]byte{})
+		if err == nil {
+			t.Fatal("expected error for empty input")
+		}
+	})
+	t.Run("valid xml", func(t *testing.T) {
+		validXML := []byte(`
+		<package>
+			<metadata>
+				<id>TestPackage</id>
+			</metadata>
+		</package>`)
+
+		nuspec, err := FromBytes(validXML)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if nuspec.Metadata.ID != "TestPackage" {
+			t.Errorf("expected ID to be 'TestPackage', got '%s'", nuspec.Metadata.ID)
+		}
+	})
+	t.Run("read return success", func(t *testing.T) {
+		nuspecFile, err := os.Open("testdata/myTestLibrary.nuspec")
+		require.NoError(t, err)
+
+		nuspecBytes, err := io.ReadAll(nuspecFile)
+		require.NoError(t, err)
+
+		nuspec, err := FromBytes(nuspecBytes)
+		require.NoError(t, err)
+		require.NotNil(t, nuspec)
+	})
+}
+
+type errorReader struct{}
+
+func (e *errorReader) Close() error {
+	return nil
+}
+
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("read error")
 }
