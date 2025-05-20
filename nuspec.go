@@ -226,7 +226,7 @@ func (p *PackageArchiveReader) GetFilesFromDir(folder string) []*zip.File {
 
 func (p *PackageArchiveReader) findNuspecFile() (io.ReadCloser, error) {
 	for _, file := range p.archive.File {
-		if strings.HasSuffix(file.Name, ".nuspec") {
+		if strings.HasSuffix(file.Name, NuspecExtension) {
 			if nuspecFile, err := file.Open(); err != nil {
 				return nil, err
 			} else {

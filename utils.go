@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -23,25 +24,141 @@ type SearchPathResult struct {
 	IsFile bool
 }
 
-// wildcardToRegex converts a wildcard string to a regular expression.
-func wildcardToRegex(wildcard string, sep rune) *regexp.Regexp {
+// Filter returns a new slice containing all elements from the input slice that satisfy the predicate function.
+// The function is generic and can work with any type T.
+// It preserves the order of elements in the original slice.
+func Filter[T any](slice []T, f func(T) bool) []T {
+	for i, value := range slice {
+		if !f(value) {
+			result := slices.Clone(slice[:i])
+			for i++; i < len(slice); i++ {
+				value = slice[i]
+				if f(value) {
+					result = append(result, value)
+				}
+			}
+			return result
+		}
+	}
+	return slice
+}
+
+// Some checks if at least one element in the slice satisfies the predicate function.
+// The function is generic and can work with any type T.
+// Returns true if any element satisfies the predicate, false otherwise.
+func Some[T any](slice []T, predicate func(T) bool) bool {
+	for _, value := range slice {
+		if predicate(value) {
+			return true
+		}
+	}
+	return false
+}
+
+// getMatches returns items from the source that match any of the wildcard patterns.
+// The function is generic and can work with any type T.
+// It uses the provided getPath function to extract the path from each item for pattern matching.
+// Returns a slice of items whose paths match any of the provided wildcard patterns.
+func getMatches[T any](source []T, getPath func(T) string, wildcards []string) []T {
+	var matches []T
+	var regexps []*regexp.Regexp
+
+	for _, pattern := range wildcards {
+		regexps = append(regexps, WildcardToRegex(pattern, os.PathSeparator))
+	}
+
+	for _, item := range source {
+		path := getPath(item)
+		for _, re := range regexps {
+			if re.MatchString(path) {
+				matches = append(matches, item)
+				break
+			}
+		}
+	}
+
+	return matches
+}
+
+// GetFilteredPackageFiles filters the source slice based on wildcard patterns and returns two results:
+// 1. A slice of items that match any of the wildcard patterns
+// 2. Updates the source slice to contain only the non-matching items
+// The function is generic and can work with any comparable type T.
+// It uses the provided getPath function to extract the path from each item for pattern matching.
+func GetFilteredPackageFiles[T comparable](source *[]T, getPath func(T) string, wildcards []string) []T {
+	matched := make(map[T]bool)
+	for _, item := range getMatches(*source, getPath, wildcards) {
+		matched[item] = true
+	}
+
+	var filtered []T
+	var remaining []T
+
+	for _, item := range *source {
+		if _, ok := matched[item]; ok {
+			filtered = append(filtered, item)
+		} else {
+			remaining = append(remaining, item)
+		}
+	}
+
+	*source = remaining
+	return filtered
+}
+
+func NormalizeWildcardForExcludedFiles(basePath, wildcard string) string {
+	if strings.HasPrefix(wildcard, "**") {
+		return wildcard
+	}
+	basePath = normalizeBasePath(basePath, &wildcard)
+	return pathCombine(basePath, wildcard)
+}
+
+// WildcardToRegex converts a wildcard string to a regular expression.
+func WildcardToRegex(wildcard string, sep rune) *regexp.Regexp {
 	// Escape all regular special characters
 	escaped := regexp.QuoteMeta(wildcard)
 
 	var pattern string
 	if sep != '/' {
-		pattern = strings.ReplaceAll(escaped, "/", "\\\\")
-		pattern = strings.ReplaceAll(pattern, "\\.\\*\\*", "\\.[^\\\\.]*")
-		pattern = strings.ReplaceAll(pattern, "\\*\\*\\\\", `(\\\\)?([^\\\\]+\\\\)*?`)
-		pattern = strings.ReplaceAll(pattern, "\\*\\*", ".*")
-		pattern = strings.ReplaceAll(pattern, "\\*", `[^\\\\]*(\\\\)?`)
-		pattern = strings.ReplaceAll(pattern, "\\?", ".")
+		// regex wildcard adjustments for Windows-style file systems
+		pattern = strings.ReplaceAll(
+			escaped,
+			"/",
+			"\\\\",
+		) // On Windows, / is treated the same as \.
+		pattern = strings.ReplaceAll(
+			pattern,
+			"\\.\\*\\*",
+			"\\.[^\\\\.]*",
+		) // .** should not match on ../file or ./file but will match .file
+		pattern = strings.ReplaceAll(
+			pattern,
+			"\\*\\*\\\\",
+			`(\\\\)?([^\\\\]+\\\\)*?`,
+		) //For recursive wildcards \**\, include the current directory.
+		pattern = strings.ReplaceAll(
+			pattern,
+			"\\*\\*",
+			".*",
+		) // For recursive wildcards that don't end in a slash e.g. **.txt would be treated as a .txt file at any depth
+		pattern = strings.ReplaceAll(
+			pattern,
+			"\\*",
+			`[^\\\\]*(\\\\)?`,
+		) // For non recursive searches, limit it any character that is not a directory separator
+		pattern = strings.ReplaceAll(
+			pattern,
+			"\\?",
+			".",
+		) // ? translates to a single any character
 	} else {
-		pattern = strings.ReplaceAll(escaped, "\\.\\*\\*", "\\.[^/.]*")
-		pattern = strings.ReplaceAll(pattern, "\\*\\*/", "/?([^/]+/)*?")
-		pattern = strings.ReplaceAll(pattern, "\\*\\*", ".*")
-		pattern = strings.ReplaceAll(pattern, "\\*", `[^/]*(/)?`)
-		pattern = strings.ReplaceAll(pattern, "\\?", ".")
+		// regex wildcard adjustments for *nix-style file systems
+		pattern = strings.ReplaceAll(escaped, "\\.\\*\\*", "\\.[^/.]*")  // .** should not match on ../file or ./file but will match .file
+		pattern = strings.ReplaceAll(pattern, "\\*\\*/", "/?([^/]+/)*?") //For recursive wildcards /**/, include the current directory.
+		pattern = strings.ReplaceAll(pattern, "\\*\\*", ".*")            // For recursive wildcards that don't end in a slash e.g. **.txt would be treated as a .txt file at any depth
+		pattern = strings.ReplaceAll(pattern, "\\*", `[^/]*(/)?`)        // For non recursive searches, limit it any character that is not a directory separator
+		pattern = strings.ReplaceAll(pattern, "\\?", ".")                // ? translates to a single any character
 	}
 	finalPattern := fmt.Sprintf("^%s$", pattern)
 	// Compile regular expressions to be case-insensitive using the `(?i)` prefix (equivalent to
@@ -51,12 +168,12 @@ func wildcardToRegex(wildcard string, sep rune) *regexp.Regexp {
 }
 
 // PerformWildcardSearch searches for files or directories based on a wildcard search pattern.
-func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) ([]SearchPathResult, string, error) {
+func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) ([]*SearchPathResult, string, error) {
 	// Flag to check if the search pattern should include directories recursively
 	flag1 := false
 
 	// Check if the search path is a directory, modify it to include '**/*'
-	if isDirectoryPath(searchPath) {
+	if IsDirectoryPath(searchPath) {
 		searchPath = pathCombine(searchPath, "**", "*")
 		flag1 = true
 	}
@@ -70,11 +187,11 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 	searchPattern := pathCombine(basePath, searchPath)
 
 	// Convert wildcard search pattern to regex
-	searchRegex := wildcardToRegex(searchPattern, os.PathSeparator)
+	searchRegex := WildcardToRegex(searchPattern, os.PathSeparator)
 
 	searchRecursively := strings.Contains(searchPath, "**") || strings.Contains(filepath.Dir(searchPath), "*")
 
-	var results []SearchPathResult
+	var results []*SearchPathResult
 
 	// Search for files matching the search pattern
 	err = filepath.WalkDir(normalizedBasePath, func(path string, d os.DirEntry, err error) error {
@@ -94,12 +211,12 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 		if searchRegex.MatchString(path) {
 			if d.IsDir() {
 				// If it's a directory, check if we should include empty directories
-				if ok := isEmptyDirectory(path); ok && includeEmptyDirs {
-					results = append(results, SearchPathResult{Path: path, IsFile: false})
+				if ok := IsDirectoryPath(path); ok && includeEmptyDirs {
+					results = append(results, &SearchPathResult{Path: path, IsFile: false})
 				}
 			} else {
 				// If it's a file, include it in the results
-				results = append(results, SearchPathResult{Path: path, IsFile: true})
+				results = append(results, &SearchPathResult{Path: path, IsFile: true})
 			}
 		}
 
@@ -112,8 +229,8 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 	}
 
 	// If flag1 is true and the normalized base path is empty, include the base path as a result
-	if ok := isEmptyDirectory(normalizedBasePath); ok && flag1 {
-		results = append(results, SearchPathResult{Path: normalizedBasePath, IsFile: false})
+	if ok := IsDirectoryPath(normalizedBasePath); ok && flag1 {
+		results = append(results, &SearchPathResult{Path: normalizedBasePath, IsFile: false})
 	}
 	return results, normalizedBasePath, nil
 }
@@ -211,7 +328,7 @@ func EnsurePackageExtension(packagePath string, isSnupkg bool) string {
 	return packagePath
 }
 
-func isDirectoryPath(path string) bool {
+func IsDirectoryPath(path string) bool {
 	if len(path) <= 1 {
 		return path == "/" || path == "\\"
 	}
@@ -219,8 +336,8 @@ func isDirectoryPath(path string) bool {
 	return lastChar == '/' || lastChar == '\\'
 }
 
-// isEmptyDirectory checks if the given directory is empty.
-func isEmptyDirectory(directory string) bool {
+// IsEmptyDirectory checks if the given directory is empty.
+func IsEmptyDirectory(directory string) bool {
 	// Open the directory
 	dir, err := os.Open(directory)
 	if err != nil {
@@ -333,4 +450,46 @@ func ensureTrailingSlash(value string) (*url.URL, error) {
 		value = fmt.Sprintf("%s%s", value, "/")
 	}
 	return createSourceURL(value)
+}
+
+// SplitWithFilter splits the input string by any of the specified separator runes and returns a slice of non-empty
+// strings.
+// The function trims whitespace from each resulting part and filters out empty strings.
+// Multiple consecutive separators are treated as a single separator.
+func SplitWithFilter(input string, sep []rune) []string {
+	var result []string
+	var sb strings.Builder
+
+	filter := func(r rune) bool {
+		for _, d := range sep {
+			if r == d {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, r := range input {
+		if filter(r) {
+			if sb.Len() > 0 {
+				part := strings.TrimSpace(sb.String())
+				if part != "" {
+					result = append(result, part)
+				}
+				sb.Reset()
+			}
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+
+	// Add the last part if any
+	if sb.Len() > 0 {
+		part := strings.TrimSpace(sb.String())
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+
+	return result
 }

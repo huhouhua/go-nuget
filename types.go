@@ -4,6 +4,8 @@
 
 package nuget
 
+import "github.com/Masterminds/semver/v3"
+
 type ServiceTypes []string
 
 type ServiceType string
@@ -186,7 +188,8 @@ const (
 )
 
 var (
-	All = NewVersionRange(nil, nil, true, true)
+	All          = NewVersionRange(nil, nil, true, true)
+	EmptyVersion = NuGetVersion{Version: semver.New(0, 0, 0, "", "")}
 )
 
 // FloatBehavior represents how version floating should behave
@@ -208,9 +211,44 @@ const (
 const (
 	PackageExtension          = ".nupkg"
 	SnupkgExtension           = ".snupkg"
+	NuspecExtension           = ".nuspec"
 	SymbolsExtension          = ".symbols" + PackageExtension
 	NuGetSymbolHostName       = "nuget.smbsrc.net"
 	ServiceEndpoint           = "/api/v2/package"
 	DefaultGalleryServerURL   = "https://www.nuget.org"
 	TempApiKeyServiceEndpoint = "create-verification-key/%s/%s"
+
+	PackageEmptyFileName = "_._"
 )
+
+type Folder string
+
+const (
+	Content             Folder = "content"
+	Build               Folder = "build"
+	BuildCrossTargeting Folder = "buildCrossTargeting"
+	BuildTransitive     Folder = "buildTransitive"
+	Tools               Folder = "tools"
+	ContentFiles        Folder = "contentFiles"
+	Lib                 Folder = "lib"
+	Native              Folder = "native"
+	Runtimes            Folder = "runtimes"
+	Ref                 Folder = "ref"
+	Analyzers           Folder = "analyzers"
+	Source              Folder = "src"
+)
+
+var Known = []Folder{
+	Content,
+	Build,
+	BuildCrossTargeting,
+	BuildTransitive,
+	Tools,
+	ContentFiles,
+	Lib,
+	Native,
+	Runtimes,
+	Ref,
+	Analyzers,
+	Source,
+}

@@ -7,6 +7,7 @@ package nuget
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -242,7 +243,7 @@ func TestWildcardToRegex(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			re := wildcardToRegex(tc.wildcard, tc.pathSeparator)
+			re := WildcardToRegex(tc.wildcard, tc.pathSeparator)
 
 			for _, input := range tc.match {
 				if !re.MatchString(input) {
@@ -415,7 +416,7 @@ func TestIsDirectoryPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isDirectoryPath(tt.path)
+			result := IsDirectoryPath(tt.path)
 			if result != tt.expected {
 				t.Errorf("isDirectoryPath(%q) = %v; expected %v", tt.path, result, tt.expected)
 			}
@@ -431,7 +432,7 @@ func TestIsEmptyDirectory(t *testing.T) {
 	})
 
 	t.Run("Empty directory", func(t *testing.T) {
-		if empty := isEmptyDirectory(emptyDir); !empty {
+		if empty := IsEmptyDirectory(emptyDir); !empty {
 			t.Errorf("Expected directory to be empty, but it was not")
 		}
 	})
@@ -443,7 +444,7 @@ func TestIsEmptyDirectory(t *testing.T) {
 	})
 
 	t.Run("Directory with files", func(t *testing.T) {
-		if empty := isEmptyDirectory(dirWithFiles); empty {
+		if empty := IsEmptyDirectory(dirWithFiles); empty {
 			t.Errorf("Expected directory to have files, but it was empty")
 		}
 	})
@@ -451,7 +452,7 @@ func TestIsEmptyDirectory(t *testing.T) {
 	// Test 3: Non-existent directory
 	t.Run("Non-existent directory", func(t *testing.T) {
 		nonExistentDir := "/path/to/nonexistent/directory"
-		if empty := isEmptyDirectory(nonExistentDir); empty {
+		if empty := IsEmptyDirectory(nonExistentDir); empty {
 			t.Errorf("Expected error, but directory was considered empty")
 		}
 	})
@@ -471,4 +472,283 @@ func TestPathCombine(t *testing.T) {
 func TestGetFileNameWithoutExtension(t *testing.T) {
 	require.Equal(t, "abc", getFileNameWithoutExtension(":\\abc"))
 	require.Equal(t, "abc", getFileNameWithoutExtension(":/abc"))
+}
+
+func TestFilter(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		filter   func(int) bool
+		expected []int
+	}{
+		{
+			name:     "filter even numbers",
+			input:    []int{1, 2, 3, 4, 5, 6},
+			filter:   func(n int) bool { return n%2 == 0 },
+			expected: []int{2, 4, 6},
+		},
+		{
+			name:     "filter numbers greater than 3",
+			input:    []int{1, 2, 3, 4, 5, 6},
+			filter:   func(n int) bool { return n > 3 },
+			expected: []int{4, 5, 6},
+		},
+		{
+			name:     "empty slice",
+			input:    []int{},
+			filter:   func(n int) bool { return n > 0 },
+			expected: []int{},
+		},
+		{
+			name:     "no matches",
+			input:    []int{1, 2, 3},
+			filter:   func(n int) bool { return n > 10 },
+			expected: []int{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Filter(tt.input, tt.filter)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("Filter() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSome(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     []int
+		predicate func(int) bool
+		expected  bool
+	}{
+		{
+			name:      "has even number",
+			input:     []int{1, 3, 5, 6, 7},
+			predicate: func(n int) bool { return n%2 == 0 },
+			expected:  true,
+		},
+		{
+			name:      "no even numbers",
+			input:     []int{1, 3, 5, 7},
+			predicate: func(n int) bool { return n%2 == 0 },
+			expected:  false,
+		},
+		{
+			name:      "empty slice",
+			input:     []int{},
+			predicate: func(n int) bool { return n > 0 },
+			expected:  false,
+		},
+		{
+			name:      "has number greater than 5",
+			input:     []int{1, 2, 3, 6, 4},
+			predicate: func(n int) bool { return n > 5 },
+			expected:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Some(tt.input, tt.predicate)
+			if result != tt.expected {
+				t.Errorf("Some() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetMatches(t *testing.T) {
+	type testFile struct {
+		path string
+	}
+
+	tests := []struct {
+		name      string
+		input     []testFile
+		getPath   func(testFile) string
+		wildcards []string
+		expected  []testFile
+	}{
+		{
+			name: "match txt files",
+			input: []testFile{
+				{path: "file1.txt"},
+				{path: "file2.log"},
+				{path: "file3.txt"},
+			},
+			getPath:   func(f testFile) string { return f.path },
+			wildcards: []string{"*.txt"},
+			expected: []testFile{
+				{path: "file1.txt"},
+				{path: "file3.txt"},
+			},
+		},
+		{
+			name: "match multiple patterns",
+			input: []testFile{
+				{path: "file1.txt"},
+				{path: "file2.log"},
+				{path: "file3.md"},
+			},
+			getPath:   func(f testFile) string { return f.path },
+			wildcards: []string{"*.txt", "*.md"},
+			expected: []testFile{
+				{path: "file1.txt"},
+				{path: "file3.md"},
+			},
+		},
+		{
+			name: "no matches",
+			input: []testFile{
+				{path: "file1.txt"},
+				{path: "file2.log"},
+			},
+			getPath:   func(f testFile) string { return f.path },
+			wildcards: []string{"*.md"},
+			expected:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getMatches(tt.input, tt.getPath, tt.wildcards)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("GetMatches() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestGetFilteredPackageFiles(t *testing.T) {
+	type testFile struct {
+		path string
+	}
+
+	tests := []struct {
+		name      string
+		input     []testFile
+		getPath   func(testFile) string
+		wildcards []string
+		expected  []testFile
+		remaining []testFile
+	}{
+		{
+			name: "filter txt files",
+			input: []testFile{
+				{path: "file1.txt"},
+				{path: "file2.log"},
+				{path: "file3.txt"},
+			},
+			getPath:   func(f testFile) string { return f.path },
+			wildcards: []string{"*.txt"},
+			expected: []testFile{
+				{path: "file1.txt"},
+				{path: "file3.txt"},
+			},
+			remaining: []testFile{
+				{path: "file2.log"},
+			},
+		},
+		{
+			name: "filter multiple patterns",
+			input: []testFile{
+				{path: "file1.txt"},
+				{path: "file2.log"},
+				{path: "file3.md"},
+			},
+			getPath:   func(f testFile) string { return f.path },
+			wildcards: []string{"*.txt", "*.md"},
+			expected: []testFile{
+				{path: "file1.txt"},
+				{path: "file3.md"},
+			},
+			remaining: []testFile{
+				{path: "file2.log"},
+			},
+		},
+		{
+			name: "no matches",
+			input: []testFile{
+				{path: "file1.txt"},
+				{path: "file2.log"},
+			},
+			getPath:   func(f testFile) string { return f.path },
+			wildcards: []string{"*.md"},
+			expected:  nil,
+			remaining: []testFile{
+				{path: "file1.txt"},
+				{path: "file2.log"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetFilteredPackageFiles(&tt.input, tt.getPath, tt.wildcards)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("GetFilteredPackageFiles() = %v, want %v", result, tt.expected)
+			}
+			if !reflect.DeepEqual(tt.input, tt.remaining) {
+				t.Errorf("GetFilteredPackageFiles() remaining = %v, want %v", tt.input, tt.remaining)
+			}
+		})
+	}
+}
+
+func TestSplitWithFilter(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		sep      []rune
+		expected []string
+	}{
+		{
+			name:     "split by comma and semicolon",
+			input:    "a,b;c,d;e",
+			sep:      []rune{',', ';'},
+			expected: []string{"a", "b", "c", "d", "e"},
+		},
+		{
+			name:     "split by space and tab",
+			input:    "hello world\tgoodbye",
+			sep:      []rune{' ', '\t'},
+			expected: []string{"hello", "world", "goodbye"},
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			sep:      []rune{',', ';'},
+			expected: nil,
+		},
+		{
+			name:     "no separators",
+			input:    "hello",
+			sep:      []rune{',', ';'},
+			expected: []string{"hello"},
+		},
+		{
+			name:     "multiple consecutive separators",
+			input:    "a,,b;;c",
+			sep:      []rune{',', ';'},
+			expected: []string{"a", "b", "c"},
+		},
+		{
+			name:     "trim spaces",
+			input:    " a , b ; c ",
+			sep:      []rune{',', ';'},
+			expected: []string{"a", "b", "c"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := SplitWithFilter(tt.input, tt.sep)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("SplitWithFilter() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
 }
