@@ -211,7 +211,7 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 		if searchRegex.MatchString(path) {
 			if d.IsDir() {
 				// If it's a directory, check if we should include empty directories
-				if ok := IsDirectoryPath(path); ok && includeEmptyDirs {
+				if ok := IsEmptyDirectory(path); ok && includeEmptyDirs {
 					results = append(results, &SearchPathResult{Path: path, IsFile: false})
 				}
 			} else {
@@ -229,7 +229,7 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 	}
 
 	// If flag1 is true and the normalized base path is empty, include the base path as a result
-	if ok := IsDirectoryPath(normalizedBasePath); ok && flag1 {
+	if ok := IsEmptyDirectory(normalizedBasePath); ok && flag1 {
 		results = append(results, &SearchPathResult{Path: normalizedBasePath, IsFile: false})
 	}
 	return results, normalizedBasePath, nil
