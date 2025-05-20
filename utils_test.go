@@ -365,6 +365,12 @@ func TestNormalizeBasePath(t *testing.T) {
 		})
 	}
 }
+func TestNormalizeWildcardForExcludedFiles(t *testing.T) {
+	expected := NormalizeWildcardForExcludedFiles("", "**/abc")
+	require.Equal(t, "**/abc", expected)
+	expected = NormalizeWildcardForExcludedFiles("testdata", "../test.1.0.0.nupkg")
+	require.Equal(t, "/test.1.0.0.nupkg", expected)
+}
 
 func TestIsDirectoryPath(t *testing.T) {
 	tests := []struct {
