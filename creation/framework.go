@@ -18,6 +18,9 @@ type Framework struct {
 
 	// PlatformVersion Framework Platform Version (net5.0+)
 	PlatformVersion nuget.NuGetVersion
+
+	// the shortened version of the framework using the default mappings.
+	ShortFolderName string
 }
 
 type FrameworkAssemblyReference struct {

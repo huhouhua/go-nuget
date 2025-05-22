@@ -10,10 +10,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/url"
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -117,7 +119,7 @@ type PackageBuilder struct {
 
 	Copyright string
 
-	DependencyGroups []*nuget.PackageDependencyGroup
+	DependencyGroups []*PackageDependencyGroup
 
 	Files []PackageFile
 
@@ -143,7 +145,7 @@ func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.
 		deterministic:             deterministic,
 		logger:                    logger,
 		Files:                     make([]PackageFile, 0),
-		DependencyGroups:          make([]*nuget.PackageDependencyGroup, 0),
+		DependencyGroups:          make([]*PackageDependencyGroup, 0),
 		FrameworkReferences:       make([]*FrameworkAssemblyReference, 0),
 		FrameworkReferenceGroups:  make([]*FrameworkReferenceGroup, 0),
 		ContentFiles:              make([]*ManifestContentFiles, 0),
@@ -171,18 +173,18 @@ func (p *PackageBuilder) ValidateReferenceAssemblies(
 	files []PackageFile,
 	packageAssemblyReferences []*PackageReferenceSet,
 ) error {
-	frameworksMissingPlatformVersion := make([]string, 0)
+	frameworks := make([]*Framework, 0)
 	for _, group := range packageAssemblyReferences {
-		if group.TargetFramework != nil && strings.TrimSpace(group.TargetFramework.Platform) != "" &&
-			group.TargetFramework.PlatformVersion.Equal(nuget.EmptyVersion.Version) {
-			frameworksMissingPlatformVersion = append(frameworksMissingPlatformVersion, "")
-		}
+		frameworks = append(frameworks, group.TargetFramework)
+	}
+	if err := validatorPlatformVersion(frameworks); err != nil {
+		return err
 	}
 	libFiles := make([]string, 0)
 	for _, file := range files {
-		p := file.GetPath()
-		if strings.TrimSpace(p) != "" && strings.HasPrefix(strings.ToLower(p), "lib") {
-			libFiles = append(libFiles, filepath.Base(p))
+		fp := file.GetPath()
+		if strings.TrimSpace(fp) != "" && strings.HasPrefix(strings.ToLower(fp), "lib") {
+			libFiles = append(libFiles, filepath.Base(fp))
 		}
 	}
 	for _, group := range packageAssemblyReferences {
@@ -199,6 +201,25 @@ func (p *PackageBuilder) ValidateReferenceAssemblies(
 	}
 	return nil
 }
+
+func (p *PackageBuilder) validateFrameworkAssemblies() error {
+	frameworks := make([]*Framework, 0)
+	for _, group := range p.FrameworkReferences {
+		frameworks = append(frameworks, group.SupportedFrameworks...)
+	}
+	if err := validatorPlatformVersion(frameworks); err != nil {
+		return err
+	}
+	frameworks = frameworks[:0]
+	for _, group := range p.FrameworkReferenceGroups {
+		frameworks = append(frameworks, group.TargetFramework)
+	}
+	if err := validatorPlatformVersion(frameworks); err != nil {
+		return err
+	}
+	return nil
+}
+
 func contains(slice []string, item string) bool {
 	return nuget.Some(slice, func(s string) bool {
 		return strings.Contains(s, item)
@@ -237,8 +258,64 @@ func (p *PackageBuilder) AddFiles(basePath, source, destination, exclude string)
 	return nil
 }
 
-func (p *PackageBuilder) AdddDependencyGroups() {
+func (p *PackageBuilder) validateFilesUnique() error {
+	seen := make(map[string]bool)
+	duplicates := make(map[string]bool)
+	for _, file := range p.Files {
+		if strings.TrimSpace(file.GetPath()) == "" {
+			continue
+		}
+		destination := nuget.GetPathWithDirectorySeparator(file.GetPath())
+		if seen[destination] {
+			duplicates[destination] = true
+		} else {
+			seen[destination] = true
+		}
+	}
+	if len(duplicates) > 0 {
+		return fmt.Errorf(
+			"attempted to pack multiple files into the same location(s). The following destinations were used multiple times: %s",
+			strings.Join(slices.Sorted(maps.Keys(duplicates)), ", "),
+		)
+	}
+	return nil
+}
 
+func (p *PackageBuilder) validateDependencies() error {
+	targetFramework := make([]*Framework, 0)
+	for _, group := range p.DependencyGroups {
+		for _, dep := range group.Packages {
+			if err := ValidatePackageId(dep.Id); err != nil {
+				return err
+			}
+		}
+		targetFramework = append(targetFramework, group.TargetFramework)
+	}
+	if err := validatorPlatformVersion(targetFramework); err != nil {
+		return err
+	}
+	if p.Version == nil {
+		// We have independent validation for null-versions.
+		return nil
+	}
+	return nil
+}
+
+func validatorPlatformVersion(frameworks []*Framework) error {
+	platformVersions := make([]string, 0)
+	for _, framework := range frameworks {
+		if framework != nil && strings.TrimSpace(framework.Platform) != "" &&
+			framework.PlatformVersion.Equal(nuget.EmptyVersion.Version) {
+			platformVersions = append(platformVersions, framework.ShortFolderName)
+		}
+	}
+	if len(platformVersions) > 0 {
+		return fmt.Errorf(
+			"some dependency group TFMs are missing a platform version: %v",
+			strings.Join(platformVersions, ","),
+		)
+	}
+	return nil
 }
 
 func (p *PackageBuilder) excludeFiles(searchFiles []*PhysicalPackageFile, basePath, exclude string) {
@@ -248,7 +325,6 @@ func (p *PackageBuilder) excludeFiles(searchFiles []*PhysicalPackageFile, basePa
 	exclusions := nuget.SplitWithFilter(exclude, []rune{';'})
 	for _, exclusion := range exclusions {
 		wildCard := nuget.NormalizeWildcardForExcludedFiles(basePath, exclusion)
-
 		nuget.GetFilteredPackageFiles(&searchFiles, func(file *PhysicalPackageFile) string {
 			return file.sourcePath
 		}, []string{wildCard})

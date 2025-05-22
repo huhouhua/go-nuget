@@ -13,8 +13,13 @@ import (
 
 // FrameworkReferenceGroup A group of FrameworkReference with the same target framework.
 type FrameworkReferenceGroup struct {
-	TargetFramework     *nuget.NuGetVersion
+	TargetFramework     *Framework
 	FrameworkReferences []*FrameworkReference
+}
+
+type PackageDependencyGroup struct {
+	TargetFramework *Framework          `json:"targetFramework"`
+	Packages        []*nuget.Dependency `json:"dependencies"`
 }
 
 type FrameworkReference struct {
