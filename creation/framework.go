@@ -21,6 +21,9 @@ type Framework struct {
 
 	// the shortened version of the framework using the default mappings.
 	ShortFolderName string
+
+	// True if this framework was invalid or unknown. This framework is only compatible with Any and Agnostic.
+	IsUnsupported bool
 }
 
 type FrameworkAssemblyReference struct {

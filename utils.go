@@ -451,16 +451,6 @@ func ensureTrailingSlash(value string) (*url.URL, error) {
 	}
 	return createSourceURL(value)
 }
-func GetPathWithDirectorySeparator(path string) string {
-	if os.PathSeparator == '/' {
-		if strings.Contains(path, "\\") {
-			return strings.ReplaceAll(path, "\\", "/")
-		}
-	} else {
-		return strings.ReplaceAll(path, "/", "\\")
-	}
-	return path
-}
 
 // SplitWithFilter splits the input string by any of the specified separator runes and returns a slice of non-empty
 // strings.

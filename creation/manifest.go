@@ -73,6 +73,13 @@ type ManifestContentFiles struct {
 	Flatten      string
 }
 
+type Manifest struct {
+}
+
+func (m *Manifest) Save() {
+
+}
+
 //type ManifestMetadata struct {
 //	Id                       string
 //	Version                  *nuget.NuGetVersion

@@ -6,16 +6,15 @@ package creation
 
 import (
 	"archive/zip"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"log"
-	"maps"
 	"net/url"
 	"path"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -163,67 +162,16 @@ func (p *PackageBuilder) Save(reader io.Reader) error {
 	if err := ValidatePackageId(p.Id); err != nil {
 		return err
 	}
-	//if len(p.Files)==0 &&  {
-	//
-	//}
-	return nil
-}
+	if p.Files == nil || len(p.Files) == 0 || nuget.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
+		return group.Packages == nil || len(group.Packages) == 0
+	}) {
+		return fmt.Errorf("cannot create a package that has no dependencies nor content")
+	}
+	if errs := p.validate(); len(errs) != 0 {
+		return errors.Join(errs...)
+	}
 
-func (p *PackageBuilder) ValidateReferenceAssemblies(
-	files []PackageFile,
-	packageAssemblyReferences []*PackageReferenceSet,
-) error {
-	frameworks := make([]*Framework, 0)
-	for _, group := range packageAssemblyReferences {
-		frameworks = append(frameworks, group.TargetFramework)
-	}
-	if err := validatorPlatformVersion(frameworks); err != nil {
-		return err
-	}
-	libFiles := make([]string, 0)
-	for _, file := range files {
-		fp := file.GetPath()
-		if strings.TrimSpace(fp) != "" && strings.HasPrefix(strings.ToLower(fp), "lib") {
-			libFiles = append(libFiles, filepath.Base(fp))
-		}
-	}
-	for _, group := range packageAssemblyReferences {
-		for _, reference := range group.References {
-			if !contains(libFiles, reference) && !contains(libFiles, reference+".dll") &&
-				!contains(libFiles, reference+".exe") && !contains(libFiles, reference+".winmd") {
-				return fmt.Errorf(
-					"invalid assembly reference '%s'. Ensure that a file named '%s' exists in the lib directory",
-					reference,
-					reference,
-				)
-			}
-		}
-	}
 	return nil
-}
-
-func (p *PackageBuilder) validateFrameworkAssemblies() error {
-	frameworks := make([]*Framework, 0)
-	for _, group := range p.FrameworkReferences {
-		frameworks = append(frameworks, group.SupportedFrameworks...)
-	}
-	if err := validatorPlatformVersion(frameworks); err != nil {
-		return err
-	}
-	frameworks = frameworks[:0]
-	for _, group := range p.FrameworkReferenceGroups {
-		frameworks = append(frameworks, group.TargetFramework)
-	}
-	if err := validatorPlatformVersion(frameworks); err != nil {
-		return err
-	}
-	return nil
-}
-
-func contains(slice []string, item string) bool {
-	return nuget.Some(slice, func(s string) bool {
-		return strings.Contains(s, item)
-	})
 }
 
 func (p *PackageBuilder) PopulateFiles(basePath string, files []*ManifestFile) error {
@@ -257,67 +205,6 @@ func (p *PackageBuilder) AddFiles(basePath, source, destination, exclude string)
 	}
 	return nil
 }
-
-func (p *PackageBuilder) validateFilesUnique() error {
-	seen := make(map[string]bool)
-	duplicates := make(map[string]bool)
-	for _, file := range p.Files {
-		if strings.TrimSpace(file.GetPath()) == "" {
-			continue
-		}
-		destination := nuget.GetPathWithDirectorySeparator(file.GetPath())
-		if seen[destination] {
-			duplicates[destination] = true
-		} else {
-			seen[destination] = true
-		}
-	}
-	if len(duplicates) > 0 {
-		return fmt.Errorf(
-			"attempted to pack multiple files into the same location(s). The following destinations were used multiple times: %s",
-			strings.Join(slices.Sorted(maps.Keys(duplicates)), ", "),
-		)
-	}
-	return nil
-}
-
-func (p *PackageBuilder) validateDependencies() error {
-	targetFramework := make([]*Framework, 0)
-	for _, group := range p.DependencyGroups {
-		for _, dep := range group.Packages {
-			if err := ValidatePackageId(dep.Id); err != nil {
-				return err
-			}
-		}
-		targetFramework = append(targetFramework, group.TargetFramework)
-	}
-	if err := validatorPlatformVersion(targetFramework); err != nil {
-		return err
-	}
-	if p.Version == nil {
-		// We have independent validation for null-versions.
-		return nil
-	}
-	return nil
-}
-
-func validatorPlatformVersion(frameworks []*Framework) error {
-	platformVersions := make([]string, 0)
-	for _, framework := range frameworks {
-		if framework != nil && strings.TrimSpace(framework.Platform) != "" &&
-			framework.PlatformVersion.Equal(nuget.EmptyVersion.Version) {
-			platformVersions = append(platformVersions, framework.ShortFolderName)
-		}
-	}
-	if len(platformVersions) > 0 {
-		return fmt.Errorf(
-			"some dependency group TFMs are missing a platform version: %v",
-			strings.Join(platformVersions, ","),
-		)
-	}
-	return nil
-}
-
 func (p *PackageBuilder) excludeFiles(searchFiles []*PhysicalPackageFile, basePath, exclude string) {
 	if strings.TrimSpace(exclude) == "" {
 		return
@@ -331,64 +218,111 @@ func (p *PackageBuilder) excludeFiles(searchFiles []*PhysicalPackageFile, basePa
 	}
 }
 
-func resolveSearchPattern(
-	basePath, searchPath, targetPath string,
-	includeEmptyDirectories bool,
-) ([]*PhysicalPackageFile, error) {
-	searchResults, normalizedBasePath, err := nuget.PerformWildcardSearch(basePath, searchPath, includeEmptyDirectories)
-	if err != nil {
-		return nil, err
+func (p *PackageBuilder) writeManifest(zipWriter *zip.Writer, minimumManifestVersion int, psmdcpPath string) error {
+	path := fmt.Sprintf("%s%s", p.Id, nuget.NuspecExtension)
+	if err := p.writeOpcManifestRelationship(zipWriter, path, psmdcpPath); err != nil {
+		return err
 	}
-	files := make([]*PhysicalPackageFile, 0)
-	for _, result := range searchResults {
-		file := &PhysicalPackageFile{
-			sourcePath: result.Path,
-			targetPath: resolvePackagePath(normalizedBasePath, searchPath, result.Path, targetPath),
-		}
-		if !result.IsFile {
-			file.targetPath = path.Join(file.targetPath, nuget.PackageEmptyFileName)
-		}
-		files = append(files, file)
-	}
-	return files, nil
-}
-
-// resolvePackagePath the path of the file inside a package. For recursive wildcard paths, we preserve the
-// path portion beginning
-// with the wildcard. For non-recursive wildcard paths, we use the file name from the actual file path on disk.
-func resolvePackagePath(searchDirectory, searchPattern, fullPath, targetPath string) string {
-	var packagePath string
-	isWildcardSearch := strings.Contains(searchPattern, "*")
-	isRecursiveWildcardSearch := isWildcardSearch && strings.Contains(searchPattern, "**")
-	if (isRecursiveWildcardSearch || isWildcardSearch) && strings.HasPrefix(fullPath, searchDirectory) {
-		// The search pattern is recursive. Preserve the non-wildcard portion of the path.
-		// e.g. Search: X:\foo\**\*.cs results in SearchDirectory: X:\foo and a file path of X:\foo\bar\biz\boz.cs
-		// Truncating X:\foo\ would result in the package path.
-		relPath := fullPath[len(searchDirectory):]
-		packagePath = strings.TrimLeft(relPath, string(filepath.Separator))
-	} else if !isWildcardSearch && strings.EqualFold(path.Ext(searchPattern), path.Ext(targetPath)) {
-		// If the search does not contain wild cards, and the target path shares the same extension, copy it
-		// e.g. <file src="ie\css\style.css" target="Content\css\ie.css" /> --> Content\css\ie.css
-		return targetPath
+	if relsEntry, err := createEntry(zipWriter, path, p.deterministic); err != nil {
+		return err
 	} else {
-		packagePath = path.Base(fullPath)
+		minimumManifestVersion = 1
+		_, err = io.Copy(relsEntry, nil)
+		return err
 	}
-	return path.Join(targetPath, packagePath)
 }
 
-// isKnownFolder Returns true if the path uses a known folder root.
-func isKnownFolder(targetPath string) bool {
-	if strings.TrimSpace(targetPath) == "" {
-		return false
+func (p *PackageBuilder) writeOpcManifestRelationship(zipWriter *zip.Writer, path, psmdcpPath string) error {
+	var buf bytes.Buffer
+
+	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	buf.WriteString(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` + "\n")
+
+	target1 := "/" + strings.TrimPrefix(path, "/")
+	id1 := generateRelationshipId(target1)
+	buf.WriteString(fmt.Sprintf(
+		`  <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="%s" Id="%s"/>\n`,
+		xmlEscape(target1),
+		xmlEscape(id1),
+	))
+
+	target2 := "/" + strings.TrimPrefix(psmdcpPath, "/")
+	id2 := generateRelationshipId(target2)
+	buf.WriteString(fmt.Sprintf(
+		`  <Relationship Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="%s" Id="%s"/>\n`,
+		xmlEscape(target2),
+		xmlEscape(id2),
+	))
+	buf.WriteString(`</Relationships>`)
+	if relsEntry, err := createEntry(zipWriter, "_rels/.rels", p.deterministic); err != nil {
+		return err
+	} else {
+		_, err = io.Copy(relsEntry, &buf)
+		return err
 	}
-	parts := nuget.SplitWithFilter(targetPath, []rune{'\\', '/'})
-	if len(parts) > 1 {
-		topLevelDirectory := parts[0]
-		return nuget.Some(nuget.Known, func(folder nuget.Folder) bool {
-			return strings.EqualFold(string(folder), topLevelDirectory)
-		})
+}
+
+func (p *PackageBuilder) writeOpcContentTypes(
+	zipWriter *zip.Writer,
+	extensions, filesWithoutExtensions map[string]struct{},
+) error {
+	var buf bytes.Buffer
+	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	buf.WriteString(`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` + "\n")
+	buf.WriteString(
+		`  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` + "\n",
+	)
+	buf.WriteString(
+		`  <Default Extension="psmdcp" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>` + "\n",
+	)
+	for ext := range extensions {
+		buf.WriteString(`  <Default Extension="` + xmlEscape(ext) + `" ContentType="application/octet"/>` + "\n")
 	}
-	return false
+	for file := range filesWithoutExtensions {
+		partName := file
+		if !strings.HasPrefix(partName, "/") {
+			partName = "/" + partName
+		}
+		buf.WriteString(`  <Override PartName="` + xmlEscape(partName) + `" ContentType="application/octet"/>` + "\n")
+	}
+	buf.WriteString(`</Types>`)
+	if relsEntry, err := createEntry(zipWriter, "[Content_Types].xml", p.deterministic); err != nil {
+		return err
+	} else {
+		_, err = io.Copy(relsEntry, &buf)
+		return err
+	}
+}
+
+// writeOpcPackageProperties OPC backwards compatibility for package properties
+func (p *PackageBuilder) writeOpcPackageProperties(zipWriter *zip.Writer, psmdcpPath string) error {
+	var buf bytes.Buffer
+
+	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>\n`)
+	buf.WriteString(
+		`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n`,
+	)
+
+	buf.WriteString(fmt.Sprintf("  <dc:creator>%s</dc:creator>\n", xmlEscape(strings.Join(p.Authors, ", "))))
+	buf.WriteString(fmt.Sprintf("  <dc:description>%s</dc:description>\n", xmlEscape(p.Description)))
+	buf.WriteString(fmt.Sprintf("  <dc:identifier>%s</dc:identifier>\n", xmlEscape(p.Id)))
+	buf.WriteString(fmt.Sprintf("  <cp:version>%s</cp:version>\n", xmlEscape(p.Version.String())))
+	buf.WriteString(fmt.Sprintf("  <cp:keywords>%s</cp:keywords>\n", xmlEscape(strings.Join(p.Tags, ""))))
+	buf.WriteString(fmt.Sprintf("  <cp:lastModifiedBy>%s</cp:lastModifiedBy>\n", xmlEscape("")))
+
+	buf.WriteString(`</cp:coreProperties>`)
+
+	header := &zip.FileHeader{
+		Name:   psmdcpPath,
+		Method: zip.Deflate,
+	}
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(writer, &buf)
+	return err
 }
 
 func (p *PackageBuilder) writeFiles(zipWriter *zip.Writer, filesWithoutExtensions []string) ([]string, error) {
@@ -423,68 +357,4 @@ func (p *PackageBuilder) writeFiles(zipWriter *zip.Writer, filesWithoutExtension
 		)
 	}
 	return extensions, nil
-}
-func createPart(zipWriter *zip.Writer, filePath string,
-	sourceStream io.Reader, lastWriteTime time.Time, warningMessage *strings.Builder) error {
-	if strings.HasSuffix(strings.ToLower(filePath), nuget.NuspecExtension) {
-		return nil
-	}
-	// Split on '/', '\\', and OS-specific separator (assuming Unix-like system here)
-	separators := []string{"/", "\\"}
-	for _, sep := range separators {
-		filePath = strings.ReplaceAll(filePath, sep, "/")
-	}
-
-	// Escape each segment
-	segments := strings.Split(filePath, "/")
-	for i, segment := range segments {
-		segments[i] = url.PathEscape(segment)
-	}
-
-	escapedPath := strings.Join(segments, "/")
-
-	//Create an absolute URI to get the refinement on the relative path
-	partURL, err := defaultURL.Parse(escapedPath)
-	if err != nil {
-		return err
-	}
-	cleanPath := path.Clean(partURL.Path)
-
-	entryName, err := url.PathUnescape(cleanPath)
-	if err != nil {
-		return err
-	}
-	entry, err := createPackageFileEntry(zipWriter, entryName, lastWriteTime, warningMessage)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(entry, sourceStream)
-	return err
-}
-
-func createPackageFileEntry(
-	zipWriter *zip.Writer,
-	entryName string,
-	timeOffset time.Time,
-	warningMessage *strings.Builder,
-) (io.Writer, error) {
-	header := &zip.FileHeader{
-		Name:     entryName,
-		Method:   zip.Deflate,
-		Modified: timeOffset,
-	}
-	if timeOffset.Before(zipFormatMinDate) {
-		warningMessage.WriteString(fmt.Sprintf("Timestamp for '%s' (%s) is before minimum. Adjusted to %s.\n",
-			entryName, timeOffset.Format("2006-01-02"), zipFormatMinDate.Format("2006-01-02")))
-		header.Modified = zipFormatMinDate
-	} else if timeOffset.After(zipFormatMaxDate) {
-		warningMessage.WriteString(fmt.Sprintf("Timestamp for '%s' (%s) is after maximum. Adjusted to %s.\n",
-			entryName, timeOffset.Format("2006-01-02"), zipFormatMaxDate.Format("2006-01-02")))
-		header.Modified = zipFormatMaxDate
-	}
-	writer, err := zipWriter.CreateHeader(header)
-	if err != nil {
-		return nil, err
-	}
-	return writer, nil
 }

@@ -758,31 +758,3 @@ func TestSplitWithFilter(t *testing.T) {
 		})
 	}
 }
-func TestGetPathWithDirectorySeparator(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{"UnixStyle", "lib/net6.0/foo.dll", "lib/net6.0/foo.dll"},
-		{"WindowsStyle", "lib\\net6.0\\foo.dll", normalizedPath("lib/net6.0/foo.dll", "lib\\net6.0\\foo.dll")},
-		{"MixedSeparators", "lib/net6.0\\foo.dll", normalizedPath("lib/net6.0/foo.dll", "lib\\net6.0\\foo.dll")},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := GetPathWithDirectorySeparator(tt.input)
-			if result != tt.expected {
-				t.Errorf("GetPathWithDirectorySeparator(%q) = %q; want %q", tt.input, result, tt.expected)
-			}
-		})
-	}
-}
-
-// based on current OS, return expected separator
-func normalizedPath(unixPath, windowsPath string) string {
-	if os.PathSeparator == '/' {
-		return unixPath
-	}
-	return windowsPath
-}
