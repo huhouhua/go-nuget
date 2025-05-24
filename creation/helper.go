@@ -10,14 +10,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 
 	"github.com/huhouhua/go-nuget"
 )
@@ -71,10 +70,19 @@ func calcPsmdcpName(files []PackageFile, deterministic bool) (string, error) {
 		sum := hash.Sum(nil)
 		return hex.EncodeToString(sum)[:32], nil
 	} else {
-		return uuid.New().String(), nil
+		return randomString(32), nil
 	}
 }
 
+const letterBytes = "abcdef0123456789"
+
+func randomString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
 func createPart(zipWriter *zip.Writer, filePath string,
 	sourceStream io.Reader, lastWriteTime time.Time, warningMessage *strings.Builder) error {
 	if strings.HasSuffix(strings.ToLower(filePath), nuget.NuspecExtension) {

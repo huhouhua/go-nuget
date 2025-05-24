@@ -29,6 +29,7 @@ var (
 	defaultURL       *url.URL
 	zipFormatMinDate = time.Date(1980, 1, 1, 0, 0, 0, 0, time.UTC)
 	zipFormatMaxDate = time.Date(2107, 12, 31, 23, 59, 58, 0, time.UTC)
+	SymbolsPackage   = &PackageType{Name: "SymbolsPackage", Version: nil}
 )
 
 func init() {
@@ -62,6 +63,23 @@ func ValidatePackageId(packageId string) error {
 type PackageType struct {
 	Name    string
 	Version *nuget.NuGetVersion
+}
+
+func (p *PackageType) Equals(other *PackageType) bool {
+	if other == nil {
+		return false
+	}
+	if !strings.EqualFold(p.Name, other.Name) {
+		return false
+	}
+	switch {
+	case p.Version == nil && other.Version == nil:
+		return true
+	case p.Version != nil && other.Version != nil:
+		return p.Version.Equal(other.Version.Version)
+	default:
+		return false
+	}
 }
 
 type PackageBuilder struct {
@@ -226,7 +244,7 @@ func (p *PackageBuilder) writeManifest(zipWriter *zip.Writer, minimumManifestVer
 	if relsEntry, err := createEntry(zipWriter, path, p.deterministic); err != nil {
 		return err
 	} else {
-		minimumManifestVersion = 1
+
 		_, err = io.Copy(relsEntry, nil)
 		return err
 	}
