@@ -111,14 +111,13 @@ func (p *PackageBuilder) validateFilesUnique() error {
 }
 
 func (p *PackageBuilder) validateLicenseFile() error {
-	isSymbols := nuget.Some(p.PackageTypes, func(packageType PackageType) bool {
-		return packageType.Equals(SymbolsPackage)
-	})
-	if (isSymbols || p.LicenseMetadata == nil) && p.LicenseMetadata.GetLicenseType() != nuget.File {
+	if (p.isHasSymbolsInPackageType() || p.LicenseMetadata == nil) && p.LicenseMetadata.GetLicenseType() != nuget.File {
 		return nil
 	}
 	ext := path.Ext(p.LicenseMetadata.GetLicense())
-	if strings.TrimSpace(ext) != "" && !strings.EqualFold(ext, ".txt") && !strings.EqualFold(ext, ".md") {
+	if strings.TrimSpace(ext) != "" &&
+		!strings.EqualFold(ext, ".txt") &&
+		!strings.EqualFold(ext, ".md") {
 		return fmt.Errorf(
 			"the license file '%s' has an invalid extension. Valid options are .txt, .md or none",
 			p.LicenseMetadata.GetLicense(),
@@ -139,6 +138,39 @@ func (p *PackageBuilder) validateLicenseFile() error {
 // validateIconFile Given a list of resolved files, determine which file will be used as the icon file and validate its
 // size and extension.
 func (p *PackageBuilder) validateIconFile() error {
+	if p.isHasSymbolsInPackageType() || strings.TrimSpace(p.Icon) == "" {
+		return nil
+	}
+	ext := path.Ext(p.Icon)
+	if strings.TrimSpace(ext) == "" || (!strings.EqualFold(ext, ".jpeg") &&
+		!strings.EqualFold(ext, ".jpg") &&
+		!strings.EqualFold(ext, ".png")) {
+		return fmt.Errorf("the 'icon' element '%s' has an invalid file extension. Valid options are .png, .jpg or .jpeg", p.Icon)
+	}
+	var iconPathWithIncorrectCase *string
+	iconFile := findFileInPackage(p.Icon, p.Files, iconPathWithIncorrectCase)
+	if iconFile == nil {
+		if &iconPathWithIncorrectCase == nil {
+			return fmt.Errorf("the icon file '%s' does not exist in the package", p.Icon)
+		} else {
+			return fmt.Errorf("the icon file '%s' does not exist in the package. (Did you mean '%s'?)",
+				p.Icon, *iconPathWithIncorrectCase)
+		}
+	}
+	if file, err := iconFile.GetStream(); err != nil {
+		return err
+	} else {
+		if stat, err := file.Stat(); err != nil {
+			return err
+		} else {
+			if stat.Size() > MaxIconFileSize {
+				return fmt.Errorf("the icon file size must not exceed 1 megabyte")
+			}
+			if stat.Size() == 0 {
+				return fmt.Errorf("the icon file is empty")
+			}
+		}
+	}
 	return nil
 }
 
@@ -197,68 +229,72 @@ func (p *PackageBuilder) validateDependencyGroups() error {
 	return nil
 }
 func (p *PackageBuilder) validateArgs() []string {
-	var errors []string
+	var errs []string
 	if strings.TrimSpace(p.Id) == "" {
-		errors = append(errors, "id is required.")
+		errs = append(errs, "id is required.")
 	} else {
 		if len(p.Id) > MaxPackageIdLength {
-			errors = append(errors, "id must not exceed 100 characters.")
+			errs = append(errs, "id must not exceed 100 characters.")
 		} else if !IsValidPackageId(p.Id) {
-			errors = append(errors, fmt.Sprintf("the package ID '%s' contains invalid characters. Examples of valid package IDs include 'MyPackage' and 'MyPackage.Sample'.", p.Id))
+			errs = append(errs, fmt.Sprintf("the package ID '%s' contains invalid characters. Examples of valid package IDs include 'MyPackage' and 'MyPackage.Sample'.", p.Id))
 		}
 	}
 	if p.Version == nil {
-		errors = append(errors, "version is required.")
+		errs = append(errs, "version is required.")
 	}
 	if p.Authors == nil {
-		errors = append(errors, "authors is required.")
+		errs = append(errs, "authors is required.")
 	}
 	isHasEmpty := nuget.Some(p.Authors, func(s string) bool {
 		return strings.TrimSpace(s) == ""
 	})
-	isSymbols := nuget.Some(p.PackageTypes, func(packageType PackageType) bool {
-		return packageType.Equals(SymbolsPackage)
-	})
-	if isHasEmpty && !isSymbols {
-		errors = append(errors, "authors is required.")
+
+	if isHasEmpty && !p.isHasSymbolsInPackageType() {
+		errs = append(errs, "authors is required.")
 	}
 	if strings.TrimSpace(p.Description) == "" {
-		errors = append(errors, "description is required.")
+		errs = append(errs, "description is required.")
 	}
 	if p.LicenseURL != nil && strings.TrimSpace(p.LicenseURL.String()) == "" {
-		errors = append(errors, "licenseURL cannot be empty.")
+		errs = append(errs, "licenseURL cannot be empty.")
 	}
 	if p.IconURL != nil && strings.TrimSpace(p.IconURL.String()) == "" {
-		errors = append(errors, "iconURL cannot be empty.")
+		errs = append(errs, "iconURL cannot be empty.")
 	}
 	if p.ProjectURL != nil && strings.TrimSpace(p.ProjectURL.String()) == "" {
-		errors = append(errors, "projectURL cannot be empty.")
+		errs = append(errs, "projectURL cannot be empty.")
 	}
 	if strings.TrimSpace(p.Icon) == "" {
-		errors = append(errors, "the element 'icon' cannot be empty.")
+		errs = append(errs, "the element 'icon' cannot be empty.")
 	}
 	if strings.TrimSpace(p.Readme) == "" {
-		errors = append(errors, "the element 'readme' cannot be empty.")
+		errs = append(errs, "the element 'readme' cannot be empty.")
 	}
 	if p.RequireLicenseAcceptance {
 		if p.LicenseURL == nil && p.LicenseMetadata == nil {
-			errors = append(
-				errors,
+			errs = append(
+				errs,
 				"enabling license acceptance requires a license or a licenseUrl to be specified. The licenseUrl will be deprecated, consider using the license metadata.",
 			)
 		}
 		if !p.EmitRequireLicenseAcceptance {
-			errors = append(
-				errors,
+			errs = append(
+				errs,
 				"emitRequireLicenseAcceptance must not be set to false if RequireLicenseAcceptance is set to true.",
 			)
 		}
 	}
 	if p.LicenseURL != nil && p.LicenseMetadata != nil &&
 		(strings.TrimSpace(p.LicenseURL.String()) == "" || !strings.EqualFold(p.LicenseURL.String(), p.LicenseMetadata.GetLicense())) {
-		errors = append(errors, "the licenseUrl and license elements cannot be used together.")
+		errs = append(errs, "the licenseUrl and license elements cannot be used together.")
 	}
-	return errors
+	return errs
+}
+
+func (p *PackageBuilder) isHasSymbolsInPackageType() bool {
+	return nuget.Some(p.PackageTypes, func(packageType PackageType) bool {
+		return packageType.Equals(SymbolsPackage)
+	})
 }
 
 func validatorPlatformVersion(frameworks []*Framework) error {

@@ -25,8 +25,10 @@ import (
 const MaxPackageIdLength = 100
 
 var (
-	idRegex          = regexp.MustCompile(`(?i)^\w+([.-]\w+)*$`)
-	defaultURL       *url.URL
+	idRegex    = regexp.MustCompile(`(?i)^\w+([.-]\w+)*$`)
+	defaultURL *url.URL
+	// MaxIconFileSize the Maximum Icon file size: 1 megabyte
+	MaxIconFileSize  = int64(1024 * 1024)
 	zipFormatMinDate = time.Date(1980, 1, 1, 0, 0, 0, 0, time.UTC)
 	zipFormatMaxDate = time.Date(2107, 12, 31, 23, 59, 58, 0, time.UTC)
 	SymbolsPackage   = &PackageType{Name: "SymbolsPackage", Version: nil}

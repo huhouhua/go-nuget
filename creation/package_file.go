@@ -5,7 +5,6 @@
 package creation
 
 import (
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -27,12 +26,12 @@ type PackageFile interface {
 
 	GetLastWriteTime() time.Time
 
-	GetStream() (io.Reader, error)
+	GetStream() (*os.File, error)
 }
 
 type PhysicalPackageFile struct {
 	PackageFile
-	streamFactory func() io.Reader
+	streamFactory func() *os.File
 
 	lastWriteTime time.Time
 	// Path on disk
@@ -42,7 +41,7 @@ type PhysicalPackageFile struct {
 	targetPath string
 }
 
-func NewPhysicalPackageFile(sourcePath, targetPath string, streamFactory func() io.Reader) PackageFile {
+func NewPhysicalPackageFile(sourcePath, targetPath string, streamFactory func() *os.File) PackageFile {
 	return &PhysicalPackageFile{
 		sourcePath:    sourcePath,
 		targetPath:    targetPath,
@@ -60,7 +59,7 @@ func (p *PhysicalPackageFile) GetNuGetFramework() *Framework {
 	return nil
 }
 
-func (p *PhysicalPackageFile) GetStream() (io.Reader, error) {
+func (p *PhysicalPackageFile) GetStream() (*os.File, error) {
 	if p.streamFactory != nil {
 		p.lastWriteTime = time.Now().UTC()
 		return p.streamFactory(), nil
