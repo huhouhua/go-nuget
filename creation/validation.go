@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -110,10 +111,33 @@ func (p *PackageBuilder) validateFilesUnique() error {
 }
 
 func (p *PackageBuilder) validateLicenseFile() error {
-
+	isSymbols := nuget.Some(p.PackageTypes, func(packageType PackageType) bool {
+		return packageType.Equals(SymbolsPackage)
+	})
+	if (isSymbols || p.LicenseMetadata == nil) && p.LicenseMetadata.GetLicenseType() != nuget.File {
+		return nil
+	}
+	ext := path.Ext(p.LicenseMetadata.GetLicense())
+	if strings.TrimSpace(ext) != "" && !strings.EqualFold(ext, ".txt") && !strings.EqualFold(ext, ".md") {
+		return fmt.Errorf(
+			"the license file '%s' has an invalid extension. Valid options are .txt, .md or none",
+			p.LicenseMetadata.GetLicense(),
+		)
+	}
+	var licenseFilePathWithIncorrectCase *string
+	if findFileInPackage(p.LicenseMetadata.GetLicense(), p.Files, licenseFilePathWithIncorrectCase) == nil {
+		if &licenseFilePathWithIncorrectCase == nil {
+			return fmt.Errorf("the license file '%s' does not exist in the package", p.LicenseMetadata.GetLicense())
+		} else {
+			return fmt.Errorf("the license file '%s' does not exist in the package. (Did you mean '%s'?)",
+				p.LicenseMetadata.GetLicense(), *licenseFilePathWithIncorrectCase)
+		}
+	}
 	return nil
 }
 
+// validateIconFile Given a list of resolved files, determine which file will be used as the icon file and validate its
+// size and extension.
 func (p *PackageBuilder) validateIconFile() error {
 	return nil
 }
@@ -251,5 +275,26 @@ func validatorPlatformVersion(frameworks []*Framework) error {
 			strings.Join(platformVersions, ","),
 		)
 	}
+	return nil
+}
+
+// findFileInPackage Looks for the specified file within the package
+func findFileInPackage(filepath string, packageFiles []PackageFile, filePathIncorrectCase *string) PackageFile {
+	filePathIncorrectCase = nil
+	strippedFilePath := stripLeadingDirectorySeparators(filepath)
+	for _, file := range packageFiles {
+		// This must use a case-sensitive string comparison, even on systems where file paths are normally
+		// case-sensitive.
+		strippedPackageFilePath := stripLeadingDirectorySeparators(file.GetPath())
+		if strings.EqualFold(strippedFilePath, strippedPackageFilePath) {
+			// Found the requested file in the package
+			filePathIncorrectCase = nil
+			return file
+			// Check for files that exist with the wrong file casing
+		} else if filePathIncorrectCase == nil && strings.EqualFold(strippedPackageFilePath, strippedFilePath) {
+			filePathIncorrectCase = &strippedPackageFilePath
+		}
+	}
+	// We searched all of the package files and didn't find what we were looking for
 	return nil
 }

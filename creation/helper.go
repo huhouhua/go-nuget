@@ -39,13 +39,10 @@ func xmlEscape(s string) string {
 }
 func getPathWithDirectorySeparator(path string, sep rune) string {
 	if sep == '/' {
-		if strings.Contains(path, "\\") {
-			return strings.ReplaceAll(path, "\\", "/")
-		}
+		return getPathWithForwardSlashes(path)
 	} else {
 		return strings.ReplaceAll(path, "/", "\\")
 	}
-	return path
 }
 
 func generateRelationshipId(path string) string {
@@ -271,4 +268,23 @@ func determineMinimumSchemaVersion(files []PackageFile, dependencyGroups []*Pack
 		return TargetFrameworkSupportForDependencyContentsAndToolsVersion
 	}
 	return DefaultVersion
+}
+
+// getPathWithForwardSlashes Replace all back slashes with forward slashes.
+// If the path does not contain a back slash
+// the original string is returned.
+func getPathWithForwardSlashes(path string) string {
+	if strings.Contains(path, "\\") {
+		return strings.ReplaceAll(path, "\\", "/")
+	}
+	return path
+}
+
+func stripLeadingDirectorySeparators(fileName string) string {
+	filename := getPathWithForwardSlashes(fileName)
+	currentDirectoryPath := "./"
+	if strings.HasPrefix(filename, currentDirectoryPath) {
+		filename = filename[len(currentDirectoryPath):]
+	}
+	return strings.TrimLeft(filename, "/")
 }

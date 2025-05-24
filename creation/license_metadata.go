@@ -19,13 +19,17 @@ type LicenseExpression interface {
 
 type LicenseMetadata struct {
 	// The LicenseType, never null
-	//licenseType nuget.LicenseType
+	licenseType nuget.LicenseType
 
 	// license The license, never null, could be empty.
 	license string
 
 	// version LicenseMetadata (expression) version. Never null.
 	version *nuget.NuGetVersion
+}
+
+func (l *LicenseMetadata) GetLicenseType() nuget.LicenseType {
+	return l.licenseType
 }
 
 func (l *LicenseMetadata) GetLicense() string {
