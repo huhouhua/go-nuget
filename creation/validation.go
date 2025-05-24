@@ -25,7 +25,6 @@ func (p *PackageBuilder) validate() []error {
 	errs = append(errs, p.validateFrameworkAssemblies())
 	errs = append(errs, p.validateLicenseFile())
 	errs = append(errs, p.validateIconFile())
-	errs = append(errs, p.validateFileFrameworks())
 	errs = append(errs, p.validateReadmeFile())
 	errs = append(errs, p.validateDependencyGroups())
 	errs = append(errs, p.validateManifest())
@@ -117,7 +116,7 @@ func (p *PackageBuilder) validateLicenseFile() error {
 	ext := path.Ext(p.LicenseMetadata.GetLicense())
 	if strings.TrimSpace(ext) != "" &&
 		!strings.EqualFold(ext, ".txt") &&
-		!strings.EqualFold(ext, ".md") {
+		!strings.EqualFold(ext, nuget.ReadmeExtension) {
 		return fmt.Errorf(
 			"the license file '%s' has an invalid extension. Valid options are .txt, .md or none",
 			p.LicenseMetadata.GetLicense(),
@@ -145,7 +144,10 @@ func (p *PackageBuilder) validateIconFile() error {
 	if strings.TrimSpace(ext) == "" || (!strings.EqualFold(ext, ".jpeg") &&
 		!strings.EqualFold(ext, ".jpg") &&
 		!strings.EqualFold(ext, ".png")) {
-		return fmt.Errorf("the 'icon' element '%s' has an invalid file extension. Valid options are .png, .jpg or .jpeg", p.Icon)
+		return fmt.Errorf(
+			"the 'icon' element '%s' has an invalid file extension. Valid options are .png, .jpg or .jpeg",
+			p.Icon,
+		)
 	}
 	var iconPathWithIncorrectCase *string
 	iconFile := findFileInPackage(p.Icon, p.Files, iconPathWithIncorrectCase)
@@ -174,10 +176,33 @@ func (p *PackageBuilder) validateIconFile() error {
 	return nil
 }
 
-func (p *PackageBuilder) validateFileFrameworks() error {
-	return nil
-}
 func (p *PackageBuilder) validateReadmeFile() error {
+	if p.isHasSymbolsInPackageType() || strings.TrimSpace(p.Readme) == "" {
+		return nil
+	}
+	ext := path.Ext(p.Readme)
+	if strings.TrimSpace(ext) != "" || !strings.EqualFold(ext, nuget.ReadmeExtension) {
+		return fmt.Errorf("the readme file '%s' has an invalid extension. It must end in .md", p.Readme)
+	}
+	readmePathStripped := stripLeadingDirectorySeparators(p.Readme)
+	readmeFileList := nuget.Filter(p.Files, func(file PackageFile) bool {
+		return strings.EqualFold(readmePathStripped, stripLeadingDirectorySeparators(file.GetPath()))
+	})
+	if len(readmeFileList) == 0 {
+		return fmt.Errorf("the readme file '%s' does not exist in the package", p.Readme)
+	}
+	readmeFile := readmeFileList[0]
+	if file, err := readmeFile.GetStream(); err != nil {
+		return err
+	} else {
+		if stat, err := file.Stat(); err != nil {
+			return err
+		} else {
+			if stat.Size() == 0 {
+				return fmt.Errorf("the readme file '%s' is empty", p.Readme)
+			}
+		}
+	}
 	return nil
 }
 

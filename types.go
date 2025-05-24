@@ -213,6 +213,7 @@ const (
 	SnupkgExtension           = ".snupkg"
 	NuspecExtension           = ".nuspec"
 	SymbolsExtension          = ".symbols" + PackageExtension
+	ReadmeExtension           = ".md"
 	NuGetSymbolHostName       = "nuget.smbsrc.net"
 	ServiceEndpoint           = "/api/v2/package"
 	DefaultGalleryServerURL   = "https://www.nuget.org"
