@@ -177,7 +177,7 @@ func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.
 	}
 }
 
-func (p *PackageBuilder) Save(reader io.Reader) error {
+func (p *PackageBuilder) Save(reader io.Writer) error {
 	// Make sure we're saving a valid package id
 	if err := ValidatePackageId(p.Id); err != nil {
 		return err
@@ -190,7 +190,29 @@ func (p *PackageBuilder) Save(reader io.Reader) error {
 	if errs := p.validate(); len(errs) != 0 {
 		return errors.Join(errs...)
 	}
-
+	writerPackage := zip.NewWriter(reader)
+	if psmdcp, err := calcPsmdcpName(p.Files, p.deterministic); err != nil {
+		return err
+	} else {
+		// Validate and write the manifest
+		psmdcpPath := fmt.Sprintf("package/services/metadata/core-properties/%s.psmdcp", psmdcp)
+		if err = p.writeManifest(writerPackage, determineMinimumSchemaVersion(p.Files, p.DependencyGroups), psmdcpPath); err != nil {
+			return err
+		}
+		if err = p.writeOpcPackageProperties(writerPackage, psmdcpPath); err != nil {
+			return err
+		}
+	}
+	//Write the files to the package
+	filesWithoutExtensions := map[string]bool{}
+	if extensions, err := p.writeFiles(writerPackage, filesWithoutExtensions); err != nil {
+		return err
+	} else {
+		extensions["nuspec"] = true
+		if err = p.writeOpcContentTypes(writerPackage, extensions, filesWithoutExtensions); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -284,7 +306,7 @@ func (p *PackageBuilder) writeOpcManifestRelationship(zipWriter *zip.Writer, pat
 
 func (p *PackageBuilder) writeOpcContentTypes(
 	zipWriter *zip.Writer,
-	extensions, filesWithoutExtensions map[string]struct{},
+	extensions, filesWithoutExtensions map[string]bool,
 ) error {
 	var buf bytes.Buffer
 	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
@@ -345,8 +367,11 @@ func (p *PackageBuilder) writeOpcPackageProperties(zipWriter *zip.Writer, psmdcp
 	return err
 }
 
-func (p *PackageBuilder) writeFiles(zipWriter *zip.Writer, filesWithoutExtensions []string) ([]string, error) {
-	extensions := make([]string, 0)
+func (p *PackageBuilder) writeFiles(
+	zipWriter *zip.Writer,
+	filesWithoutExtensionsMap map[string]bool,
+) (map[string]bool, error) {
+	extensions := make(map[string]bool)
 	warningMessage := &strings.Builder{}
 
 	// Add files that might not come from expanding files on disk
@@ -364,9 +389,15 @@ func (p *PackageBuilder) writeFiles(zipWriter *zip.Writer, filesWithoutExtension
 			return nil, err
 		}
 		if fileExtension := path.Ext(file.GetPath()); strings.TrimSpace(fileExtension) != "" {
-			extensions = append(extensions, fileExtension[1:])
+			withoutExtension := fileExtension[1:]
+			if !extensions[withoutExtension] {
+				extensions[withoutExtension] = true
+			}
 		} else {
-			filesWithoutExtensions = append(filesWithoutExtensions, "/"+strings.ReplaceAll(file.GetPath(), "\\", "/"))
+			withoutExtension := "/" + strings.ReplaceAll(file.GetPath(), "\\", "/")
+			if !filesWithoutExtensionsMap[withoutExtension] {
+				filesWithoutExtensionsMap[withoutExtension] = true
+			}
 		}
 	}
 	var warningMessageString = warningMessage.String()
