@@ -317,7 +317,7 @@ func (p *PackageBuilder) validateArgs() []string {
 }
 
 func (p *PackageBuilder) isHasSymbolsInPackageType() bool {
-	return nuget.Some(p.PackageTypes, func(packageType PackageType) bool {
+	return nuget.Some(p.PackageTypes, func(packageType *PackageType) bool {
 		return packageType.Equals(SymbolsPackage)
 	})
 }

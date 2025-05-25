@@ -6,9 +6,10 @@ package creation
 
 import (
 	"encoding/xml"
-	"github.com/huhouhua/go-nuget"
 	"strconv"
 	"strings"
+
+	"github.com/huhouhua/go-nuget"
 )
 
 // ToXML converts metadata  to XML
@@ -18,7 +19,10 @@ func (p *PackageBuilder) ToXML(ns string, generateBackwardsCompatible bool) ([]x
 		{Name: xml.Name{Local: "xmlns"}, Value: ns},
 	}}
 	if p.MinClientVersion.String() != "" {
-		elem.Attr = append(elem.Attr, xml.Attr{Name: xml.Name{Local: "minClientVersion"}, Value: p.MinClientVersion.String()})
+		elem.Attr = append(
+			elem.Attr,
+			xml.Attr{Name: xml.Name{Local: "minClientVersion"}, Value: p.MinClientVersion.String()},
+		)
 	}
 	tokens = append(tokens, elem)
 	tokens = append(tokens, NewElement(ns, "id", p.Id)...)
@@ -30,7 +34,9 @@ func (p *PackageBuilder) ToXML(ns string, generateBackwardsCompatible bool) ([]x
 	}
 	if !p.isHasSymbolsInPackageType() {
 		if p.EmitRequireLicenseAcceptance {
-			tokens = append(tokens, NewElement(ns, "requireLicenseAcceptance", strconv.FormatBool(p.RequireLicenseAcceptance))...)
+			tokens = append(
+				tokens,
+				NewElement(ns, "requireLicenseAcceptance", strconv.FormatBool(p.RequireLicenseAcceptance))...)
 		}
 		if p.LicenseMetadata != nil {
 			tokens = append(tokens, getXMLElementFromLicenseMetadata(ns, p.LicenseMetadata)...)
