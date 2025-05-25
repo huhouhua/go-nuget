@@ -111,7 +111,7 @@ var (
 	OwnerDetailsURLTemplateTypes = ServiceTypes{
 		string(OwnerDetailsURLTemplate + Version6110),
 	}
-	typesMap map[ServiceType]*ServiceTypeOptions
+	typesMaps map[ServiceType]*ServiceTypeOptions
 )
 
 type ServiceTypeOptions struct {
@@ -120,7 +120,7 @@ type ServiceTypeOptions struct {
 }
 
 func init() {
-	typesMap = map[ServiceType]*ServiceTypeOptions{
+	typesMaps = map[ServiceType]*ServiceTypeOptions{
 		SearchQueryService:        newTypeOptions(SearchQueryServiceTypes, ""),
 		RegistrationsBaseURL:      newTypeOptions(RegistrationsBaseURLTypes, ""),
 		SearchAutocompleteService: newTypeOptions(SearchAutocompleteServiceTypes, ""),

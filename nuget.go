@@ -499,7 +499,7 @@ func (c *Client) loadResource() error {
 			resourceMap[resource.Type] = resource.Id
 		}
 	}
-	for t, typeVariants := range typesMap {
+	for t, typeVariants := range typesMaps {
 		var find bool
 		for _, variant := range typeVariants.Types {
 			if id, ok := resourceMap[variant]; ok {
