@@ -153,7 +153,7 @@ type PackageBuilder struct {
 
 	PackageAssemblyReferences []*PackageReferenceSet
 
-	PackageTypes []PackageType
+	PackageTypes []*PackageType
 
 	MinClientVersion *nuget.NuGetVersion
 }
@@ -169,15 +169,16 @@ func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.
 		FrameworkReferenceGroups:  make([]*FrameworkReferenceGroup, 0),
 		ContentFiles:              make([]*ManifestContentFiles, 0),
 		PackageAssemblyReferences: make([]*PackageReferenceSet, 0),
-		PackageTypes:              make([]PackageType, 0),
+		PackageTypes:              make([]*PackageType, 0),
 		Authors:                   make([]string, 0),
 		Owners:                    make([]string, 0),
+		Tags:                      make([]string, 0),
 		TargetFrameworks:          make([]*Framework, 0),
 		Properties:                make(map[string]string),
 	}
 }
 
-func (p *PackageBuilder) Save(reader io.Writer) error {
+func (p *PackageBuilder) Save(w io.Writer) error {
 	// Make sure we're saving a valid package id
 	if err := ValidatePackageId(p.Id); err != nil {
 		return err
@@ -190,7 +191,7 @@ func (p *PackageBuilder) Save(reader io.Writer) error {
 	if errs := p.validate(); len(errs) != 0 {
 		return errors.Join(errs...)
 	}
-	writerPackage := zip.NewWriter(reader)
+	writerPackage := zip.NewWriter(w)
 	if psmdcp, err := calcPsmdcpName(p.Files, p.deterministic); err != nil {
 		return err
 	} else {
@@ -203,7 +204,7 @@ func (p *PackageBuilder) Save(reader io.Writer) error {
 			return err
 		}
 	}
-	//Write the files to the package
+	// Write the files to the package
 	filesWithoutExtensions := map[string]bool{}
 	if extensions, err := p.writeFiles(writerPackage, filesWithoutExtensions); err != nil {
 		return err
@@ -268,7 +269,6 @@ func (p *PackageBuilder) writeManifest(zipWriter *zip.Writer, minimumManifestVer
 	if relsEntry, err := createEntry(zipWriter, path, p.deterministic); err != nil {
 		return err
 	} else {
-
 		_, err = io.Copy(relsEntry, nil)
 		return err
 	}
