@@ -273,16 +273,16 @@ func getXElementFromManifestContentFiles(ns string, contentFiles []*ManifestCont
 		if strings.TrimSpace(file.Include) != "" {
 			attrs = append(attrs, NewXMLAttr("include", file.Include))
 		}
-		if strings.TrimSpace(file.Include) != "" {
+		if strings.TrimSpace(file.Exclude) != "" {
 			attrs = append(attrs, NewXMLAttr("exclude", file.Exclude))
 		}
-		if strings.TrimSpace(file.Include) != "" {
+		if strings.TrimSpace(file.BuildAction) != "" {
 			attrs = append(attrs, NewXMLAttr("buildAction", file.BuildAction))
 		}
-		if strings.TrimSpace(file.Include) != "" {
+		if strings.TrimSpace(file.CopyToOutput) != "" {
 			attrs = append(attrs, NewXMLAttr("copyToOutput", file.CopyToOutput))
 		}
-		if strings.TrimSpace(file.Include) != "" {
+		if strings.TrimSpace(file.Flatten) != "" {
 			attrs = append(attrs, NewXMLAttr("flatten", file.Flatten))
 		}
 		if attrs != nil && len(attrs) > 0 {
