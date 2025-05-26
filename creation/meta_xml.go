@@ -122,7 +122,7 @@ func getXElementFromManifestRepository(ns string, repository *nuget.RepositoryMe
 	if strings.TrimSpace(repository.Branch) != "" {
 		attrs = append(attrs, NewXMLAttr("branch", repository.Branch))
 	}
-	if strings.TrimSpace(repository.Branch) != "" {
+	if strings.TrimSpace(repository.Commit) != "" {
 		attrs = append(attrs, NewXMLAttr("commit", repository.Commit))
 	}
 	if len(attrs) > 0 {
