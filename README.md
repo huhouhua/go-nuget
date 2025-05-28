@@ -1,6 +1,15 @@
-# go-nuget
+<div align="center">
+	<h1>Golang NuGet Client.</h1>
+	<p>A NuGet API v3 client enabling Go programs to interact with NuGet repositories in a simple and uniform way.</p>
+</div>
 
-A NuGet API v3 client enabling Go programs to interact with NuGet repositories in a simple and uniform way.
+<p align="center">
+	<a href="#-installation-and-documentation">Installation</a> ❘
+	<a href="#-coverage">Coverage</a> ❘
+	<a href="#-usage">Usage</a> ❘
+	<a href="#-examples">Examples</a> ❘
+	<a href="#-license">License</a>
+</p>
 
 ![Workflow ci](https://github.com/huhouhua/go-nuget/actions/workflows/go.yml/badge.svg)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/huhouhua/go-nuget/blob/main/LICENSE)
@@ -8,10 +17,9 @@ A NuGet API v3 client enabling Go programs to interact with NuGet repositories i
 [![GoDoc](https://godoc.org/github.com/huhouhua/go-nuget?status.svg)](https://godoc.org/github.com/huhouhua/go-nuget)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/huhouhua/go-nuget?logo=go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/huhouhua/go-nuget)](https://goreportcard.com/report/github.com/huhouhua/go-nuget)
-[![golangci badge](https://github.com/golangci/golangci-web/blob/master/src/assets/images/badge_a_plus_flat.svg)](https://golangci.com/r/github.com/huhouhua/go-nuget)
 [![Test Coverage](https://codecov.io/gh/huhouhua/go-nuget/branch/main/graph/badge.svg)](https://codecov.io/gh/huhouhua/go-nuget)
 
-## Coverage
+## 🤘&nbsp; Coverage
 
 This API client package covers the NuGet API v3 endpoints and is updated regularly
 to add new and/or missing endpoints. Currently, the following services are supported:
@@ -29,14 +37,15 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Package Source Configuration
 - [x] Package Source Authentication
 
-## Installation
+## 🚀&nbsp; Installation and Documentation
 
 When used with Go modules, use the following import path:
 ```shell
 go get github.com/huhouhua/go-nuget
 ```
+You can find the docs at [go docs](https://pkg.go.dev/github.com/huhouhua/go-nuget).
 
-## Usage
+## 📄&nbsp; Usage
 Construct a new NuGet client, then use the various methods on the client to
 access different parts of the NuGet API. For example, to get the service resources:
 
@@ -71,7 +80,7 @@ if err != nil {
 }
 ```
 
-### Examples
+## 🥙&nbsp; Examples
 
 The [examples](examples/) directory contains a couple of clear examples, of which one is partially listed here as well:
 
@@ -111,7 +120,7 @@ func main() {
 
 For complete usage of go-nuget, see the full [package docs](https://godoc.org/github.com/huhouhua/go-nuget).
 
-## Full Examples
+##  Full Examples
 
 ### Full Examples : API Resources Operations
 * [index.go](https://github.com/huhouhua/go-nuget/blob/main/examples/index.go)
@@ -136,18 +145,18 @@ For complete usage of go-nuget, see the full [package docs](https://godoc.org/gi
 * [pushwithstream.go](https://github.com/huhouhua/go-nuget/blob/main/examples/pushwithstream.go)
 * [deletepackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/deletepackage.go)
 
-## Issues
+## 🤝&nbsp;Issues
 
 If you have an issue: report it on the [issue tracker](https://github.com/huhouhua/go-nuget/issues)
 
-## Author
+## 👤&nbsp;Author
 
 Kevin Berger (<huhouhuam@outlook.com>)
 
-## Contributing
+## 🧑‍💻&nbsp;Contributing
 
 Contributions are always welcome. For more information, check out the [contributing guide](CONTRIBUTING.md)
 
-## License
+## 📘&nbsp; License
 
 Licensed under the MIT License. See [LICENSE](LICENSE) for details.
