@@ -262,15 +262,22 @@ func (p *PackageBuilder) excludeFiles(searchFiles []*PhysicalPackageFile, basePa
 }
 
 func (p *PackageBuilder) writeManifest(zipWriter *zip.Writer, minimumManifestVersion int, psmdcpPath string) error {
-	path := fmt.Sprintf("%s%s", p.Id, nuget.NuspecExtension)
-	if err := p.writeOpcManifestRelationship(zipWriter, path, psmdcpPath); err != nil {
+	manifestPath := fmt.Sprintf("%s%s", p.Id, nuget.NuspecExtension)
+	if err := p.writeOpcManifestRelationship(zipWriter, manifestPath, psmdcpPath); err != nil {
 		return err
 	}
-	if relsEntry, err := createEntry(zipWriter, path, p.deterministic); err != nil {
+	if relsEntry, err := createEntry(zipWriter, manifestPath, p.deterministic); err != nil {
 		return err
 	} else {
-		_, err = io.Copy(relsEntry, nil)
-		return err
+		version := p.GetVersion()
+		if minimumManifestVersion > version {
+			version = minimumManifestVersion
+		}
+		if schemaNamespace, err := VersionToSchemaMaps.GetSchemaNamespace(version); err != nil {
+			return err
+		} else {
+			return p.save(relsEntry, schemaNamespace)
+		}
 	}
 }
 
@@ -408,4 +415,27 @@ func (p *PackageBuilder) writeFiles(
 		)
 	}
 	return extensions, nil
+}
+
+func (p *PackageBuilder) GetVersion() int {
+	if p.PackageAssemblyReferences != nil {
+		referencesHasTargetFramework := nuget.Some(p.PackageAssemblyReferences, func(set *PackageReferenceSet) bool {
+			return set.TargetFramework != nil && set.TargetFramework.IsSpecificFramework
+		})
+		if referencesHasTargetFramework {
+			return TargetFrameworkSupportForReferencesVersion
+		}
+	}
+	if p.DependencyGroups != nil {
+		dependencyHasTargetFramework := nuget.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
+			return group.TargetFramework != nil && group.TargetFramework.IsSpecificFramework
+		})
+		if dependencyHasTargetFramework {
+			return TargetFrameworkSupportForDependencyContentsAndToolsVersion
+		}
+	}
+	if p.Version != nil && p.Version.IsPrerelease() {
+		return SemverVersion
+	}
+	return DefaultVersion
 }

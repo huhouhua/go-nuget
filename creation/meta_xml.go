@@ -6,14 +6,37 @@ package creation
 
 import (
 	"encoding/xml"
+	"io"
 	"strconv"
 	"strings"
 
 	"github.com/huhouhua/go-nuget"
 )
 
+func (p *PackageBuilder) save(stream io.Writer, ns string) error {
+	var tokens []xml.Token
+
+	tokens = append(tokens, xml.StartElement{Name: xml.Name{Space: ns, Local: "package"}})
+	if xmlToken, err := p.ToXML(ns); err != nil {
+		return err
+	} else {
+		tokens = append(tokens, xmlToken...)
+	}
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: "package"}})
+
+	// Write XML
+	encoder := xml.NewEncoder(stream)
+	encoder.Indent("", "  ")
+	for _, token := range tokens {
+		if err := encoder.EncodeToken(token); err != nil {
+			return err
+		}
+	}
+	return encoder.Flush()
+}
+
 // ToXML converts metadata  to XML
-func (p *PackageBuilder) ToXML(ns string, generateBackwardsCompatible bool) ([]xml.Token, error) {
+func (p *PackageBuilder) ToXML(ns string) ([]xml.Token, error) {
 	var tokens []xml.Token
 	elem := xml.StartElement{Name: xml.Name{Local: "metadata"}, Attr: []xml.Attr{
 		{Name: xml.Name{Local: "xmlns"}, Value: ns},
@@ -92,6 +115,7 @@ func (p *PackageBuilder) ToXML(ns string, generateBackwardsCompatible bool) ([]x
 	tokens = append(tokens, p.frameworkReferenceGroupsToTokens(ns)...)
 	tokens = append(tokens, getXElementFromFrameworkAssemblies(ns, p.FrameworkReferences)...)
 	tokens = append(tokens, getXElementFromManifestContentFiles(ns, p.ContentFiles)...)
+
 	return tokens, nil
 }
 

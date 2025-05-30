@@ -23,8 +23,10 @@ import (
 
 const (
 	DefaultVersion                                             = 1
+	SemverVersion                                              = 3
 	XdtTransformationVersion                                   = 6
 	TargetFrameworkSupportForDependencyContentsAndToolsVersion = 4
+	TargetFrameworkSupportForReferencesVersion                 = 5
 )
 
 func xmlEscape(s string) string {
