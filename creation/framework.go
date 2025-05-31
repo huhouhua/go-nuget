@@ -70,7 +70,8 @@ func newFrameworkFrom(
 		Version:   version,
 		Profile:   profile,
 	}
-	isNet5Era := nf.Version.Major() >= 5 && strings.EqualFold(strings.ToLower(framework), strings.ToLower(nuget.NetCoreApp))
+	isNet5Era := nf.Version.Major() >= 5 &&
+		strings.EqualFold(strings.ToLower(framework), strings.ToLower(nuget.NetCoreApp))
 
 	if isNet5Era {
 		nf.Platform = platform
@@ -225,7 +226,8 @@ func parseSpecialFramework(frameworkString string) *Framework {
 	return nil
 }
 
-// ParseCommonFramework A set of special and common frameworks that can be returned from the list of constants without parsing
+// ParseCommonFramework A set of special and common frameworks that can be returned from the list of constants without
+// parsing
 // Using the interned frameworks here optimizes comparisons since they can be checked by reference.
 // This is designed to optimize
 func ParseCommonFramework(frameworkString string) *Framework {
