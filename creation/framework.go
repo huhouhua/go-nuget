@@ -133,13 +133,11 @@ func parseDeprecatedFramework(s string) *Framework {
 	case "2":
 	case "2.0":
 		return Net2
-	default:
-		return nil
 	}
 	return nil
 }
 
-// RawParse parses a framework string like "net45-client" into identifier, version, and profile.
+// rawParse parses a framework string like "net45-client" into identifier, version, and profile.
 func rawParse(s string) (identifier string, version string, profile string) {
 	profile = ""
 	var versionStr string
@@ -344,8 +342,6 @@ func ParseCommonFramework(frameworkString string) *Framework {
 		return Net90
 	case "net10.0":
 		return Net10_0
-	default:
-		return nil
 	}
 	return nil
 }
