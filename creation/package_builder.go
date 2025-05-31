@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"io"
 	"log"
 	"net/url"
@@ -18,6 +17,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/huhouhua/go-nuget"
 )

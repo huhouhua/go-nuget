@@ -6,8 +6,9 @@ package creation
 
 import (
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"net/url"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/huhouhua/go-nuget"
 )
