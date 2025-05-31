@@ -114,6 +114,120 @@ type FrameworkAssemblyReference struct {
 //
 //}
 
+// parseDeprecatedFramework Attempt to parse a common but deprecated framework using an exact string match
+// Support for these should be dropped as soon as possible.
+func parseDeprecatedFramework(s string) *Framework {
+	switch s {
+	case "45":
+	case "4.5":
+		return Net45
+	case "40":
+	case "4.0":
+	case "4":
+		return Net4
+	case "35":
+	case "3.5":
+		return Net35
+	case "20":
+	case "2":
+	case "2.0":
+		return Net2
+	default:
+		return nil
+	}
+	return nil
+}
+
+// RawParse parses a framework string like "net45-client" into identifier, version, and profile.
+func rawParse(s string) (identifier string, version string, profile string) {
+	profile = ""
+	var versionStr string
+	chars := []rune(s)
+
+	versionStart := 0
+	for versionStart < len(chars) && isLetterOrDot(chars[versionStart]) {
+		versionStart++
+	}
+
+	if versionStart > 0 {
+		identifier = s[:versionStart]
+	} else {
+		// invalid, we no longer support names like: 40
+		return "", "", ""
+	}
+
+	profileStart := versionStart
+	for profileStart < len(chars) && isDigitOrDot(chars[profileStart]) {
+		profileStart++
+	}
+
+	versionLength := profileStart - versionStart
+	if versionLength > 0 {
+		versionStr = s[versionStart:profileStart]
+	}
+
+	if profileStart < len(chars) {
+		if chars[profileStart] == '-' {
+			actualProfileStart := profileStart + 1
+			if actualProfileStart == len(chars) {
+				// empty profiles are not allowed
+				return "", "", ""
+			}
+
+			profile = s[actualProfileStart:]
+			for _, c := range profile {
+				// validate the profile string to AZaz09-+.
+				if !isValidProfileChar(c) {
+					return "", "", ""
+				}
+			}
+		} else {
+			// invalid profile
+			return "", "", ""
+		}
+	}
+
+	return identifier, versionStr, profile
+}
+
+func isLetterOrDot(r rune) bool {
+	return (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || r == '.'
+}
+
+func isDigitOrDot(r rune) bool {
+	return (r >= '0' && r <= '9') || r == '.'
+}
+
+// isValidProfileChar reports whether r is a valid character for a profile segment
+// Acceptable characters: letter (a-zA-Z), digit (0-9), '.', '-', '+'
+func isValidProfileChar(r rune) bool {
+	return (r >= '0' && r <= '9') ||
+		(r >= 'A' && r <= 'Z') ||
+		(r >= 'a' && r <= 'z') ||
+		r == '.' ||
+		r == '+' ||
+		r == '-'
+}
+
+func parseSpecialFramework(frameworkString string) *Framework {
+	// wildcard matching all frameworks
+	if strings.EqualFold(frameworkString, Any) {
+		return NewFramework(Any)
+	}
+	// framework with no specific target framework. This can be used for content only packages.
+	if strings.EqualFold(frameworkString, Agnostic) {
+		return NewFramework(Agnostic)
+	}
+	// unknown or invalid framework
+	if strings.EqualFold(frameworkString, Unsupported) {
+		return NewFramework(Unsupported)
+	}
+	return nil
+}
+
+// ParseCommonFramework A set of special and common frameworks that can be returned from the list of constants without parsing
+// Using the interned frameworks here optimizes comparisons since they can be checked by reference.
+// This is designed to optimize
 func ParseCommonFramework(frameworkString string) *Framework {
 	frameworkString = strings.ToLower(frameworkString)
 

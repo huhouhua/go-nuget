@@ -10,6 +10,12 @@ import (
 	"github.com/huhouhua/go-nuget"
 )
 
+const (
+	Any         = "Any"
+	Agnostic    = "Agnostic"
+	Unsupported = "Unsupported"
+)
+
 var (
 	// Net2 is net20 (.NETFramework,Version=v2.0)
 	Net2 = NewFrameworkWithVersion(nuget.Net, semver.New(2, 0, 0, "", ""))
