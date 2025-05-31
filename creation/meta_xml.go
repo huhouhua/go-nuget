@@ -330,7 +330,7 @@ func getXMLElementFromLicenseMetadata(ns string, meta *LicenseMetadata) []xml.To
 	attrs := []xml.Attr{
 		NewXMLAttr("type", strconv.Itoa(int(meta.GetLicenseType()))),
 	}
-	if !meta.GetVersion().Equal(nuget.EmptyVersion.Version) {
+	if !meta.GetVersion().Equal(nuget.EmptyVersion) {
 		attrs = append(attrs, NewXMLAttr("version", meta.GetVersion().String()))
 	}
 	return NewElement(ns, "license", meta.GetLicense(), attrs...)
@@ -369,7 +369,7 @@ func getXElementFromManifestPackageType(ns string, packageType *PackageType) []x
 	if strings.TrimSpace(packageType.Name) != "" {
 		attrs = append(attrs, NewXMLAttr("name", packageType.Name))
 	}
-	if !packageType.Version.Equal(nuget.EmptyVersion.Version) {
+	if !packageType.Version.Equal(nuget.EmptyVersion) {
 		attrs = append(attrs, NewXMLAttr("version", packageType.Version.String()))
 	}
 	return NewElement(ns, "packageType", "", attrs...)

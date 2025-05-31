@@ -374,10 +374,8 @@ func TestPackageSearchMetadataRegistration(t *testing.T) {
 			Owners: "Kevin Berger,test2,test3",
 		}
 		wantIdentity := &PackageIdentity{
-			Id: input.SearchMetadata.PackageId,
-			Version: &NuGetVersion{
-				Version: semver.New(1, 0, 0, "beta", ""),
-			},
+			Id:      input.SearchMetadata.PackageId,
+			Version: semver.New(1, 0, 0, "beta", ""),
 		}
 		identity, err := input.Identity()
 		require.NoError(t, err)

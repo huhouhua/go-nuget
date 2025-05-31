@@ -20,7 +20,7 @@ type FindPackageResource struct {
 func (f *FindPackageResource) ListAllVersions(
 	id string,
 	options ...RequestOptionFunc,
-) ([]*NuGetVersion, *http.Response, error) {
+) ([]*semver.Version, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -40,14 +40,12 @@ func (f *FindPackageResource) ListAllVersions(
 		return nil, resp, err
 	}
 
-	var versions []*NuGetVersion
+	var versions []*semver.Version
 	for _, v := range version.Versions {
 		if nugetVersion, err := semver.NewVersion(v); err != nil {
 			return nil, resp, err
 		} else {
-			versions = append(versions, &NuGetVersion{
-				Version: nugetVersion,
-			})
+			versions = append(versions, nugetVersion)
 		}
 	}
 	return versions, resp, nil

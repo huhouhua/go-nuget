@@ -57,14 +57,12 @@ type VersionInfo struct {
 	DownloadCount uint64 `json:"downloads"`
 }
 
-func (v *VersionInfo) ParseVersion() (*NuGetVersion, error) {
+func (v *VersionInfo) ParseVersion() (*semver.Version, error) {
 	ver, err := semver.NewVersion(v.Version)
 	if err != nil {
 		return nil, err
 	}
-	return &NuGetVersion{
-		Version: ver,
-	}, err
+	return ver, err
 }
 
 // Search retrieves search results

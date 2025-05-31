@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"io"
 	"log"
 	"net/url"
@@ -64,7 +65,7 @@ func ValidatePackageId(packageId string) error {
 // PackageType It is important that this type remains immutable due to the cloning of package specs
 type PackageType struct {
 	Name    string
-	Version *nuget.NuGetVersion
+	Version *semver.Version
 }
 
 func (p *PackageType) Equals(other *PackageType) bool {
@@ -78,7 +79,7 @@ func (p *PackageType) Equals(other *PackageType) bool {
 	case p.Version == nil && other.Version == nil:
 		return true
 	case p.Version != nil && other.Version != nil:
-		return p.Version.Equal(other.Version.Version)
+		return p.Version.Equal(other.Version)
 	default:
 		return false
 	}
@@ -90,7 +91,7 @@ type PackageBuilder struct {
 	logger                  *log.Logger
 	Id                      string
 
-	Version *nuget.NuGetVersion
+	Version *semver.Version
 
 	Repository *nuget.RepositoryMetadata
 
@@ -155,7 +156,7 @@ type PackageBuilder struct {
 
 	PackageTypes []*PackageType
 
-	MinClientVersion *nuget.NuGetVersion
+	MinClientVersion *semver.Version
 }
 
 func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.Logger) *PackageBuilder {
@@ -434,7 +435,7 @@ func (p *PackageBuilder) GetVersion() int {
 			return TargetFrameworkSupportForDependencyContentsAndToolsVersion
 		}
 	}
-	if p.Version != nil && p.Version.IsPrerelease() {
+	if p.Version != nil && p.Version.Prerelease() != "" {
 		return SemverVersion
 	}
 	return DefaultVersion

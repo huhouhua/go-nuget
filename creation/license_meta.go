@@ -6,6 +6,7 @@ package creation
 
 import (
 	"fmt"
+	"github.com/Masterminds/semver/v3"
 	"net/url"
 
 	"github.com/huhouhua/go-nuget"
@@ -32,7 +33,7 @@ type LicenseMetadata struct {
 	license string
 
 	// version LicenseMetadata (expression) version. Never null.
-	version *nuget.NuGetVersion
+	version *semver.Version
 }
 
 func (l *LicenseMetadata) GetLicenseType() nuget.LicenseType {
@@ -42,7 +43,7 @@ func (l *LicenseMetadata) GetLicenseType() nuget.LicenseType {
 func (l *LicenseMetadata) GetLicense() string {
 	return l.license
 }
-func (l *LicenseMetadata) GetVersion() *nuget.NuGetVersion {
+func (l *LicenseMetadata) GetVersion() *semver.Version {
 	return l.version
 }
 

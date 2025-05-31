@@ -189,7 +189,13 @@ const (
 
 var (
 	All          = NewVersionRange(nil, nil, true, true)
-	EmptyVersion = NuGetVersion{Version: semver.New(0, 0, 0, "", "")}
+	EmptyVersion = semver.New(0, 0, 0, "", "")
+	Version5     = semver.New(5, 0, 0, "", "")
+	Version6     = semver.New(6, 0, 0, "", "")
+	Version7     = semver.New(7, 0, 0, "", "")
+	Version8     = semver.New(8, 0, 0, "", "")
+	Version9     = semver.New(9, 0, 0, "", "")
+	Version10    = semver.New(10, 0, 0, "", "")
 )
 
 // FloatBehavior represents how version floating should behave

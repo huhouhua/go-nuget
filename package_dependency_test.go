@@ -515,7 +515,7 @@ func TestConfigureDependencyInfo(t *testing.T) {
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestPackage",
-			Version: &NuGetVersion{semver.New(1, 0, 0, "", "")},
+			Version: semver.New(1, 0, 0, "", ""),
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{

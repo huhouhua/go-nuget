@@ -226,12 +226,12 @@ func (p *PackageMetadataResource) addMetadataToPackages(
 		return nil
 	}
 	for _, leafItem := range page.Items {
-		v := &NuGetVersion{}
-		v.Version, err = semver.NewVersion(leafItem.CatalogEntry.Version)
+		var v *semver.Version
+		v, err = semver.NewVersion(leafItem.CatalogEntry.Version)
 		if err != nil {
 			return err
 		}
-		if versionRange.Satisfies(v.Version) && (opt.IncludePrerelease || v.IsPrerelease()) &&
+		if versionRange.Satisfies(v) && (opt.IncludePrerelease || v.Prerelease() != "") &&
 			(opt.IncludeUnlisted || leafItem.CatalogEntry.IsListed) {
 			if err = p.configureMetadataURL(leafItem.CatalogEntry); err != nil {
 				return err

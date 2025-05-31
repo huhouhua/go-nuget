@@ -242,10 +242,10 @@ func (p *PackageBuilder) validateDependencyGroups() error {
 			}
 			if dep.VersionRange.MinVersion != nil && dep.VersionRange.MaxVersion != nil {
 				if (!dep.VersionRange.IncludeMax || !dep.VersionRange.IncludeMin) &&
-					dep.VersionRange.MaxVersion.Equal(dep.VersionRange.MinVersion.Version) {
+					dep.VersionRange.MaxVersion.Equal(dep.VersionRange.MinVersion) {
 					return fmt.Errorf(fmt.Sprintf("dependency '%s' has an invalid version.", dep.Id))
 				}
-				if dep.VersionRange.MinVersion.GreaterThan(dep.VersionRange.MaxVersion.Version) {
+				if dep.VersionRange.MinVersion.GreaterThan(dep.VersionRange.MaxVersion) {
 					return fmt.Errorf("dependency '%s' has an invalid version", dep.Id)
 				}
 			}
@@ -326,7 +326,7 @@ func validatorPlatformVersion(frameworks []*Framework) error {
 	platformVersions := make([]string, 0)
 	for _, framework := range frameworks {
 		if framework != nil && strings.TrimSpace(framework.Platform) != "" &&
-			framework.PlatformVersion.Equal(nuget.EmptyVersion.Version) {
+			framework.PlatformVersion.Equal(nuget.EmptyVersion) {
 			platformVersions = append(platformVersions, framework.ShortFolderName)
 		}
 	}

@@ -40,8 +40,8 @@ func NewPackageDependencyGroup(targetFramework string, packages ...*Dependency) 
 }
 
 type PackageIdentity struct {
-	Id      string        `json:"id"`
-	Version *NuGetVersion `json:"version,omitempty"`
+	Id      string          `json:"id"`
+	Version *semver.Version `json:"version,omitempty"`
 }
 
 func NewPackageIdentity(id, version string) (*PackageIdentity, error) {
@@ -50,10 +50,8 @@ func NewPackageIdentity(id, version string) (*PackageIdentity, error) {
 		return nil, err
 	}
 	return &PackageIdentity{
-		Id: id,
-		Version: &NuGetVersion{
-			nugetVersion,
-		},
+		Id:      id,
+		Version: nugetVersion,
 	}, err
 }
 

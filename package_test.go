@@ -31,11 +31,10 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 		mustWriteHTTPResponse(t, w, "testdata/list_all_versions.json")
 	})
 
-	want := []*NuGetVersion{{
+	want := []*semver.Version{
 		semver.New(6, 0, 1, "beta1", ""),
-	}, {
 		semver.New(6, 0, 1, "", ""),
-	}}
+	}
 
 	b, resp, err := client.FindPackageResource.ListAllVersions("newtonsoft.json", nil)
 	require.NoError(t, err)
@@ -147,7 +146,7 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestDependency",
-			Version: &NuGetVersion{semver.New(1, 0, 0, "", "")},
+			Version: semver.New(1, 0, 0, "", ""),
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{

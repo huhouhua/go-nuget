@@ -167,7 +167,7 @@ func TestParseVersion(t *testing.T) {
 	tests := []struct {
 		name    string
 		version *VersionInfo
-		want    *NuGetVersion
+		want    *semver.Version
 		error   error
 	}{
 		{
@@ -175,9 +175,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-beta",
 			},
-			want: &NuGetVersion{
-				Version: semver.New(1, 0, 0, "beta", ""),
-			},
+			want:  semver.New(1, 0, 0, "beta", ""),
 			error: nil,
 		},
 		{
@@ -185,9 +183,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-beta.1",
 			},
-			want: &NuGetVersion{
-				Version: semver.New(1, 0, 0, "beta.1", ""),
-			},
+			want:  semver.New(1, 0, 0, "beta.1", ""),
 			error: nil,
 		},
 		{
@@ -195,9 +191,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-preview.1",
 			},
-			want: &NuGetVersion{
-				Version: semver.New(1, 0, 0, "preview.1", ""),
-			},
+			want:  semver.New(1, 0, 0, "preview.1", ""),
 			error: nil,
 		},
 		{
@@ -205,9 +199,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-alpha.1",
 			},
-			want: &NuGetVersion{
-				Version: semver.New(1, 0, 0, "alpha.1", ""),
-			},
+			want:  semver.New(1, 0, 0, "alpha.1", ""),
 			error: nil,
 		},
 		{
@@ -215,9 +207,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65",
 			},
-			want: &NuGetVersion{
-				Version: semver.New(1, 0, 0, "rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65", ""),
-			},
+			want:  semver.New(1, 0, 0, "rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65", ""),
 			error: nil,
 		},
 		{
@@ -225,9 +215,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1-0-0",
 			},
-			want: &NuGetVersion{
-				Version: symbolVersion,
-			},
+			want:  symbolVersion,
 			error: nil,
 		},
 		{

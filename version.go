@@ -11,25 +11,25 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
-type NuGetVersion struct {
-	*semver.Version
-}
-
-func (v *NuGetVersion) IsSemVer2() bool {
-	return v.Prerelease() != "" || v.Metadata() != ""
-}
-
-func (v *NuGetVersion) IsPrerelease() bool {
-	return v.Prerelease() != ""
-}
+//type NuGetVersion struct {
+//	*semver.Version
+//}
+//
+//func (v *NuGetVersion) IsSemVer2() bool {
+//	return v.Prerelease() != "" || v.Metadata() != ""
+//}
+//
+//func (v *NuGetVersion) IsPrerelease() bool {
+//	return v.Prerelease() != ""
+//}
 
 // VersionRange represents a range of versions that satisfy a given constraint.
 // This is similar to NuGet's VersionRange class.
 type VersionRange struct {
 	// MinVersion is the minimum version in the range (inclusive)
-	MinVersion *NuGetVersion
+	MinVersion *semver.Version
 	// MaxVersion is the maximum version in the range (inclusive)
-	MaxVersion *NuGetVersion
+	MaxVersion *semver.Version
 	// IncludeMin indicates whether the minimum version is included in the range
 	IncludeMin bool
 	// IncludeMax indicates whether the maximum version is included in the range
@@ -167,10 +167,10 @@ func NewVersionRange(min, max *semver.Version, includeMin, includeMax bool) *Ver
 		Float:      None,
 	}
 	if min != nil {
-		v.MinVersion = &NuGetVersion{min}
+		v.MinVersion = min
 	}
 	if max != nil {
-		v.MaxVersion = &NuGetVersion{max}
+		v.MaxVersion = max
 	}
 
 	return v
@@ -184,11 +184,11 @@ func (vr *VersionRange) Satisfies(v *semver.Version) bool {
 
 	if vr.MinVersion != nil {
 		if vr.IncludeMin {
-			if v.LessThan(vr.MinVersion.Version) {
+			if v.LessThan(vr.MinVersion) {
 				return false
 			}
 		} else {
-			if !v.GreaterThan(vr.MinVersion.Version) {
+			if !v.GreaterThan(vr.MinVersion) {
 				return false
 			}
 		}
@@ -196,11 +196,11 @@ func (vr *VersionRange) Satisfies(v *semver.Version) bool {
 
 	if vr.MaxVersion != nil {
 		if vr.IncludeMax {
-			if v.GreaterThan(vr.MaxVersion.Version) {
+			if v.GreaterThan(vr.MaxVersion) {
 				return false
 			}
 		} else {
-			if !v.LessThan(vr.MaxVersion.Version) {
+			if !v.LessThan(vr.MaxVersion) {
 				return false
 			}
 		}
@@ -246,11 +246,11 @@ func (vr *VersionRange) DoesRangeSatisfy(other *VersionRange) bool {
 		}
 
 		// Check if either the min or max version of the other range satisfies this range
-		return rangeWithBounds.Satisfies(other.MinVersion.Version) ||
-			rangeWithBounds.Satisfies(other.MaxVersion.Version)
+		return rangeWithBounds.Satisfies(other.MinVersion) ||
+			rangeWithBounds.Satisfies(other.MaxVersion)
 	} else {
 		// If this range doesn't have both bounds, check if either bound of the other range satisfies this range
-		return vr.Satisfies(other.MinVersion.Version) || vr.Satisfies(other.MaxVersion.Version)
+		return vr.Satisfies(other.MinVersion) || vr.Satisfies(other.MaxVersion)
 	}
 }
 
@@ -260,7 +260,7 @@ func (vr *VersionRange) String() string {
 		return vr.stringFloat()
 	}
 
-	if vr.MinVersion != nil && vr.MaxVersion != nil && vr.MinVersion.Version.Equal(vr.MaxVersion.Version) {
+	if vr.MinVersion != nil && vr.MaxVersion != nil && vr.MinVersion.Equal(vr.MaxVersion) {
 		return vr.MinVersion.String()
 	}
 
@@ -354,8 +354,8 @@ func (vr *VersionRange) IsBetter(current, considering *semver.Version) bool {
 			return current.LessThan(considering)
 		} else {
 			// neither are in range
-			curToLower := current.LessThan(vr.MinVersion.Version)
-			conToLower := considering.LessThan(vr.MinVersion.Version)
+			curToLower := current.LessThan(vr.MinVersion)
+			conToLower := considering.LessThan(vr.MinVersion)
 
 			if curToLower && !conToLower {
 				// favor the version above the range
@@ -378,8 +378,8 @@ func (vr *VersionRange) IsBetter(current, considering *semver.Version) bool {
 
 // hasPrereleaseBounds returns true if either bound is a prerelease version
 func (vr *VersionRange) hasPrereleaseBounds() bool {
-	return (vr.MinVersion != nil && vr.MinVersion.IsPrerelease()) ||
-		(vr.MaxVersion != nil && vr.MaxVersion.IsPrerelease())
+	return (vr.MinVersion != nil && vr.MinVersion.Prerelease() != "") ||
+		(vr.MaxVersion != nil && vr.MaxVersion.Prerelease() != "")
 }
 
 // ToNonSnapshotRange removes the floating snapshot part of the minimum version if it exists
@@ -402,9 +402,9 @@ func (vr *VersionRange) ToNonSnapshotRange() *VersionRange {
 				major = minVersion.Major()
 				minor = minVersion.Minor() + 1
 			}
-			maxVersion = &NuGetVersion{semver.New(major, minor, 0, "", "")}
+			maxVersion = semver.New(major, minor, 0, "", "")
 		}
-		return NewVersionRange(minVersion.Version, maxVersion.Version, true, false)
+		return NewVersionRange(minVersion, maxVersion, true, false)
 	}
 
 	// Handle prerelease versions
@@ -416,20 +416,20 @@ func (vr *VersionRange) ToNonSnapshotRange() *VersionRange {
 	}
 
 	// Create new version range with original include flags
-	return NewVersionRange(minVersion.Version, maxVersion.Version, vr.IncludeMin, vr.IncludeMax)
+	return NewVersionRange(minVersion, maxVersion, vr.IncludeMin, vr.IncludeMax)
 }
 
 // processPrereleaseVersion processes a version with prerelease information
-func processPrereleaseVersion(v *NuGetVersion) *NuGetVersion {
+func processPrereleaseVersion(v *semver.Version) *semver.Version {
 	if v == nil || v.Prerelease() == "" {
 		return v
 	}
 
 	prerelease := strings.TrimRight(v.Prerelease(), "-")
 	if prerelease == "0" {
-		return &NuGetVersion{semver.New(v.Major(), v.Minor(), v.Patch(), "", "")}
+		return semver.New(v.Major(), v.Minor(), v.Patch(), "", "")
 	}
-	return &NuGetVersion{semver.New(v.Major(), v.Minor(), v.Patch(), prerelease, "")}
+	return semver.New(v.Major(), v.Minor(), v.Patch(), prerelease, "")
 }
 
 // PrettyPrint returns a human-readable string representation of the version range
@@ -460,7 +460,7 @@ func (vr *VersionRange) PrettyPrint() string {
 		return "Any version"
 	}
 
-	if vr.MinVersion != nil && vr.MaxVersion != nil && vr.MinVersion.Equal(vr.MaxVersion.Version) {
+	if vr.MinVersion != nil && vr.MaxVersion != nil && vr.MinVersion.Equal(vr.MaxVersion) {
 		return fmt.Sprintf("Version %s exactly", vr.MinVersion)
 	}
 

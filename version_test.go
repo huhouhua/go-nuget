@@ -12,14 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNuGetVersion(t *testing.T) {
-	v := &NuGetVersion{
-		semver.New(1, 0, 0, "beta", ""),
-	}
-	require.True(t, true, v.IsSemVer2())
-	require.True(t, true, v.IsPrerelease())
-}
-
 func TestParseVersionRange(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -31,8 +23,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "exact version",
 			input: "1.0.0",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.0.0")},
-				MaxVersion: &NuGetVersion{semver.MustParse("1.0.0")},
+				MinVersion: semver.MustParse("1.0.0"),
+				MaxVersion: semver.MustParse("1.0.0"),
 				IncludeMin: true,
 				IncludeMax: true,
 			},
@@ -41,8 +33,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "exact version with prerelease",
 			input: "1.0.0-beta.1",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.0.0-beta.1")},
-				MaxVersion: &NuGetVersion{semver.MustParse("1.0.0-beta.1")},
+				MinVersion: semver.MustParse("1.0.0-beta.1"),
+				MaxVersion: semver.MustParse("1.0.0-beta.1"),
 				IncludeMin: true,
 				IncludeMax: true,
 			},
@@ -51,8 +43,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "exact version with build metadata",
 			input: "1.0.0+build.1",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.0.0+build.1")},
-				MaxVersion: &NuGetVersion{semver.MustParse("1.0.0+build.1")},
+				MinVersion: semver.MustParse("1.0.0+build.1"),
+				MaxVersion: semver.MustParse("1.0.0+build.1"),
 				IncludeMin: true,
 				IncludeMax: true,
 			},
@@ -61,8 +53,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "inclusive range",
 			input: "[1.0.0, 2.0.0]",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.0.0")},
-				MaxVersion: &NuGetVersion{semver.MustParse("2.0.0")},
+				MinVersion: semver.MustParse("1.0.0"),
+				MaxVersion: semver.MustParse("2.0.0"),
 				IncludeMin: true,
 				IncludeMax: true,
 			},
@@ -71,8 +63,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "exclusive range",
 			input: "(1.0.0, 2.0.0)",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.0.0")},
-				MaxVersion: &NuGetVersion{semver.MustParse("2.0.0")},
+				MinVersion: semver.MustParse("1.0.0"),
+				MaxVersion: semver.MustParse("2.0.0"),
 				IncludeMin: false,
 				IncludeMax: false,
 			},
@@ -81,8 +73,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "mixed range",
 			input: "(1.0.0, 2.0.0]",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.0.0")},
-				MaxVersion: &NuGetVersion{semver.MustParse("2.0.0")},
+				MinVersion: semver.MustParse("1.0.0"),
+				MaxVersion: semver.MustParse("2.0.0"),
 				IncludeMin: false,
 				IncludeMax: true,
 			},
@@ -91,7 +83,7 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "min only",
 			input: "[1.0.0,)",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.0.0")},
+				MinVersion: semver.MustParse("1.0.0"),
 				MaxVersion: nil,
 				IncludeMin: true,
 				IncludeMax: false,
@@ -102,7 +94,7 @@ func TestParseVersionRange(t *testing.T) {
 			input: "(,2.0.0]",
 			want: &VersionRange{
 				MinVersion: nil,
-				MaxVersion: &NuGetVersion{semver.MustParse("2.0.0")},
+				MaxVersion: semver.MustParse("2.0.0"),
 				IncludeMin: false,
 				IncludeMax: true,
 			},
@@ -118,8 +110,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "tilde range",
 			input: "~1.2.3",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.2.3")},
-				MaxVersion: &NuGetVersion{semver.MustParse("1.3.0")},
+				MinVersion: semver.MustParse("1.2.3"),
+				MaxVersion: semver.MustParse("1.3.0"),
 				IncludeMin: true,
 				IncludeMax: false,
 				Float:      Patch,
@@ -129,8 +121,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "tilde range with prerelease",
 			input: "~1.2.3-beta.1",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.2.3-beta.1")},
-				MaxVersion: &NuGetVersion{semver.MustParse("1.3.0")},
+				MinVersion: semver.MustParse("1.2.3-beta.1"),
+				MaxVersion: semver.MustParse("1.3.0"),
 				IncludeMin: true,
 				IncludeMax: false,
 				Float:      Patch,
@@ -140,8 +132,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "caret range",
 			input: "^1.2.3",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.2.3")},
-				MaxVersion: &NuGetVersion{semver.MustParse("2.0.0")},
+				MinVersion: semver.MustParse("1.2.3"),
+				MaxVersion: semver.MustParse("2.0.0"),
 				IncludeMin: true,
 				IncludeMax: false,
 				Float:      Minor,
@@ -151,8 +143,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "caret range with prerelease",
 			input: "^1.2.3-beta.1",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("1.2.3-beta.1")},
-				MaxVersion: &NuGetVersion{semver.MustParse("2.0.0")},
+				MinVersion: semver.MustParse("1.2.3-beta.1"),
+				MaxVersion: semver.MustParse("2.0.0"),
 				IncludeMin: true,
 				IncludeMax: false,
 				Float:      Minor,
@@ -162,8 +154,8 @@ func TestParseVersionRange(t *testing.T) {
 			name:  "caret range pre-1.0",
 			input: "^0.2.3",
 			want: &VersionRange{
-				MinVersion: &NuGetVersion{semver.MustParse("0.2.3")},
-				MaxVersion: &NuGetVersion{semver.MustParse("0.3.0")},
+				MinVersion: semver.MustParse("0.2.3"),
+				MaxVersion: semver.MustParse("0.3.0"),
 				IncludeMin: true,
 				IncludeMax: false,
 				Float:      Minor,
