@@ -10,14 +10,6 @@
   </p>
 </div>
 
-<p align="center">
-	<a href="#-installation-and-documentation">Installation</a> ❘
-	<a href="#-coverage">Coverage</a> ❘
-	<a href="#-usage">Usage</a> ❘
-	<a href="#-examples">Examples</a> ❘
-	<a href="#-license">License</a>
-</p>
-
 ![Workflow ci](https://github.com/huhouhua/go-nuget/actions/workflows/go.yml/badge.svg)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/huhouhua/go-nuget/blob/main/LICENSE)
 [![release](https://img.shields.io/github/release-pre/huhouhua/go-nuget.svg)](https://github.com/huhouhua/go-nuget/releases)
@@ -25,6 +17,14 @@
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/huhouhua/go-nuget?logo=go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/huhouhua/go-nuget)](https://goreportcard.com/report/github.com/huhouhua/go-nuget)
 [![Test Coverage](https://codecov.io/gh/huhouhua/go-nuget/branch/main/graph/badge.svg)](https://codecov.io/gh/huhouhua/go-nuget)
+
+<p align="center">
+	<a href="#-installation-and-documentation">Installation</a> ❘
+	<a href="#-coverage">Coverage</a> ❘
+	<a href="#-usage">Usage</a> ❘
+	<a href="#-examples">Examples</a> ❘
+	<a href="#-license">License</a>
+</p>
 
 ## 🤘&nbsp; Coverage
 
