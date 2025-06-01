@@ -1,6 +1,9 @@
-<div align="center">
-	<h1>Golang NuGet Client.</h1>
-	<p>A NuGet API v3 client enabling Go programs to interact with NuGet repositories in a simple and uniform way.</p>
+<div style="text-align: center">
+  <p align="center">
+    <img src="docs/img/logo.png" alt=""/>
+    <br><br>
+    <p>A NuGet API v3 client enabling Go programs to interact with NuGet repositories in a simple and uniform way.</p>
+  </p>
 </div>
 
 <p align="center">
