@@ -417,13 +417,6 @@ func parseCommonFramework(frameworkString string) *Framework {
 	}
 	return nil
 }
-
-func singleOrDefaultSafe(items []string) string {
-	if len(items) == 1 {
-		return items[0]
-	}
-	return ""
-}
 func GetPortableProfileNumberString(profileNumber int) string {
 	return fmt.Sprintf("Profile%v", profileNumber)
 }
