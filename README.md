@@ -3,7 +3,7 @@
      <a href="https://pkg.go.dev/github.com/huhouhua/go-nuget" > 
 	<img src="https://raw.githubusercontent.com/huhouhua/go-nuget/main/docs/img/go-nuget.png"
 	     alt="go-nuget"
-    	     width="600">
+    	     width="170">
      </a>
     <br><br>
     <p>A NuGet API v3 client enabling Go programs to interact with NuGet repositories in a simple and uniform way.</p>
