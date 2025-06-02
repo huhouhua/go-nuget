@@ -1,7 +1,7 @@
 <div style="text-align: center">
   <p align="center">
      <a href="https://pkg.go.dev/github.com/huhouhua/go-nuget" > 
-	<img src="https://raw.githubusercontent.com/huhouhua/go-nuget/main/docs/img/logo.png"
+	<img src="https://raw.githubusercontent.com/huhouhua/go-nuget/main/docs/img/go-nuget.png"
 	     alt="go-nuget"
     	     width="600">
      </a>
