@@ -1,13 +1,22 @@
-<div style="text-align: center">
-  <p align="center">
-     <a href="https://pkg.go.dev/github.com/huhouhua/go-nuget" > 
+<div align="center">
+	   <a href="https://pkg.go.dev/github.com/huhouhua/go-nuget" > 
 	<img src="https://raw.githubusercontent.com/huhouhua/go-nuget/main/docs/img/go-nuget.png"
 	     alt="go-nuget"
     	     width="170">
      </a>
-    <p>A NuGet API v3 client enabling Go programs to interact with NuGet repositories in a simple and uniform way.</p>
-  </p>
+	<h4 align="center">
+		easy golang nuget client module
+	</h4>
+	<p>Go-NuGet is a NuGet API v3 client written in golang, enabling Go programs to interact with NuGet repositories in a simple and unified way!</p>
 </div>
+
+<p align="center">
+	<a href="#-installation-and-documentation">Installation</a> ❘
+	<a href="#-coverage">Coverage</a> ❘
+	<a href="#-usage">Usage</a> ❘
+	<a href="#-examples">Examples</a> ❘
+	<a href="#-license">License</a>
+</p>
 
 ![Workflow ci](https://github.com/huhouhua/go-nuget/actions/workflows/go.yml/badge.svg)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/huhouhua/go-nuget/blob/main/LICENSE)
@@ -17,13 +26,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/huhouhua/go-nuget)](https://goreportcard.com/report/github.com/huhouhua/go-nuget)
 [![Test Coverage](https://codecov.io/gh/huhouhua/go-nuget/branch/main/graph/badge.svg)](https://codecov.io/gh/huhouhua/go-nuget)
 
-<p align="center">
-	<a href="#-installation-and-documentation">Installation</a> ❘
-	<a href="#-coverage">Coverage</a> ❘
-	<a href="#-usage">Usage</a> ❘
-	<a href="#-examples">Examples</a> ❘
-	<a href="#-license">License</a>
-</p>
 
 ## 🤘&nbsp; Coverage
 
