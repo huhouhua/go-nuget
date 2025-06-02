@@ -7,7 +7,7 @@
 	<h4 align="center">
 		easy golang nuget client module
 	</h4>
-	<p>Go-NuGet is a NuGet API v3 client written in golang, enabling Go programs to interact with NuGet repositories in a simple and unified way!</p>
+	<p>Go-NuGet is a NuGet API v3 client written in Golang, enabling Golang programs to interact with NuGet repositories in a simple and unified way!</p>
 </div>
 
 <p align="center">
