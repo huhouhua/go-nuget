@@ -38,7 +38,7 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Package Publish
 - [x] Package Delete
 - [x] Package Download
-- [x] Package Versioning
+- [x] Package Version
 - [x] Package Read
 - [ ] Package Create
 - [x] Package Dependencies
