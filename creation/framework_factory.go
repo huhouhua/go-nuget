@@ -6,6 +6,7 @@ package creation
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -13,7 +14,7 @@ import (
 	"github.com/huhouhua/go-nuget"
 )
 
-// Parse Creates a NuGetFramework from a folder name using the given mappings.
+// Parse Creates a NuGetFramework from a folder name using the given provider.
 func Parse(folderName string, provider FrameworkNameProvider) (*Framework, error) {
 	if strings.Contains(folderName, ",") {
 		return ParseFrameworkName(folderName, provider)
@@ -56,17 +57,19 @@ func parseFrameworkNameParts(
 	}
 	version = nuget.EmptyVersion
 	var versionPart, profilePart string
-	for _, s := range parts {
+	versionParts := nuget.Filter(parts, func(s string) bool {
 		partLower := strings.ToLower(s)
-
-		if strings.HasPrefix(partLower, "version=") {
-			versionPart = s
-			continue
-		}
-		if strings.HasPrefix(partLower, "profile=") {
-			profilePart = s
-			continue
-		}
+		return strings.HasPrefix(partLower, "version=")
+	})
+	if len(versionParts) == 1 {
+		versionPart = versionParts[0]
+	}
+	profileParts := nuget.Filter(parts, func(s string) bool {
+		partLower := strings.ToLower(s)
+		return strings.HasPrefix(partLower, "profile=")
+	})
+	if len(profileParts) == 1 {
+		profilePart = profileParts[0]
 	}
 	if strings.TrimSpace(versionPart) != "" {
 		versionParts := strings.Split(versionPart, "=")
@@ -91,9 +94,97 @@ func parseFrameworkNameParts(
 	return framework, profile, version, nil
 }
 
-// ParseFolder Creates a NuGetFramework from a folder name using the given mappings.
+// ParseFolder Creates a NuGetFramework from a folder name using the given provider.
 func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework, error) {
-	return nil, nil
+	var (
+		err    error
+		result *Framework
+	)
+	if strings.Contains(folderName, "%s") {
+		if folderName, err = url.QueryUnescape(folderName); err != nil {
+			return nil, err
+		}
+	}
+	// first check if we have a special or common framework
+	if result = parseSpecialFramework(folderName); result != nil {
+		return result, nil
+	}
+	if result = parseCommonFramework(folderName); result != nil {
+		return result, nil
+	}
+	// assume this is unsupported unless we find a match
+	result = NewFramework(Unsupported)
+	identifier, version, profile := rawParse(folderName)
+	if strings.TrimSpace(identifier) == "" && strings.TrimSpace(version) == "" && strings.TrimSpace(profile) == "" {
+		// If the framework was not recognized check if it is a deprecated framework
+		if deprecated := parseDeprecatedFramework(folderName); deprecated != nil {
+			result = deprecated
+		}
+		return result, nil
+	}
+	framework := provider.GetIdentifier(identifier)
+	if strings.TrimSpace(framework) == "" {
+		return result, nil
+	}
+	nugetVersion, err := provider.GetVersion(version)
+	if strings.TrimSpace(version) != "" || err != nil {
+		return result, nil
+	}
+	profileShort := profile
+	if nugetVersion.Major() >= 5 &&
+		(strings.EqualFold(nuget.Net, framework) || strings.EqualFold(nuget.NetCoreApp, framework)) {
+		// net should be treated as netcoreapp in 5.0 and later
+		framework = nuget.NetCoreApp
+		if strings.TrimSpace(profileShort) != "" {
+			// Find a platform version if it exists and yank it out
+			platformChars := profileShort
+			versionStart := 0
+			for versionStart < len(platformChars) && isLetterOrDot(rune(platformChars[versionStart])) {
+				versionStart++
+			}
+			platform := profileShort
+			platformVersionString := ""
+			if versionStart > 0 {
+				platform = profileShort[0:versionStart]
+				platformVersionString = profileShort[versionStart:]
+			}
+			// Parse the version if it's there.
+			var platformVersion *semver.Version
+			if v, err := provider.GetPlatformVersion(platformVersionString); err == nil {
+				platformVersion = v
+			} else {
+				platformVersion = nuget.EmptyVersion
+			}
+			if strings.TrimSpace(platformVersionString) == "" || platformVersion != nil {
+				result = NewFrameworkWithPlatform(framework, nugetVersion, platform, platformVersion)
+			} else {
+				// with result == UnsupportedFramework
+				return result, nil
+			}
+		} else {
+			result = NewFrameworkWithPlatform(framework, nugetVersion, "", nuget.EmptyVersion)
+		}
+	} else {
+		pro := ""
+		if pro = provider.GetProfile(profileShort); strings.TrimSpace(pro) == "" {
+			pro = profileShort
+		}
+		if strings.EqualFold(nuget.Portable, framework) {
+			if clientFrameworks, err := provider.GetPortableFrameworks(profileShort); err != nil {
+				return result, nil
+			} else {
+				if profileNumber := provider.GetPortableProfile(clientFrameworks); profileNumber != -1 {
+					portableProfileNumber := GetPortableProfileNumberString(profileNumber)
+					result = NewFrameworkWithProfile(framework, nugetVersion, portableProfileNumber)
+				} else {
+					result = NewFrameworkWithProfile(framework, nugetVersion, profileShort)
+				}
+			}
+		} else {
+			result = NewFrameworkWithProfile(framework, nugetVersion, pro)
+		}
+	}
+	return result, nil
 }
 
 // parseDeprecatedFramework Attempt to parse a common but deprecated framework using an exact string match
@@ -205,11 +296,11 @@ func parseSpecialFramework(frameworkString string) *Framework {
 	return nil
 }
 
-// ParseCommonFramework A set of special and common frameworks that can be returned from the list of constants without
+// parseCommonFramework A set of special and common frameworks that can be returned from the list of constants without
 // parsing
 // Using the interned frameworks here optimizes comparisons since they can be checked by reference.
 // This is designed to optimize
-func ParseCommonFramework(frameworkString string) *Framework {
+func parseCommonFramework(frameworkString string) *Framework {
 	frameworkString = strings.ToLower(frameworkString)
 
 	switch frameworkString {
@@ -332,4 +423,7 @@ func singleOrDefaultSafe(items []string) string {
 		return items[0]
 	}
 	return ""
+}
+func GetPortableProfileNumberString(profileNumber int) string {
+	return fmt.Sprintf("Profile%v", profileNumber)
 }
