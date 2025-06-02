@@ -18,8 +18,9 @@ type FrameworkNameProvider struct {
 	// Ex: .NET Framework -> .NET Framework
 	// Ex: NET Framework -> .NET Framework
 	// This includes self mappings.
-	identifierSynonyms    map[string]string
-	identifierToShortName map[string]string
+	identifierSynonymsMap    map[string]string
+	identifierToShortNameMap map[string]string
+	identifierShortToLongMap map[string]string
 
 	// profile -> supported frameworks, optional frameworks
 	portableFrameworkMap         map[int]map[string]*Framework
@@ -32,8 +33,27 @@ type FrameworkNameProvider struct {
 	equivalentFrameworkMap map[string]map[string]*Framework
 }
 
+func NewFrameworkNameProvider(
+	mappings []FrameworkMappings,
+	portableMappings []PortableFrameworkMappings,
+) *FrameworkNameProvider {
+	provider := &FrameworkNameProvider{
+		identifierSynonymsMap:        make(map[string]string),
+		identifierToShortNameMap:     make(map[string]string),
+		identifierShortToLongMap:     make(map[string]string),
+		portableFrameworkMap:         make(map[int]map[string]*Framework),
+		portableOptionalFrameworkMap: make(map[int]map[string]*Framework),
+		profileShortToLongMap:        make(map[string]string),
+		profilesToShortNameMap:       make(map[string]string),
+		equivalentFrameworkMap:       make(map[string]map[string]*Framework),
+	}
+
+	provider.initMappings(mappings)
+	provider.initPortableMappings(portableMappings)
+	return provider
+}
 func (f *FrameworkNameProvider) GetIdentifier(framework string) string {
-	return f.convertOrNormalize(framework, f.identifierSynonyms, f.identifierToShortName)
+	return f.convertOrNormalize(framework, f.identifierSynonymsMap, f.identifierToShortNameMap)
 }
 func (f *FrameworkNameProvider) GetProfile(profileShortName string) string {
 	return f.convertOrNormalize(profileShortName, f.profileShortToLongMap, f.profilesToShortNameMap)
@@ -256,4 +276,137 @@ func (f *FrameworkNameProvider) getOptionalFrameworks(profile int) map[string]*F
 		return frameworks
 	}
 	return make(map[string]*Framework)
+}
+
+func (p *FrameworkNameProvider) initMappings(mappings []FrameworkMappings) {
+	if mappings == nil {
+		return
+	}
+	for _, mapping := range mappings {
+		// equivalent frameworks
+		p.addEquivalentFrameworks(mapping.GetEquivalentFrameworkMap())
+
+		// add synonyms
+		p.addFrameworkSynonyms(mapping.GetIdentifierSynonymsMap())
+
+		// populate short <-> long
+		p.addIdentifierShortNames(mapping.GetIdentifierShortNameMap())
+	}
+}
+
+func (p *FrameworkNameProvider) initPortableMappings(portableMappings []PortableFrameworkMappings) {
+	if portableMappings == nil {
+		return
+	}
+	for _, portableMapping := range portableMappings {
+		// populate portable framework names
+		p.addPortableProfileMappings(portableMapping.GetProfileFrameworkMap())
+
+		// populate portable optional frameworks
+		p.addPortableOptionalFrameworks(portableMapping.GetProfileOptionalFrameworkMap())
+	}
+}
+
+// addEquivalentFrameworks  2 way framework equivalence
+func (p *FrameworkNameProvider) addEquivalentFrameworks(mappings []*KeyValuePair[*Framework, *Framework]) {
+	if mappings == nil {
+		return
+	}
+	for _, pair := range mappings {
+		remaining := []*Framework{pair.Value, pair.Value}
+		seen := make(map[string]*Framework)
+
+		for len(remaining) > 0 {
+			n := len(remaining) - 1
+			next := remaining[n]
+			remaining = remaining[:n]
+
+			if _, ok := seen[next.Framework]; ok {
+				continue
+			}
+			seen[next.Framework] = next
+
+			eqSet, ok := p.equivalentFrameworkMap[next.Framework]
+			if !ok {
+				// initialize set
+				eqSet = make(map[string]*Framework)
+				p.equivalentFrameworkMap[next.Framework] = eqSet
+			} else {
+				// explore all equivalent
+				for _, value := range eqSet {
+					remaining = append(remaining, value)
+				}
+			}
+		}
+
+		// add this equivalency rule, enforcing transitivity
+		for _, framework := range seen {
+			for _, other := range seen {
+				if framework.Framework != other.Framework {
+					if eqMap, ok := p.equivalentFrameworkMap[framework.Framework]; ok {
+						eqMap[other.Framework] = other
+					}
+				}
+			}
+		}
+	}
+}
+
+func (p *FrameworkNameProvider) addFrameworkSynonyms(mappings []*KeyValuePair[string, string]) {
+	if mappings == nil {
+		return
+	}
+	for _, pair := range mappings {
+		if _, ok := p.identifierSynonymsMap[pair.Key]; !ok {
+			p.identifierSynonymsMap[pair.Key] = pair.Value
+		}
+	}
+}
+
+func (p *FrameworkNameProvider) addIdentifierShortNames(mappings []*KeyValuePair[string, string]) {
+	if mappings == nil {
+		return
+	}
+	for _, pair := range mappings {
+		shortName := pair.Value
+		longName := pair.Key
+		if _, ok := p.identifierSynonymsMap[pair.Value]; !ok {
+			p.identifierSynonymsMap[pair.Value] = pair.Key
+		}
+		p.identifierShortToLongMap[shortName] = longName
+		p.identifierToShortNameMap[longName] = shortName
+	}
+}
+
+// addPortableProfileMappings Add supported frameworks for each portable profile number
+func (p *FrameworkNameProvider) addPortableProfileMappings(mappings []KeyValuePair[int, []*Framework]) {
+	if mappings == nil {
+		return
+	}
+	for _, pair := range mappings {
+
+		if _, ok := p.portableFrameworkMap[pair.Key]; !ok {
+			p.portableFrameworkMap[pair.Key] = map[string]*Framework{}
+		}
+		frameworkMap, _ := p.portableFrameworkMap[pair.Key]
+		for _, fw := range pair.Value {
+			frameworkMap[fw.Framework] = fw
+		}
+	}
+}
+
+// addPortableOptionalFrameworks Add optional frameworks for each portable profile number
+func (p *FrameworkNameProvider) addPortableOptionalFrameworks(mappings []KeyValuePair[int, []*Framework]) {
+	if mappings == nil {
+		return
+	}
+	for _, pair := range mappings {
+		if _, ok := p.portableOptionalFrameworkMap[pair.Key]; !ok {
+			p.portableOptionalFrameworkMap[pair.Key] = map[string]*Framework{}
+		}
+		frameworkMap, _ := p.portableOptionalFrameworkMap[pair.Key]
+		for _, fw := range pair.Value {
+			frameworkMap[fw.Framework] = fw
+		}
+	}
 }

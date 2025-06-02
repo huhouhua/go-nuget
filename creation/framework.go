@@ -12,6 +12,43 @@ import (
 	"github.com/huhouhua/go-nuget"
 )
 
+type KeyValuePair[K comparable, V any] struct {
+	Key   K
+	Value V
+}
+
+// FrameworkSpecificMapping A key value pair specific to a framework identifier
+type FrameworkSpecificMapping struct {
+	FrameworkIdentifier string
+
+	Mapping *KeyValuePair[string, string]
+}
+
+type PortableFrameworkMappings interface {
+	// GetProfileFrameworkMap  Ex: 5 -> net4, win8
+	GetProfileFrameworkMap() []KeyValuePair[int, []*Framework]
+
+	// GetProfileOptionalFrameworkMap  Additional optional frameworks supported in a portable profile.
+	// Ex: 5 -> MonoAndroid1+MonoTouch1
+	GetProfileOptionalFrameworkMap() []KeyValuePair[int, []*Framework]
+}
+
+type FrameworkMappings interface {
+	// GetIdentifierSynonymsMap Synonym &#8210;&gt; Identifier
+	// Ex: NET Framework &#8210;&gt; .NET Framework
+	GetIdentifierSynonymsMap() []*KeyValuePair[string, string]
+
+	// GetIdentifierShortNameMap Ex: .NET Framework &#8210;&gt; net
+	GetIdentifierShortNameMap() []*KeyValuePair[string, string]
+
+	// GetProfileShortNamesMap Ex: WindowsPhone &#8210;&gt; wp
+	GetProfileShortNamesMap() []*FrameworkSpecificMapping
+
+	// GetEquivalentFrameworkMap Equal frameworks. Used for legacy conversions.
+	// ex: Framework: Win8 &lt;&#8210;&gt; Framework: NetCore45 Platform: Win8
+	GetEquivalentFrameworkMap() []*KeyValuePair[*Framework, *Framework]
+}
+
 type Framework struct {
 	// Framework Target framework
 	Framework string
