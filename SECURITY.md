@@ -12,7 +12,7 @@ minor/patch release to benefit from the most up-to-date features, bug fixes,
 and security enhancements.​
 
 The supported versions policy applies to both the `go-nuget` library and its
-associated repositories within the `go-nuget` org.
+associated repositories
 
 ## Reporting Security Issues
 
@@ -25,9 +25,6 @@ provide detailed information, including steps to reproduce, affected versions, a
 
 The project maintainers will acknowledge the receipt of the report and work with
 the reporter to validate and address the issue.
-
-Please note that `go-nuget` does not have any bounty programs, and therefore do
-not provide financial compensation for disclosures.
 
 ## Security Disclosure Process
 
