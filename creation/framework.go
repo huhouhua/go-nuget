@@ -99,7 +99,8 @@ type FrameworkAssemblyReference struct {
 func ParseNuGetFrameworkFromFilePath(filePath string, effectivePath *string) *Framework {
 	for _, knownFolder := range nuget.Known {
 		folderPrefix := fmt.Sprintf("%s%s", knownFolder, string(os.PathSeparator))
-		if len(filePath) > len(folderPrefix) && strings.HasPrefix(strings.ToLower(filePath), strings.ToLower(folderPrefix)) {
+		if len(filePath) > len(folderPrefix) &&
+			strings.HasPrefix(strings.ToLower(filePath), strings.ToLower(folderPrefix)) {
 			frameworkPart := filePath[len(folderPrefix):]
 			name, err := ParseNuGetFrameworkFolderName(frameworkPart, knownFolder == nuget.Lib, effectivePath)
 			if err != nil {
@@ -116,7 +117,11 @@ func ParseNuGetFrameworkFromFilePath(filePath string, effectivePath *string) *Fr
 }
 
 // ParseNuGetFrameworkFolderName Parses the specified string into FrameworkName object.
-func ParseNuGetFrameworkFolderName(frameworkPath string, strictParsing bool, effectivePath *string) (*Framework, error) {
+func ParseNuGetFrameworkFolderName(
+	frameworkPath string,
+	strictParsing bool,
+	effectivePath *string,
+) (*Framework, error) {
 	dir := filepath.Dir(frameworkPath)
 	targetFrameworkString := strings.Split(dir, string(filepath.Separator))[0]
 	if effectivePath != nil {

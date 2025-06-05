@@ -6,9 +6,10 @@ package creation
 
 import (
 	"fmt"
-	"github.com/huhouhua/go-nuget"
 	"reflect"
 	"strings"
+
+	"github.com/huhouhua/go-nuget"
 
 	"github.com/Masterminds/semver/v3"
 )
