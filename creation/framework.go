@@ -5,49 +5,15 @@
 package creation
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
 
 	"github.com/huhouhua/go-nuget"
 )
-
-type KeyValuePair[K comparable, V any] struct {
-	Key   K
-	Value V
-}
-
-// FrameworkSpecificMapping A key value pair specific to a framework identifier
-type FrameworkSpecificMapping struct {
-	FrameworkIdentifier string
-
-	Mapping *KeyValuePair[string, string]
-}
-
-type PortableFrameworkMappings interface {
-	// GetProfileFrameworkMap  Ex: 5 -> net4, win8
-	GetProfileFrameworkMap() []KeyValuePair[int, []*Framework]
-
-	// GetProfileOptionalFrameworkMap  Additional optional frameworks supported in a portable profile.
-	// Ex: 5 -> MonoAndroid1+MonoTouch1
-	GetProfileOptionalFrameworkMap() []KeyValuePair[int, []*Framework]
-}
-
-type FrameworkMappings interface {
-	// GetIdentifierSynonymsMap Synonym &#8210;&gt; Identifier
-	// Ex: NET Framework &#8210;&gt; .NET Framework
-	GetIdentifierSynonymsMap() []*KeyValuePair[string, string]
-
-	// GetIdentifierShortNameMap Ex: .NET Framework &#8210;&gt; net
-	GetIdentifierShortNameMap() []*KeyValuePair[string, string]
-
-	// GetProfileShortNamesMap Ex: WindowsPhone &#8210;&gt; wp
-	GetProfileShortNamesMap() []*FrameworkSpecificMapping
-
-	// GetEquivalentFrameworkMap Equal frameworks. Used for legacy conversions.
-	// ex: Framework: Win8 &lt;&#8210;&gt; Framework: NetCore45 Platform: Win8
-	GetEquivalentFrameworkMap() []*KeyValuePair[*Framework, *Framework]
-}
 
 type Framework struct {
 	// Framework Target framework
@@ -130,24 +96,42 @@ type FrameworkAssemblyReference struct {
 	SupportedFrameworks []*Framework
 }
 
-//func ParseNuGetFrameworkFromFilePath(filePath string, effectivePath *string) *Framework {
-//	for _, knownFolder := range nuget.Known {
-//		folderPrefix := fmt.Sprintf("%s%s", knownFolder, string(os.PathSeparator))
-// 		if len(filePath) > len(folderPrefix) && strings.HasPrefix(strings.ToLower(filePath), strings.ToLower(folderPrefix))
-// {
-//			frameworkPart := filePath[len(folderPrefix):]
-//
-//		}
-//	}
-//}
-//
-//// ParseNuGetFrameworkFolderName Parses the specified string into FrameworkName object.
-//func ParseNuGetFrameworkFolderName(frameworkPath string, strictParsing bool, effectivePath *string) *Framework {
-//	dir := filepath.Dir(frameworkPath)
-//	targetFrameworkString := strings.Split(dir, string(filepath.Separator))[0]
-//	effectivePath = &frameworkPath
-//	if strings.TrimSpace(targetFrameworkString) == "" {
-//		return nil
-//	}
-//
-//}
+func ParseNuGetFrameworkFromFilePath(filePath string, effectivePath *string) *Framework {
+	for _, knownFolder := range nuget.Known {
+		folderPrefix := fmt.Sprintf("%s%s", knownFolder, string(os.PathSeparator))
+		if len(filePath) > len(folderPrefix) && strings.HasPrefix(strings.ToLower(filePath), strings.ToLower(folderPrefix)) {
+			frameworkPart := filePath[len(folderPrefix):]
+			name, err := ParseNuGetFrameworkFolderName(frameworkPart, knownFolder == nuget.Lib, effectivePath)
+			if err != nil {
+				// if the parsing fails, we treat it as if this file
+				// doesn't have target framework.
+				*effectivePath = frameworkPart
+				return nil
+			}
+			return name
+		}
+	}
+	*effectivePath = filePath
+	return nil
+}
+
+// ParseNuGetFrameworkFolderName Parses the specified string into FrameworkName object.
+func ParseNuGetFrameworkFolderName(frameworkPath string, strictParsing bool, effectivePath *string) (*Framework, error) {
+	dir := filepath.Dir(frameworkPath)
+	targetFrameworkString := strings.Split(dir, string(filepath.Separator))[0]
+	if effectivePath != nil {
+		*effectivePath = frameworkPath
+	}
+	if strings.TrimSpace(targetFrameworkString) == "" {
+		return nil, fmt.Errorf("invalid targetFrameworkString: cannot be empty or blank")
+	}
+	nugetFramework, err := ParseFolderFromDefault(targetFrameworkString)
+	if err != nil {
+		return nil, err
+	}
+	if strictParsing || nugetFramework.IsSpecificFramework {
+		*effectivePath = frameworkPath[len(targetFrameworkString)+1:]
+		return nugetFramework, err
+	}
+	return nil, fmt.Errorf("framework '%s' is not specific and strict parsing is disabled", targetFrameworkString)
+}

@@ -58,7 +58,12 @@ func (p *PhysicalPackageFile) SetPath(targetPath string) {
 		return
 	}
 	p.targetPath = targetPath
-	p.nugetFramework = nil
+	var effectivePath string
+	p.nugetFramework = ParseNuGetFrameworkFromFilePath(p.targetPath, &effectivePath)
+	//if p.nugetFramework != nil && p.nugetFramework.Version.Major() < 5 {
+	//	p.nugetFramework = p.nugetFramework.
+	//}
+
 }
 func (p *PhysicalPackageFile) GetEffectivePath() string {
 	return ""

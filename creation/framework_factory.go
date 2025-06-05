@@ -94,6 +94,11 @@ func parseFrameworkNameParts(
 	return framework, profile, version, nil
 }
 
+// ParseFolderFromDefault Creates a NuGetFramework from a folder name using the default mappings.
+func ParseFolderFromDefault(folderName string) (*Framework, error) {
+	return ParseFolder(folderName, GetProviderInstance())
+}
+
 // ParseFolder Creates a NuGetFramework from a folder name using the given provider.
 func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework, error) {
 	var (

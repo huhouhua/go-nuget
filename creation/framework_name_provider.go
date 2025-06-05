@@ -6,6 +6,7 @@ package creation
 
 import (
 	"fmt"
+	"github.com/huhouhua/go-nuget"
 	"reflect"
 	"strings"
 
@@ -31,6 +32,9 @@ type FrameworkNameProvider struct {
 
 	// equivalent frameworks
 	equivalentFrameworkMap map[string]map[string]*Framework
+
+	// Rewrite mappings
+	fullNameRewrites []*KeyValuePair[*Framework, *Framework]
 }
 
 func NewFrameworkNameProvider(
@@ -46,6 +50,7 @@ func NewFrameworkNameProvider(
 		profileShortToLongMap:        make(map[string]string),
 		profilesToShortNameMap:       make(map[string]string),
 		equivalentFrameworkMap:       make(map[string]map[string]*Framework),
+		fullNameRewrites:             make([]*KeyValuePair[*Framework, *Framework], 0),
 	}
 
 	provider.initMappings(mappings)
@@ -166,6 +171,15 @@ func (f *FrameworkNameProvider) GetPortableProfile(supportedFrameworks []*Framew
 		reduced = map[string]*Framework{}
 	}
 	return -1
+}
+
+func (f *FrameworkNameProvider) GetFullNameReplacement(framework *Framework) *Framework {
+	for _, rewrite := range f.fullNameRewrites {
+		if rewrite.Key.Framework == framework.Framework {
+			return rewrite.Value
+		}
+	}
+	return framework
 }
 
 func (f *FrameworkNameProvider) convertOrNormalize(key string, mappings, reverse map[string]string) string {
@@ -291,6 +305,9 @@ func (p *FrameworkNameProvider) initMappings(mappings []FrameworkMappings) {
 
 		// populate short <-> long
 		p.addIdentifierShortNames(mapping.GetIdentifierShortNameMap())
+
+		// add rewrite rules
+		p.addShortNameRewriteMappings(mapping.GetFullNameReplacementMap())
 	}
 }
 
@@ -379,7 +396,7 @@ func (p *FrameworkNameProvider) addIdentifierShortNames(mappings []*KeyValuePair
 }
 
 // addPortableProfileMappings Add supported frameworks for each portable profile number
-func (p *FrameworkNameProvider) addPortableProfileMappings(mappings []KeyValuePair[int, []*Framework]) {
+func (p *FrameworkNameProvider) addPortableProfileMappings(mappings []*KeyValuePair[int, []*Framework]) {
 	if mappings == nil {
 		return
 	}
@@ -396,7 +413,7 @@ func (p *FrameworkNameProvider) addPortableProfileMappings(mappings []KeyValuePa
 }
 
 // addPortableOptionalFrameworks Add optional frameworks for each portable profile number
-func (p *FrameworkNameProvider) addPortableOptionalFrameworks(mappings []KeyValuePair[int, []*Framework]) {
+func (p *FrameworkNameProvider) addPortableOptionalFrameworks(mappings []*KeyValuePair[int, []*Framework]) {
 	if mappings == nil {
 		return
 	}
@@ -407,6 +424,20 @@ func (p *FrameworkNameProvider) addPortableOptionalFrameworks(mappings []KeyValu
 		frameworkMap, _ := p.portableOptionalFrameworkMap[pair.Key]
 		for _, fw := range pair.Value {
 			frameworkMap[fw.Framework] = fw
+		}
+	}
+}
+
+func (p *FrameworkNameProvider) addShortNameRewriteMappings(mappings []*KeyValuePair[*Framework, *Framework]) {
+	if mappings == nil {
+		return
+	}
+	for _, mapping := range mappings {
+		hasContains := nuget.Some(p.fullNameRewrites, func(k *KeyValuePair[*Framework, *Framework]) bool {
+			return strings.EqualFold(k.Key.Framework, mapping.Key.Framework)
+		})
+		if !hasContains {
+			p.fullNameRewrites = append(p.fullNameRewrites, mapping)
 		}
 	}
 }

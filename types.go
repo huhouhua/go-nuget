@@ -293,5 +293,5 @@ const (
 	XamarinXboxOne         = "Xamarin.XboxOne"
 	UAP                    = "UAP"
 	Tizen                  = "Tizen"
-	Nano                   = ".NETnanoFramework"
+	NanoFramework          = ".NETnanoFramework"
 )
