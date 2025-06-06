@@ -327,7 +327,11 @@ func validatorPlatformVersion(frameworks []*Framework) error {
 	for _, framework := range frameworks {
 		if framework != nil && strings.TrimSpace(framework.Platform) != "" &&
 			framework.PlatformVersion.Equal(nuget.EmptyVersion) {
-			platformVersions = append(platformVersions, framework.ShortFolderName)
+			if name, err := framework.GetShortFolderName(); err != nil {
+				return err
+			} else {
+				platformVersions = append(platformVersions, name)
+			}
 		}
 	}
 	if len(platformVersions) > 0 {
