@@ -6,6 +6,7 @@ package creation
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -109,65 +110,79 @@ func (p *PackageBuilder) ToXML(ns string) ([]xml.Token, error) {
 	if repoElement := getXElementFromManifestRepository(ns, p.Repository); repoElement != nil {
 		tokens = append(tokens)
 	}
+	if dependencyTokens, err := p.dependencyGroupsToTokens(ns); err != nil {
+		return nil, err
+	} else {
+		tokens = append(tokens, dependencyTokens...)
+	}
 
-	tokens = append(tokens, p.dependencyGroupsToTokens(ns)...)
-	tokens = append(tokens, p.packageAssemblyReferencesToTokens(ns)...)
-	tokens = append(tokens, p.frameworkReferenceGroupsToTokens(ns)...)
-	tokens = append(tokens, getXElementFromFrameworkAssemblies(ns, p.FrameworkReferences)...)
+	if referencesTokens, err := p.packageAssemblyReferencesToTokens(ns); err != nil {
+		return nil, err
+	} else {
+		tokens = append(tokens, referencesTokens...)
+	}
+
+	if frameworkTokens, err := p.frameworkReferenceGroupsToTokens(ns); err != nil {
+		return nil, err
+	} else {
+		tokens = append(tokens, frameworkTokens...)
+	}
+
+	if assembliesTokens, err := getXElementFromFrameworkAssemblies(ns, p.FrameworkReferences); err != nil {
+		return nil, err
+	} else {
+		tokens = append(tokens, assembliesTokens...)
+	}
+
 	tokens = append(tokens, getXElementFromManifestContentFiles(ns, p.ContentFiles)...)
 
 	return tokens, nil
 }
 
-func (p *PackageBuilder) dependencyGroupsToTokens(ns string) []xml.Token {
-	dependencyGroupsTokens := getXElementFromGroupableItemSets(ns, p.DependencyGroups,
+func (p *PackageBuilder) dependencyGroupsToTokens(ns string) ([]xml.Token, error) {
+	return getXElementFromGroupableItemSets(ns, p.DependencyGroups,
 		func(set *PackageDependencyGroup) bool {
 			isHasDependency := nuget.Some(set.Packages, func(dependency *nuget.Dependency) bool {
 				return len(dependency.Exclude) > 0 || len(dependency.Include) > 0
 			})
-			return set.TargetFramework.IsSpecificFramework || isHasDependency
-		}, func(set *PackageDependencyGroup) string {
-			if set.TargetFramework.IsSpecificFramework {
+			return set.TargetFramework.IsSpecificFramework() || isHasDependency
+		}, func(set *PackageDependencyGroup) (string, error) {
+			if set.TargetFramework.IsSpecificFramework() {
 				return set.TargetFramework.GetFrameworkString()
 			}
-			return ""
+			return "", nil
 		}, func(set *PackageDependencyGroup) []*nuget.Dependency {
 			return set.Packages
 		}, getXElementFromPackageDependency, "dependencies", "targetFramework")
-
-	return dependencyGroupsTokens
 }
-func (p *PackageBuilder) packageAssemblyReferencesToTokens(ns string) []xml.Token {
-	packageAssemblyReferencesTokens := getXElementFromGroupableItemSets(ns, p.PackageAssemblyReferences,
+func (p *PackageBuilder) packageAssemblyReferencesToTokens(ns string) ([]xml.Token, error) {
+	return getXElementFromGroupableItemSets(ns, p.PackageAssemblyReferences,
 		func(set *PackageReferenceSet) bool {
 			if set.TargetFramework == nil {
 				return false
 			}
-			return set.TargetFramework.IsSpecificFramework
-		}, func(set *PackageReferenceSet) string {
+			return set.TargetFramework.IsSpecificFramework()
+		}, func(set *PackageReferenceSet) (string, error) {
 			if set.TargetFramework == nil {
-				return ""
+				return "", nil
 			}
 			return set.TargetFramework.GetFrameworkString()
 		}, func(set *PackageReferenceSet) []string {
 			return set.References
 		}, getXElementFromPackageReference, "references", "targetFramework")
-
-	return packageAssemblyReferencesTokens
 }
 
-func (p *PackageBuilder) frameworkReferenceGroupsToTokens(ns string) []xml.Token {
-	frameworkReferenceGroupsTokens := getXElementFromGroupableItemSets(ns, p.FrameworkReferenceGroups,
+func (p *PackageBuilder) frameworkReferenceGroupsToTokens(ns string) ([]xml.Token, error) {
+	return getXElementFromGroupableItemSets(ns, p.FrameworkReferenceGroups,
 		func(set *FrameworkReferenceGroup) bool {
 			// the TFM is required for framework references
 			return true
-		}, func(set *FrameworkReferenceGroup) string {
+		}, func(set *FrameworkReferenceGroup) (string, error) {
 			return set.TargetFramework.GetFrameworkString()
 		}, func(set *FrameworkReferenceGroup) []*FrameworkReference {
 			return set.FrameworkReferences
 		}, getXElementFromFrameworkReference, "frameworkReferences", "targetFramework")
 
-	return frameworkReferenceGroupsTokens
 }
 
 func NewElement(ns, name, value string, attrs ...xml.Attr) []xml.Token {
@@ -188,14 +203,14 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 	ns string,
 	objectSets []TSet,
 	isGroupable func(TSet) bool,
-	getGroupIdentifier func(TSet) string,
+	getGroupIdentifier func(TSet) (string, error),
 	getItems func(TSet) []TItem,
 	getXElementFromItem func(ns string, item TItem) []xml.Token,
 	parentName string,
 	identifierAttributeName string,
-) []xml.Token {
+) ([]xml.Token, error) {
 	if objectSets == nil || len(objectSets) == 0 {
-		return nil
+		return nil, nil
 	}
 	var groupableSets, ungroupableSets []TSet
 	for _, set := range objectSets {
@@ -224,10 +239,13 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 				groupTokens = append(groupTokens, getXElementFromItem(ns, item)...)
 			}
 			if isGroupable(set) {
-				groupIdentifier := getGroupIdentifier(set)
-				if groupIdentifier != "" {
-					groupStart.Attr = append(groupStart.Attr, NewXMLAttr(identifierAttributeName, groupIdentifier))
-					groupTokens[0] = groupStart
+				if groupIdentifier, err := getGroupIdentifier(set); err != nil {
+					return nil, err
+				} else {
+					if groupIdentifier != "" {
+						groupStart.Attr = append(groupStart.Attr, NewXMLAttr(identifierAttributeName, groupIdentifier))
+						groupTokens[0] = groupStart
+					}
 				}
 			}
 			groupTokens = append(groupTokens, xml.EndElement{Name: xml.Name{Space: ns, Local: "group"}})
@@ -240,7 +258,7 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 	}
 	tokens = append(tokens, childElements...)
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: parentName}})
-	return tokens
+	return tokens, nil
 }
 func getXElementFromPackageDependency(ns string, dependency *nuget.Dependency) []xml.Token {
 	if dependency == nil {
@@ -260,9 +278,9 @@ func getXElementFromPackageDependency(ns string, dependency *nuget.Dependency) [
 	}
 	return NewElement(ns, "dependency", "", attrs...)
 }
-func getXElementFromFrameworkAssemblies(ns string, references []*FrameworkAssemblyReference) []xml.Token {
+func getXElementFromFrameworkAssemblies(ns string, references []*FrameworkAssemblyReference) ([]xml.Token, error) {
 	if references == nil || len(references) == 0 {
-		return nil
+		return nil, fmt.Errorf("references cannot be nil")
 	}
 	var childTokens []xml.Token
 	for _, reference := range references {
@@ -272,8 +290,12 @@ func getXElementFromFrameworkAssemblies(ns string, references []*FrameworkAssemb
 		if reference.SupportedFrameworks != nil && len(reference.SupportedFrameworks) > 0 {
 			frameworkStrs := make([]string, 0)
 			for _, framework := range reference.SupportedFrameworks {
-				if framework.IsSpecificFramework {
-					frameworkStrs = append(frameworkStrs, framework.GetFrameworkString())
+				if framework.IsSpecificFramework() {
+					if frameworkString, err := framework.GetFrameworkString(); err != nil {
+						return nil, err
+					} else {
+						frameworkStrs = append(frameworkStrs, frameworkString)
+					}
 				}
 			}
 			attrs = append(attrs, NewXMLAttr("targetFramework", strings.Join(frameworkStrs, ", ")))
@@ -285,7 +307,7 @@ func getXElementFromFrameworkAssemblies(ns string, references []*FrameworkAssemb
 	}
 	tokens = append(tokens, childTokens...)
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: "frameworkAssemblies"}})
-	return tokens
+	return tokens, nil
 }
 func getXElementFromManifestContentFiles(ns string, contentFiles []*ManifestContentFiles) []xml.Token {
 	if contentFiles == nil || len(contentFiles) == 0 {

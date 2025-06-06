@@ -104,6 +104,9 @@ func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*semve
 	}
 	return semver.NewVersion(versionString)
 }
+func (f *FrameworkNameProvider) GetShortIdentifier(identifier string) string {
+	return f.convertOrNormalize(identifier, f.identifierToShortNameMap, f.identifierShortToLongMap)
+}
 
 func (f *FrameworkNameProvider) GetPortableFrameworks(shortPortableProfiles string) ([]*Framework, error) {
 	var shortNames []string

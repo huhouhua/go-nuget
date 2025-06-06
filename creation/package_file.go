@@ -34,6 +34,8 @@ type PhysicalPackageFile struct {
 	nugetFramework *Framework
 	streamFactory  func() *os.File
 
+	effectivePath string
+
 	lastWriteTime time.Time
 	// Path on disk
 	sourcePath string
@@ -58,20 +60,15 @@ func (p *PhysicalPackageFile) SetPath(targetPath string) {
 		return
 	}
 	p.targetPath = targetPath
-	var effectivePath string
-	p.nugetFramework = ParseNuGetFrameworkFromFilePath(p.targetPath, &effectivePath)
-	//if p.nugetFramework != nil && p.nugetFramework.Version.Major() < 5 {
-	//	p.nugetFramework = p.nugetFramework.
-	//}
-
+	p.nugetFramework = ParseNuGetFrameworkFromFilePath(p.targetPath, &p.effectivePath)
 }
+
 func (p *PhysicalPackageFile) GetEffectivePath() string {
-	return ""
+	return p.effectivePath
 }
 func (p *PhysicalPackageFile) GetNuGetFramework() *Framework {
-	return nil
+	return p.nugetFramework
 }
-
 func (p *PhysicalPackageFile) GetStream() (*os.File, error) {
 	if p.streamFactory != nil {
 		p.lastWriteTime = time.Now().UTC()

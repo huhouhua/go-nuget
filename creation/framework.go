@@ -15,7 +15,20 @@ import (
 	"github.com/huhouhua/go-nuget"
 )
 
+var (
+	// An unknown or invalid framework
+	unsupportedFramework = NewFramework(Unsupported)
+
+	//  A framework with no specific target framework. This can be used for content only packages.
+	agnosticFramework = NewFramework(Agnostic)
+
+	// A wildcard matching all frameworks
+	anyFramework = NewFramework(Any)
+)
+
 type Framework struct {
+	targetFrameworkMoniker string
+
 	// Framework Target framework
 	Framework string
 
@@ -33,13 +46,6 @@ type Framework struct {
 
 	// TODO ShortFolderName the shortened version of the framework using the default mappings.
 	ShortFolderName string
-
-	// TODO IsUnsupported True if this framework was invalid or unknown. This framework is only compatible with Any and
-	// Agnostic.
-	IsUnsupported bool
-
-	// TODO IsSpecificFramework True if this framework is real and not one of the special identifiers.
-	IsSpecificFramework bool
 }
 
 func NewFramework(framework string) *Framework {
@@ -86,9 +92,88 @@ func newFrameworkFrom(
 	return nf
 }
 
-// GetFrameworkString TODO
-func (f *Framework) GetFrameworkString() string {
+// IsUnsupported True if this framework was invalid or unknown. This framework is only compatible with Any and
+func (f *Framework) IsUnsupported() bool {
+	return unsupportedFramework == f
+}
+
+// IsAgnostic  True if this framework is non-specific. Always compatible.
+func (f *Framework) IsAgnostic() bool {
+	return agnosticFramework == f
+}
+
+// IsAny True if this is the any framework. Always compatible.
+func (f *Framework) IsAny() bool {
+	return anyFramework == f
+}
+
+// IsSpecificFramework True if this framework is real and not one of the special identifiers.
+func (f *Framework) IsSpecificFramework() bool {
+	return !f.IsAgnostic() && !f.IsAny() && !f.IsUnsupported()
+}
+
+// GetFrameworkString which is relevant for building packages. This isn't needed for net5.0+ frameworks.
+func (f *Framework) GetFrameworkString() (string, error) {
+	isNet5Era := f.Version.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, f.Framework)
+	if isNet5Era {
+		return f.GetShortFolderName(), nil
+	}
+	frameworkName, err := NewFrameworkName(f.GetDotNetFrameworkName())
+	if err != nil {
+		return "", err
+	}
+	name := fmt.Sprintf("%s%s", frameworkName.GetIdentifier(), frameworkName.GetVersion().String())
+	if strings.TrimSpace(frameworkName.GetProfile()) == "" {
+		return name, nil
+	}
+	return fmt.Sprintf("%s-%s", name, frameworkName.GetProfile()), nil
+}
+
+// GetShortFolderName Creates the shortened version of the framework using the default mappings.
+// Ex: net45
+func (f *Framework) GetShortFolderName() string {
 	return ""
+}
+
+// GetDotNetFrameworkName The TargetFrameworkMoniker identifier of the current NuGetFramework.
+func (f *Framework) GetDotNetFrameworkName() string {
+	if f.targetFrameworkMoniker == "" {
+		f.targetFrameworkMoniker = f.getDotNetFrameworkName(GetProviderInstance())
+	}
+	return f.targetFrameworkMoniker
+}
+
+// getDotNetFrameworkName The TargetFrameworkMoniker identifier of the current NuGetFramework.
+func (f *Framework) getDotNetFrameworkName(mappings FrameworkNameProvider) string {
+	// Check for rewrites
+	framework := mappings.GetFullNameReplacement(f)
+	if framework.IsSpecificFramework() {
+		parts := []string{f.Framework}
+		parts = append(parts, fmt.Sprintf("Version=v%s", getDisplayVersion(framework.Version)))
+		if strings.TrimSpace(framework.Profile) != "" {
+			parts = append(parts, fmt.Sprintf("Profile=%s", framework.Profile))
+		}
+		return strings.Join(parts, ",")
+	} else {
+		return fmt.Sprintf("%s,Version=v0.0", framework.Framework)
+	}
+
+}
+
+func getDisplayVersion(v *semver.Version) string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("%d.%d", v.Major(), v.Minor()))
+
+	if v.Patch() > 0 || v.Metadata() != "" {
+		sb.WriteString(fmt.Sprintf(".%d", v.Patch()))
+
+		if v.Metadata() != "" {
+			sb.WriteString("." + v.Metadata())
+		}
+	}
+
+	return sb.String()
 }
 
 type FrameworkAssemblyReference struct {
@@ -134,7 +219,7 @@ func ParseNuGetFrameworkFolderName(
 	if err != nil {
 		return nil, err
 	}
-	if strictParsing || nugetFramework.IsSpecificFramework {
+	if strictParsing || nugetFramework.IsSpecificFramework() {
 		*effectivePath = frameworkPath[len(targetFrameworkString)+1:]
 		return nugetFramework, err
 	}

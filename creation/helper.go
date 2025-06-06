@@ -245,7 +245,7 @@ func requiresV4TargetFrameworkSchema(files []PackageFile) bool {
 		framework := file.GetNuGetFramework()
 		contentPrefix := fmt.Sprintf("content%v", os.PathSeparator)
 		toolsPrefix := fmt.Sprintf("tools%v", os.PathSeparator)
-		return framework != nil && framework.IsUnsupported && (strings.HasPrefix(file.GetPath(), contentPrefix) ||
+		return framework != nil && framework.IsUnsupported() && (strings.HasPrefix(file.GetPath(), contentPrefix) ||
 			strings.HasPrefix(file.GetPath(), toolsPrefix))
 	})
 	if hasContentOrTool {

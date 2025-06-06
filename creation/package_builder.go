@@ -422,7 +422,7 @@ func (p *PackageBuilder) writeFiles(
 func (p *PackageBuilder) GetVersion() int {
 	if p.PackageAssemblyReferences != nil {
 		referencesHasTargetFramework := nuget.Some(p.PackageAssemblyReferences, func(set *PackageReferenceSet) bool {
-			return set.TargetFramework != nil && set.TargetFramework.IsSpecificFramework
+			return set.TargetFramework != nil && set.TargetFramework.IsSpecificFramework()
 		})
 		if referencesHasTargetFramework {
 			return TargetFrameworkSupportForReferencesVersion
@@ -430,7 +430,7 @@ func (p *PackageBuilder) GetVersion() int {
 	}
 	if p.DependencyGroups != nil {
 		dependencyHasTargetFramework := nuget.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
-			return group.TargetFramework != nil && group.TargetFramework.IsSpecificFramework
+			return group.TargetFramework != nil && group.TargetFramework.IsSpecificFramework()
 		})
 		if dependencyHasTargetFramework {
 			return TargetFrameworkSupportForDependencyContentsAndToolsVersion
