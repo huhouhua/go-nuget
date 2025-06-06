@@ -266,6 +266,18 @@ func (f *Framework) String() (string, error) {
 	return f.GetDotNetFrameworkName(), nil
 }
 
+func (f *Framework) Equals(other *Framework) bool {
+	if other == nil {
+		return f == other
+	}
+	return f.Version.Equal(other.Version) &&
+		strings.EqualFold(f.Framework, other.Framework) &&
+		strings.EqualFold(f.Profile, other.Profile) &&
+		strings.EqualFold(f.Platform, other.Platform) &&
+		f.PlatformVersion.Equal(other.PlatformVersion) &&
+		!f.IsUnsupported()
+}
+
 func getDisplayVersion(v *semver.Version) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("%d.%d", v.Major(), v.Minor()))
