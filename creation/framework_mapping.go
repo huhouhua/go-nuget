@@ -49,21 +49,24 @@ type PortableFrameworkMappings interface {
 
 type FrameworkMappings interface {
 	// GetIdentifierSynonymsMap Synonym &#8210;&gt; Identifier
-	// Ex: NET Framework &#8210;&gt; .NET Framework
+	// Ex: NET Framework .NET Framework
 	GetIdentifierSynonymsMap() []*KeyValuePair[string, string]
 
-	// GetIdentifierShortNameMap Ex: .NET Framework &#8210;&gt; net
+	// GetIdentifierShortNameMap Ex: .NET Framework  net
 	GetIdentifierShortNameMap() []*KeyValuePair[string, string]
 
-	// GetProfileShortNamesMap Ex: WindowsPhone &#8210;&gt; wp
+	// GetProfileShortNamesMap Ex: WindowsPhone  wp
 	GetProfileShortNamesMap() []*FrameworkSpecificMapping
 
 	// GetEquivalentFrameworkMap Equal frameworks. Used for legacy conversions.
-	// ex: Framework: Win8 &lt;&#8210;&gt; Framework: NetCore45 Platform: Win8
+	// ex: Framework: Win8  Framework: NetCore45 Platform: Win8
 	GetEquivalentFrameworkMap() []*KeyValuePair[*Framework, *Framework]
 
-	// GetFullNameReplacementMap Rewrite full framework names to the given value.
-	// Ex: .NETPlatform,Version=v0.0 &#8210;&gt; .NETPlatform,Version=v5.0
+	// GetShortNameReplacementMap Rewrite folder short names to the given value. Ex: dotnet50 ‒> dotnet
+	GetShortNameReplacementMap() []*KeyValuePair[*Framework, *Framework]
+
+	// GetFullNameReplacementMap Rewrite full framework names to the given value. Ex: .NETPlatform,Version=v0.0 ‒>
+	// .NETPlatform,Version=v5.0
 	GetFullNameReplacementMap() []*KeyValuePair[*Framework, *Framework]
 }
 
@@ -420,6 +423,16 @@ func (d *DefaultFrameworkMappings) GetEquivalentFrameworkMap() []*KeyValuePair[*
 		},
 	}
 }
+
+func (d *DefaultFrameworkMappings) GetShortNameReplacementMap() []*KeyValuePair[*Framework, *Framework] {
+	return []*KeyValuePair[*Framework, *Framework]{
+		{
+			Key:   DotNet50,
+			Value: DotNet,
+		},
+	}
+}
+
 func (d *DefaultFrameworkMappings) GetFullNameReplacementMap() []*KeyValuePair[*Framework, *Framework] {
 	return []*KeyValuePair[*Framework, *Framework]{
 		{

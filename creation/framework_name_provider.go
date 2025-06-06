@@ -7,11 +7,20 @@ package creation
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/huhouhua/go-nuget"
 
 	"github.com/Masterminds/semver/v3"
+)
+
+var (
+	singleDigitVersionFrameworkMap = map[string]bool{
+		"Windows":      true,
+		"WindowsPhone": true,
+		"Silverlight":  true,
+	}
 )
 
 type FrameworkNameProvider struct {
@@ -35,7 +44,8 @@ type FrameworkNameProvider struct {
 	equivalentFrameworkMap map[string]map[string]*Framework
 
 	// Rewrite mappings
-	fullNameRewrites []*KeyValuePair[*Framework, *Framework]
+	shortNameRewrites []*KeyValuePair[*Framework, *Framework]
+	fullNameRewrites  []*KeyValuePair[*Framework, *Framework]
 }
 
 func NewFrameworkNameProvider(
@@ -51,6 +61,7 @@ func NewFrameworkNameProvider(
 		profileShortToLongMap:        make(map[string]string),
 		profilesToShortNameMap:       make(map[string]string),
 		equivalentFrameworkMap:       make(map[string]map[string]*Framework),
+		shortNameRewrites:            make([]*KeyValuePair[*Framework, *Framework], 0),
 		fullNameRewrites:             make([]*KeyValuePair[*Framework, *Framework], 0),
 	}
 
@@ -94,6 +105,44 @@ func (f *FrameworkNameProvider) GetVersion(versionString string) (*semver.Versio
 	return semver.NewVersion(string(parts))
 }
 
+func (f *FrameworkNameProvider) GetVersionString(framework string, version *semver.Version) string {
+	if version.Major() == 0 && version.Minor() == 0 && version.Patch() == 0 {
+		return ""
+	}
+	stack := []int{int(version.Major()), int(version.Minor()), int(version.Patch())}
+	minCount := 2
+	if singleDigitVersionFrameworkMap[framework] {
+		minCount = 1
+	}
+	for len(stack) > minCount && stack[len(stack)-1] == 0 {
+		stack = stack[:len(stack)-1]
+	}
+	hasDoubleDigit := strings.EqualFold(framework, ".NETCoreApp") ||
+		strings.EqualFold(framework, ".NETStandard") ||
+		anyGreaterThanNine(stack)
+	if hasDoubleDigit {
+		if len(stack) < 2 {
+			stack = append(stack, 0)
+		}
+		return joinInts(stack, ".")
+	}
+	return joinInts(stack, "")
+}
+func anyGreaterThanNine(stack []int) bool {
+	for _, v := range stack {
+		if v > 9 {
+			return true
+		}
+	}
+	return false
+}
+func joinInts(nums []int, sep string) string {
+	strs := make([]string, len(nums))
+	for i, n := range nums {
+		strs[i] = strconv.Itoa(n)
+	}
+	return strings.Join(strs, sep)
+}
 func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*semver.Version, error) {
 	versionString = strings.TrimSpace(versionString)
 	if versionString == "" {
@@ -106,6 +155,48 @@ func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*semve
 }
 func (f *FrameworkNameProvider) GetShortIdentifier(identifier string) string {
 	return f.convertOrNormalize(identifier, f.identifierToShortNameMap, f.identifierShortToLongMap)
+}
+func (f *FrameworkNameProvider) GetShortProfile(profile string) string {
+	return f.convertOrNormalize(profile, f.profilesToShortNameMap, f.profileShortToLongMap)
+}
+func TryGetPortableProfileNumber(profile string) (int, bool) {
+	if strings.HasPrefix(strings.ToLower(profile), "profile") {
+		numStr := profile[7:] // Skip "Profile"
+		if n, err := strconv.Atoi(numStr); err == nil {
+			return n, true
+		}
+	}
+	return -1, false
+}
+
+func (f *FrameworkNameProvider) GetPortableFrameworksWithInclude(
+	profile string,
+	includeOptional bool,
+) ([]*Framework, error) {
+	if profileNumber, ok := TryGetPortableProfileNumber(profile); !ok {
+		return f.GetPortableFrameworks(profile)
+	} else {
+		if frameworks := f.getPortableFrameworksWithInclude(profileNumber, includeOptional); frameworks != nil && len(frameworks) > 0 {
+			return frameworks, nil
+		}
+	}
+	return make([]*Framework, 0), nil
+}
+func (f *FrameworkNameProvider) getPortableFrameworksWithInclude(profile int, includeOptional bool) []*Framework {
+	var nuGetFrameworkSet1 []*Framework
+	if nuGetFrameworkSet2, ok := f.portableFrameworkMap[profile]; ok {
+		for _, nuGetFramework := range nuGetFrameworkSet2 {
+			nuGetFrameworkSet1 = append(nuGetFrameworkSet1, nuGetFramework)
+		}
+	}
+	if includeOptional {
+		if nuGetFrameworkSet3, ok := f.portableOptionalFrameworkMap[profile]; ok {
+			for _, nuGetFramework := range nuGetFrameworkSet3 {
+				nuGetFrameworkSet1 = append(nuGetFrameworkSet1, nuGetFramework)
+			}
+		}
+	}
+	return nuGetFrameworkSet1
 }
 
 func (f *FrameworkNameProvider) GetPortableFrameworks(shortPortableProfiles string) ([]*Framework, error) {
@@ -175,6 +266,14 @@ func (f *FrameworkNameProvider) GetPortableProfile(supportedFrameworks []*Framew
 		reduced = map[string]*Framework{}
 	}
 	return -1
+}
+func (f *FrameworkNameProvider) GetShortNameReplacement(framework *Framework) *Framework {
+	for _, rewrite := range f.shortNameRewrites {
+		if rewrite.Key.Framework == framework.Framework {
+			return rewrite.Value
+		}
+	}
+	return framework
 }
 
 func (f *FrameworkNameProvider) GetFullNameReplacement(framework *Framework) *Framework {
@@ -311,7 +410,8 @@ func (p *FrameworkNameProvider) initMappings(mappings []FrameworkMappings) {
 		p.addIdentifierShortNames(mapping.GetIdentifierShortNameMap())
 
 		// add rewrite rules
-		p.addShortNameRewriteMappings(mapping.GetFullNameReplacementMap())
+		p.addShortNameRewriteMappings(mapping.GetShortNameReplacementMap())
+		p.addFullNameRewriteMappings(mapping.GetFullNameReplacementMap())
 	}
 }
 
@@ -433,6 +533,20 @@ func (p *FrameworkNameProvider) addPortableOptionalFrameworks(mappings []*KeyVal
 }
 
 func (p *FrameworkNameProvider) addShortNameRewriteMappings(mappings []*KeyValuePair[*Framework, *Framework]) {
+	if mappings == nil {
+		return
+	}
+	for _, mapping := range mappings {
+		hasContains := nuget.Some(p.shortNameRewrites, func(k *KeyValuePair[*Framework, *Framework]) bool {
+			return strings.EqualFold(k.Key.Framework, mapping.Key.Framework)
+		})
+		if !hasContains {
+			p.shortNameRewrites = append(p.shortNameRewrites, mapping)
+		}
+	}
+}
+
+func (p *FrameworkNameProvider) addFullNameRewriteMappings(mappings []*KeyValuePair[*Framework, *Framework]) {
 	if mappings == nil {
 		return
 	}

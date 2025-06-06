@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/Masterminds/semver/v3"
 
@@ -29,6 +31,9 @@ var (
 type Framework struct {
 	targetFrameworkMoniker string
 
+	// isNet5Era True if this framework is Net5 or later, until we invent something new.
+	isNet5Era bool
+
 	// Framework Target framework
 	Framework string
 
@@ -43,9 +48,6 @@ type Framework struct {
 
 	// Target framework profile
 	Profile string
-
-	// TODO ShortFolderName the shortened version of the framework using the default mappings.
-	ShortFolderName string
 }
 
 func NewFramework(framework string) *Framework {
@@ -79,10 +81,10 @@ func newFrameworkFrom(
 		Version:   version,
 		Profile:   profile,
 	}
-	isNet5Era := nf.Version.Major() >= 5 &&
+	nf.isNet5Era = nf.Version.Major() >= 5 &&
 		strings.EqualFold(strings.ToLower(framework), strings.ToLower(nuget.NetCoreApp))
 
-	if isNet5Era {
+	if nf.isNet5Era {
 		nf.Platform = platform
 		nf.PlatformVersion = platformVersion
 	} else {
@@ -112,11 +114,21 @@ func (f *Framework) IsSpecificFramework() bool {
 	return !f.IsAgnostic() && !f.IsAny() && !f.IsUnsupported()
 }
 
+// AllFrameworkVersions True if this framework matches for all versions.
+func (f *Framework) AllFrameworkVersions() bool {
+	return f.Version.Major() == 0 && f.Version.Minor() == 0 && f.Version.Patch() == 0 && f.Version.Metadata() == ""
+}
+
+// IsPCL Portable class library check
+func (f *Framework) IsPCL() bool {
+	return strings.EqualFold(f.Framework, nuget.Portable) && f.Version.Major() < 5
+}
+
 // GetFrameworkString which is relevant for building packages. This isn't needed for net5.0+ frameworks.
 func (f *Framework) GetFrameworkString() (string, error) {
 	isNet5Era := f.Version.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, f.Framework)
 	if isNet5Era {
-		return f.GetShortFolderName(), nil
+		return f.GetShortFolderName()
 	}
 	frameworkName, err := NewFrameworkName(f.GetDotNetFrameworkName())
 	if err != nil {
@@ -129,10 +141,97 @@ func (f *Framework) GetFrameworkString() (string, error) {
 	return fmt.Sprintf("%s-%s", name, frameworkName.GetProfile()), nil
 }
 
+// getFrameworkIdentifier Helper that is .NET 5 Era aware to replace identifier when appropriate
+func (f *Framework) getFrameworkIdentifier() string {
+	if f.isNet5Era {
+		return nuget.Net
+	}
+	return f.Framework
+}
+
 // GetShortFolderName Creates the shortened version of the framework using the default mappings.
 // Ex: net45
-func (f *Framework) GetShortFolderName() string {
-	return ""
+func (f *Framework) GetShortFolderName() (string, error) {
+	return f.getShortFolderName(GetProviderInstance())
+}
+
+// GetShortFolderName Creates the shortened version of the framework using the given mappings.
+func (f *Framework) getShortFolderName(mappings FrameworkNameProvider) (string, error) {
+	// Check for rewrites
+	framework := mappings.GetShortNameReplacement(f)
+	var sb strings.Builder
+	if !f.IsSpecificFramework() {
+		// unsupported, any, agnostic
+		return strings.ToLower(f.Framework), nil
+	}
+	// get the framework
+	shortFramework := mappings.GetShortIdentifier(f.getFrameworkIdentifier())
+	if strings.TrimSpace(shortFramework) == "" {
+		shortFramework = getLettersAndDigitsOnly(framework.Framework)
+	}
+	if strings.TrimSpace(shortFramework) == "" {
+		return "", fmt.Errorf("invalid framework identifier '%s'", shortFramework)
+	}
+	// add framework
+	sb.WriteString(shortFramework)
+
+	// add the version if it is non-empty
+	if !f.AllFrameworkVersions() {
+		sb.WriteString(mappings.GetVersionString(framework.Framework, framework.Version))
+	}
+	if f.IsPCL() {
+		sb.WriteString("-")
+		frameworkErr := fmt.Errorf(
+			"invalid portable frameworks for '%s'. A portable framework must have at least one framework in the profile",
+			framework.GetDotNetFrameworkName(),
+		)
+		if strings.TrimSpace(framework.Profile) != "" {
+			if frameworks, err := mappings.GetPortableFrameworksWithInclude(framework.Profile, false); err != nil {
+				return "", err
+			} else {
+				if len(frameworks) > 0 {
+					if frameworks, err = mappings.GetPortableFrameworksWithInclude(framework.Profile, false); err != nil {
+						return "", err
+					}
+					sortedFrameworks := make([]string, 0)
+					for _, fw := range frameworks {
+						if name, err := fw.getShortFolderName(mappings); err != nil {
+							return "", err
+						} else {
+							sortedFrameworks = append(sortedFrameworks, name)
+						}
+					}
+					// sort the PCL frameworks by alphabetical order
+					sort.Slice(sortedFrameworks, func(i, j int) bool {
+						return strings.ToLower(sortedFrameworks[i]) < strings.ToLower(sortedFrameworks[j])
+					})
+					sb.WriteString(strings.Join(sortedFrameworks, "+"))
+				} else {
+					return "", frameworkErr
+				}
+			}
+		} else {
+			return "", frameworkErr
+		}
+	} else if f.isNet5Era {
+		if strings.TrimSpace(framework.Platform) != "" {
+			sb.WriteString("-")
+			sb.WriteString(strings.ToLower(framework.Platform))
+			if framework.PlatformVersion.Equal(nuget.EmptyVersion) {
+				sb.WriteString(mappings.GetVersionString(framework.Framework, framework.PlatformVersion))
+			}
+		}
+	} else {
+		// add the profile
+		if shortProfile := mappings.GetShortProfile(framework.Profile); strings.TrimSpace(shortProfile) == "" {
+			// if we have a profile, but can't get a mapping, just use the profile as is
+			shortProfile = framework.Profile
+		} else {
+			sb.WriteString("-")
+			sb.WriteString(shortProfile)
+		}
+	}
+	return strings.ToLower(sb.String()), nil
 }
 
 // GetDotNetFrameworkName The TargetFrameworkMoniker identifier of the current NuGetFramework.
@@ -160,19 +259,31 @@ func (f *Framework) getDotNetFrameworkName(mappings FrameworkNameProvider) strin
 
 }
 
+func (f *Framework) String() (string, error) {
+	if f.isNet5Era {
+		return f.GetShortFolderName()
+	}
+	return f.GetDotNetFrameworkName(), nil
+}
+
 func getDisplayVersion(v *semver.Version) string {
 	var sb strings.Builder
-
 	sb.WriteString(fmt.Sprintf("%d.%d", v.Major(), v.Minor()))
-
 	if v.Patch() > 0 || v.Metadata() != "" {
 		sb.WriteString(fmt.Sprintf(".%d", v.Patch()))
-
 		if v.Metadata() != "" {
 			sb.WriteString("." + v.Metadata())
 		}
 	}
-
+	return sb.String()
+}
+func getLettersAndDigitsOnly(s string) string {
+	var sb strings.Builder
+	for _, c := range s {
+		if unicode.IsLetter(c) || unicode.IsDigit(c) {
+			sb.WriteRune(c)
+		}
+	}
 	return sb.String()
 }
 
