@@ -96,17 +96,17 @@ func newFrameworkFrom(
 
 // IsUnsupported True if this framework was invalid or unknown. This framework is only compatible with Any and
 func (f *Framework) IsUnsupported() bool {
-	return unsupportedFramework == f
+	return unsupportedFramework.Equals(f)
 }
 
 // IsAgnostic  True if this framework is non-specific. Always compatible.
 func (f *Framework) IsAgnostic() bool {
-	return agnosticFramework == f
+	return agnosticFramework.Equals(f)
 }
 
 // IsAny True if this is the any framework. Always compatible.
 func (f *Framework) IsAny() bool {
-	return anyFramework == f
+	return anyFramework.Equals(f)
 }
 
 // IsSpecificFramework True if this framework is real and not one of the special identifiers.
