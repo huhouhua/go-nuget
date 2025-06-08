@@ -6,7 +6,6 @@ package creation
 
 import (
 	"encoding/xml"
-	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -18,13 +17,16 @@ func (p *PackageBuilder) save(stream io.Writer, ns string) error {
 	var tokens []xml.Token
 
 	tokens = append(tokens, xml.StartElement{Name: xml.Name{Space: ns, Local: "package"}})
-	if xmlToken, err := p.ToXML(ns); err != nil {
+	if xmlToken, err := p.ToXML(); err != nil {
 		return err
 	} else {
 		tokens = append(tokens, xmlToken...)
 	}
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: "package"}})
 
+	if _, err := stream.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>` + "\n")); err != nil {
+		return err
+	}
 	// Write XML
 	encoder := xml.NewEncoder(stream)
 	encoder.Indent("", "  ")
@@ -37,110 +39,118 @@ func (p *PackageBuilder) save(stream io.Writer, ns string) error {
 }
 
 // ToXML converts metadata  to XML
-func (p *PackageBuilder) ToXML(ns string) ([]xml.Token, error) {
+func (p *PackageBuilder) ToXML() ([]xml.Token, error) {
 	var tokens []xml.Token
-	elem := xml.StartElement{Name: xml.Name{Local: "metadata"}, Attr: []xml.Attr{
-		{Name: xml.Name{Local: "xmlns"}, Value: ns},
-	}}
-	if p.MinClientVersion.String() != "" {
+	elem := xml.StartElement{Name: xml.Name{Local: "metadata"}}
+	if p.MinClientVersion != nil && p.MinClientVersion.String() != "" {
 		elem.Attr = append(
 			elem.Attr,
 			xml.Attr{Name: xml.Name{Local: "minClientVersion"}, Value: p.MinClientVersion.String()},
 		)
 	}
 	tokens = append(tokens, elem)
-	tokens = append(tokens, NewElement(ns, "id", p.Id)...)
+	tokens = append(tokens, NewElement("id", p.Id)...)
 	if strings.TrimSpace(p.Version.String()) != "" {
-		tokens = append(tokens, NewElement(ns, "version", p.Version.String())...)
+		tokens = append(tokens, NewElement("version", p.Version.String())...)
 	}
-	if strings.TrimSpace(p.Title) == "" {
-		tokens = append(tokens, NewElement(ns, "title", p.Title)...)
+	if strings.TrimSpace(p.Title) != "" {
+		tokens = append(tokens, NewElement("title", p.Title)...)
 	}
 	if !p.isHasSymbolsInPackageType() {
+		if p.Authors != nil && len(p.Authors) > 0 {
+			tokens = append(tokens, NewElement("authors", strings.Join(p.Authors, ","))...)
+		}
+		if p.Owners != nil && len(p.Owners) > 0 {
+			tokens = append(tokens, NewElement("owners", strings.Join(p.Owners, ","))...)
+		}
+		if p.DevelopmentDependency {
+			tokens = append(tokens, NewElement("developmentDependency", strconv.FormatBool(p.DevelopmentDependency))...)
+		}
 		if p.EmitRequireLicenseAcceptance {
 			tokens = append(
 				tokens,
-				NewElement(ns, "requireLicenseAcceptance", strconv.FormatBool(p.RequireLicenseAcceptance))...)
+				NewElement("requireLicenseAcceptance", strconv.FormatBool(p.RequireLicenseAcceptance))...)
 		}
 		if p.LicenseMetadata != nil {
-			tokens = append(tokens, getXMLElementFromLicenseMetadata(ns, p.LicenseMetadata)...)
+			tokens = append(tokens, getXMLElementFromLicenseMetadata(p.LicenseMetadata)...)
 			if licenseURL, err := p.LicenseMetadata.GetLicenseURL(); err != nil {
 				return nil, err
 			} else {
-				tokens = append(tokens, NewElement(ns, "licenseUrl", licenseURL.String())...)
+				tokens = append(tokens, NewElement("licenseUrl", licenseURL.String())...)
 			}
 		}
 		if strings.TrimSpace(p.Icon) != "" {
-			tokens = append(tokens, NewElement(ns, "icon", p.Icon)...)
+			tokens = append(tokens, NewElement("icon", p.Icon)...)
 		}
 		if strings.TrimSpace(p.Readme) != "" {
-			tokens = append(tokens, NewElement(ns, "readme", p.Readme)...)
+			tokens = append(tokens, NewElement("readme", p.Readme)...)
 		}
 	}
 	if p.ProjectURL != nil && p.ProjectURL.String() != "" {
-		tokens = append(tokens, NewElement(ns, "projectUrl", p.ProjectURL.String())...)
+		tokens = append(tokens, NewElement("projectUrl", p.ProjectURL.String())...)
 	}
 	if p.IconURL != nil && p.IconURL.String() != "" {
-		tokens = append(tokens, NewElement(ns, "iconUrl", p.IconURL.String())...)
+		tokens = append(tokens, NewElement("iconUrl", p.IconURL.String())...)
 	}
 	if strings.TrimSpace(p.Description) != "" {
-		tokens = append(tokens, NewElement(ns, "description", p.Description)...)
+		tokens = append(tokens, NewElement("description", p.Description)...)
 	}
 	if strings.TrimSpace(p.Summary) != "" {
-		tokens = append(tokens, NewElement(ns, "summary", p.Summary)...)
+		tokens = append(tokens, NewElement("summary", p.Summary)...)
 	}
 	if strings.TrimSpace(p.ReleaseNotes) != "" {
-		tokens = append(tokens, NewElement(ns, "releaseNotes", p.ReleaseNotes)...)
+		tokens = append(tokens, NewElement("releaseNotes", p.ReleaseNotes)...)
 	}
 	if strings.TrimSpace(p.Copyright) != "" {
-		tokens = append(tokens, NewElement(ns, "copyright", p.Copyright)...)
+		tokens = append(tokens, NewElement("copyright", p.Copyright)...)
 	}
 	if strings.TrimSpace(p.Language) != "" {
-		tokens = append(tokens, NewElement(ns, "language", p.Language)...)
+		tokens = append(tokens, NewElement("language", p.Language)...)
 	}
 	if len(p.Tags) > 0 {
-		tokens = append(tokens, NewElement(ns, "tags", strings.Join(p.Tags, " "))...)
+		tokens = append(tokens, NewElement("tags", strings.Join(p.Tags, " "))...)
 	}
 	if p.Serviceable {
-		tokens = append(tokens, NewElement(ns, "serviceable", strconv.FormatBool(p.Serviceable))...)
+		tokens = append(tokens, NewElement("serviceable", strconv.FormatBool(p.Serviceable))...)
 	}
 	if p.PackageTypes != nil && len(p.PackageTypes) > 0 {
-		tokens = append(tokens, getXElementFromManifestPackageTypes(ns, p.PackageTypes))
+		tokens = append(tokens, getXElementFromManifestPackageTypes(p.PackageTypes))
 	}
-	if repoElement := getXElementFromManifestRepository(ns, p.Repository); repoElement != nil {
+	if repoElement := getXElementFromManifestRepository(p.Repository); repoElement != nil {
 		tokens = append(tokens)
 	}
-	if dependencyTokens, err := p.dependencyGroupsToTokens(ns); err != nil {
+	if dependencyTokens, err := p.dependencyGroupsToTokens(); err != nil {
 		return nil, err
 	} else {
 		tokens = append(tokens, dependencyTokens...)
 	}
 
-	if referencesTokens, err := p.packageAssemblyReferencesToTokens(ns); err != nil {
+	if referencesTokens, err := p.packageAssemblyReferencesToTokens(); err != nil {
 		return nil, err
 	} else {
 		tokens = append(tokens, referencesTokens...)
 	}
 
-	if frameworkTokens, err := p.frameworkReferenceGroupsToTokens(ns); err != nil {
+	if frameworkTokens, err := p.frameworkReferenceGroupsToTokens(); err != nil {
 		return nil, err
 	} else {
 		tokens = append(tokens, frameworkTokens...)
 	}
 
-	if assembliesTokens, err := getXElementFromFrameworkAssemblies(ns, p.FrameworkReferences); err != nil {
+	if assembliesTokens, err := getXElementFromFrameworkAssemblies(p.FrameworkReferences); err != nil {
 		return nil, err
 	} else {
 		tokens = append(tokens, assembliesTokens...)
 	}
 
-	tokens = append(tokens, getXElementFromManifestContentFiles(ns, p.ContentFiles)...)
+	tokens = append(tokens, getXElementFromManifestContentFiles(p.ContentFiles)...)
 
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "metadata"}})
 	return tokens, nil
 }
 
-func (p *PackageBuilder) dependencyGroupsToTokens(ns string) ([]xml.Token, error) {
-	return getXElementFromGroupableItemSets(ns, p.DependencyGroups,
+func (p *PackageBuilder) dependencyGroupsToTokens() ([]xml.Token, error) {
+	return getXElementFromGroupableItemSets(p.DependencyGroups,
 		func(set *PackageDependencyGroup) bool {
 			isHasDependency := nuget.Some(set.Packages, func(dependency *nuget.Dependency) bool {
 				return len(dependency.Exclude) > 0 || len(dependency.Include) > 0
@@ -155,8 +165,8 @@ func (p *PackageBuilder) dependencyGroupsToTokens(ns string) ([]xml.Token, error
 			return set.Packages
 		}, getXElementFromPackageDependency, "dependencies", "targetFramework")
 }
-func (p *PackageBuilder) packageAssemblyReferencesToTokens(ns string) ([]xml.Token, error) {
-	return getXElementFromGroupableItemSets(ns, p.PackageAssemblyReferences,
+func (p *PackageBuilder) packageAssemblyReferencesToTokens() ([]xml.Token, error) {
+	return getXElementFromGroupableItemSets(p.PackageAssemblyReferences,
 		func(set *PackageReferenceSet) bool {
 			if set.TargetFramework == nil {
 				return false
@@ -172,8 +182,8 @@ func (p *PackageBuilder) packageAssemblyReferencesToTokens(ns string) ([]xml.Tok
 		}, getXElementFromPackageReference, "references", "targetFramework")
 }
 
-func (p *PackageBuilder) frameworkReferenceGroupsToTokens(ns string) ([]xml.Token, error) {
-	return getXElementFromGroupableItemSets(ns, p.FrameworkReferenceGroups,
+func (p *PackageBuilder) frameworkReferenceGroupsToTokens() ([]xml.Token, error) {
+	return getXElementFromGroupableItemSets(p.FrameworkReferenceGroups,
 		func(set *FrameworkReferenceGroup) bool {
 			// the TFM is required for framework references
 			return true
@@ -185,27 +195,26 @@ func (p *PackageBuilder) frameworkReferenceGroupsToTokens(ns string) ([]xml.Toke
 
 }
 
-func NewElement(ns, name, value string, attrs ...xml.Attr) []xml.Token {
+func NewElement(name, value string, attrs ...xml.Attr) []xml.Token {
 	tokens := []xml.Token{
 		xml.StartElement{
-			Name: xml.Name{Space: ns, Local: name},
+			Name: xml.Name{Local: name},
 			Attr: attrs,
 		},
 	}
 	if strings.TrimSpace(value) != "" {
 		tokens = append(tokens, xml.CharData(value))
 	}
-	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: name}})
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: name}})
 	return tokens
 }
 
 func getXElementFromGroupableItemSets[TSet any, TItem any](
-	ns string,
 	objectSets []TSet,
 	isGroupable func(TSet) bool,
 	getGroupIdentifier func(TSet) (string, error),
 	getItems func(TSet) []TItem,
-	getXElementFromItem func(ns string, item TItem) []xml.Token,
+	getXElementFromItem func(item TItem) []xml.Token,
 	parentName string,
 	identifierAttributeName string,
 ) ([]xml.Token, error) {
@@ -226,17 +235,17 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 		// none of the item sets are groupable, then flatten the items
 		for _, set := range objectSets {
 			for _, item := range getItems(set) {
-				childElements = append(childElements, getXElementFromItem(ns, item)...)
+				childElements = append(childElements, getXElementFromItem(item)...)
 			}
 		}
 	} else {
 		// move the group with null target framework (if any) to the front just for nicer display in UI
 		for _, set := range append(ungroupableSets, groupableSets...) {
-			groupStart := xml.StartElement{Name: xml.Name{Space: ns, Local: "group"}}
+			groupStart := xml.StartElement{Name: xml.Name{Local: "group"}}
 			groupTokens := []xml.Token{groupStart}
 
 			for _, item := range getItems(set) {
-				groupTokens = append(groupTokens, getXElementFromItem(ns, item)...)
+				groupTokens = append(groupTokens, getXElementFromItem(item)...)
 			}
 			if isGroupable(set) {
 				if groupIdentifier, err := getGroupIdentifier(set); err != nil {
@@ -248,19 +257,19 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 					}
 				}
 			}
-			groupTokens = append(groupTokens, xml.EndElement{Name: xml.Name{Space: ns, Local: "group"}})
+			groupTokens = append(groupTokens, xml.EndElement{Name: xml.Name{Local: "group"}})
 			childElements = append(childElements, groupTokens...)
 		}
 	}
 
 	tokens := []xml.Token{
-		xml.StartElement{Name: xml.Name{Space: ns, Local: parentName}},
+		xml.StartElement{Name: xml.Name{Local: parentName}},
 	}
 	tokens = append(tokens, childElements...)
-	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: parentName}})
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: parentName}})
 	return tokens, nil
 }
-func getXElementFromPackageDependency(ns string, dependency *nuget.Dependency) []xml.Token {
+func getXElementFromPackageDependency(dependency *nuget.Dependency) []xml.Token {
 	if dependency == nil {
 		return nil
 	}
@@ -276,11 +285,11 @@ func getXElementFromPackageDependency(ns string, dependency *nuget.Dependency) [
 	if dependency.Exclude != nil && len(dependency.Exclude) > 0 {
 		attrs = append(attrs, NewXMLAttr("exclude", strings.Join(dependency.Exclude, ",")))
 	}
-	return NewElement(ns, "dependency", "", attrs...)
+	return NewElement("dependency", "", attrs...)
 }
-func getXElementFromFrameworkAssemblies(ns string, references []*FrameworkAssemblyReference) ([]xml.Token, error) {
+func getXElementFromFrameworkAssemblies(references []*FrameworkAssemblyReference) ([]xml.Token, error) {
 	if references == nil || len(references) == 0 {
-		return nil, fmt.Errorf("references cannot be nil")
+		return nil, nil
 	}
 	var childTokens []xml.Token
 	for _, reference := range references {
@@ -300,16 +309,16 @@ func getXElementFromFrameworkAssemblies(ns string, references []*FrameworkAssemb
 			}
 			attrs = append(attrs, NewXMLAttr("targetFramework", strings.Join(frameworkStrs, ", ")))
 		}
-		childTokens = append(childTokens, NewElement(ns, "frameworkAssembly", "", attrs...))
+		childTokens = append(childTokens, NewElement("frameworkAssembly", "", attrs...))
 	}
 	tokens := []xml.Token{
-		xml.StartElement{Name: xml.Name{Space: ns, Local: "frameworkAssemblies"}},
+		xml.StartElement{Name: xml.Name{Local: "frameworkAssemblies"}},
 	}
 	tokens = append(tokens, childTokens...)
-	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: "frameworkAssemblies"}})
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "frameworkAssemblies"}})
 	return tokens, nil
 }
-func getXElementFromManifestContentFiles(ns string, contentFiles []*ManifestContentFiles) []xml.Token {
+func getXElementFromManifestContentFiles(contentFiles []*ManifestContentFiles) []xml.Token {
 	if contentFiles == nil || len(contentFiles) == 0 {
 		return nil
 	}
@@ -332,32 +341,32 @@ func getXElementFromManifestContentFiles(ns string, contentFiles []*ManifestCont
 			attrs = append(attrs, NewXMLAttr("flatten", file.Flatten))
 		}
 		if attrs != nil && len(attrs) > 0 {
-			childTokens = append(childTokens, NewElement(ns, "files", "", attrs...))
+			childTokens = append(childTokens, NewElement("files", "", attrs...))
 		}
 	}
 	tokens := []xml.Token{
-		xml.StartElement{Name: xml.Name{Space: ns, Local: "contentFiles"}},
+		xml.StartElement{Name: xml.Name{Local: "contentFiles"}},
 	}
 	tokens = append(tokens, childTokens...)
-	tokens = append(tokens, xml.EndElement{Name: xml.Name{Space: ns, Local: "contentFiles"}})
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "contentFiles"}})
 	return tokens
 }
-func getXElementFromPackageReference(ns, reference string) []xml.Token {
-	return NewElement(ns, reference, "", NewXMLAttr("file", reference))
+func getXElementFromPackageReference(reference string) []xml.Token {
+	return NewElement(reference, "", NewXMLAttr("file", reference))
 }
-func getXElementFromFrameworkReference(ns string, frameworkReference *FrameworkReference) []xml.Token {
-	return NewElement(ns, "frameworkReference", "", NewXMLAttr("name", frameworkReference.Name))
+func getXElementFromFrameworkReference(frameworkReference *FrameworkReference) []xml.Token {
+	return NewElement("frameworkReference", "", NewXMLAttr("name", frameworkReference.Name))
 }
-func getXMLElementFromLicenseMetadata(ns string, meta *LicenseMetadata) []xml.Token {
+func getXMLElementFromLicenseMetadata(meta *LicenseMetadata) []xml.Token {
 	attrs := []xml.Attr{
 		NewXMLAttr("type", strconv.Itoa(int(meta.GetLicenseType()))),
 	}
 	if !meta.GetVersion().Equal(nuget.EmptyVersion) {
 		attrs = append(attrs, NewXMLAttr("version", meta.GetVersion().String()))
 	}
-	return NewElement(ns, "license", meta.GetLicense(), attrs...)
+	return NewElement("license", meta.GetLicense(), attrs...)
 }
-func getXElementFromManifestRepository(ns string, repository *nuget.RepositoryMetadata) []xml.Token {
+func getXElementFromManifestRepository(repository *nuget.RepositoryMetadata) []xml.Token {
 	if repository == nil {
 		return nil
 	}
@@ -375,18 +384,18 @@ func getXElementFromManifestRepository(ns string, repository *nuget.RepositoryMe
 		attrs = append(attrs, NewXMLAttr("commit", repository.Commit))
 	}
 	if len(attrs) > 0 {
-		return NewElement(ns, "repository", "", attrs...)
+		return NewElement("repository", "", attrs...)
 	}
 	return nil
 }
-func getXElementFromManifestPackageTypes(ns string, packageTypes []*PackageType) []xml.Token {
-	packageTypesElement := NewElement(ns, "packageTypes", "")
+func getXElementFromManifestPackageTypes(packageTypes []*PackageType) []xml.Token {
+	packageTypesElement := NewElement("packageTypes", "")
 	for _, packageType := range packageTypes {
-		packageTypesElement = append(packageTypesElement, getXElementFromManifestPackageType(ns, packageType))
+		packageTypesElement = append(packageTypesElement, getXElementFromManifestPackageType(packageType))
 	}
 	return packageTypesElement
 }
-func getXElementFromManifestPackageType(ns string, packageType *PackageType) []xml.Token {
+func getXElementFromManifestPackageType(packageType *PackageType) []xml.Token {
 	var attrs []xml.Attr
 	if strings.TrimSpace(packageType.Name) != "" {
 		attrs = append(attrs, NewXMLAttr("name", packageType.Name))
@@ -394,7 +403,7 @@ func getXElementFromManifestPackageType(ns string, packageType *PackageType) []x
 	if !packageType.Version.Equal(nuget.EmptyVersion) {
 		attrs = append(attrs, NewXMLAttr("version", packageType.Version.String()))
 	}
-	return NewElement(ns, "packageType", "", attrs...)
+	return NewElement("packageType", "", attrs...)
 }
 func NewXMLAttr(name string, value string) xml.Attr {
 	return xml.Attr{Name: xml.Name{Local: name}, Value: value}

@@ -134,7 +134,9 @@ func (f *Framework) GetFrameworkString() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	name := fmt.Sprintf("%s%s", frameworkName.GetIdentifier(), frameworkName.GetVersion().String())
+	version := frameworkName.GetVersion()
+	original := version.Original()
+	name := fmt.Sprintf("%s%s", frameworkName.GetIdentifier(), original)
 	if strings.TrimSpace(frameworkName.GetProfile()) == "" {
 		return name, nil
 	}

@@ -196,19 +196,13 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 // Support for these should be dropped as soon as possible.
 func parseDeprecatedFramework(s string) *Framework {
 	switch s {
-	case "45":
-	case "4.5":
+	case "45", "4.5":
 		return Net45
-	case "40":
-	case "4.0":
-	case "4":
+	case "40", "4.0", "4":
 		return Net4
-	case "35":
-	case "3.5":
+	case "35", "3.5":
 		return Net35
-	case "20":
-	case "2":
-	case "2.0":
+	case "20", "2", "2.0":
 		return Net2
 	}
 	return nil
@@ -309,12 +303,9 @@ func parseCommonFramework(frameworkString string) *Framework {
 	frameworkString = strings.ToLower(frameworkString)
 
 	switch frameworkString {
-	case "dotnet":
-	case "dotnet50":
-	case "dotnet5.0":
+	case "dotnet", "dotnet50", "dotnet5.0":
 		return DotNet50
-	case "net40":
-	case "net4":
+	case "net40", "net4":
 		return Net4
 	case "net403":
 		return Net403
@@ -348,35 +339,25 @@ func parseCommonFramework(frameworkString string) *Framework {
 		return Win81
 	case "netstandard":
 		return NetStandard
-	case "netstandard1.0":
-	case "netstandard10":
+	case "netstandard1.0", "netstandard10":
 		return NetStandard10
-	case "netstandard1.1":
-	case "netstandard11":
+	case "netstandard1.1", "netstandard11":
 		return NetStandard11
-	case "netstandard1.2":
-	case "netstandard12":
+	case "netstandard1.2", "netstandard12":
 		return NetStandard12
-	case "netstandard1.3":
-	case "netstandard13":
+	case "netstandard1.3", "netstandard13":
 		return NetStandard13
-	case "netstandard1.4":
-	case "netstandard14":
+	case "netstandard1.4", "netstandard14":
 		return NetStandard14
-	case "netstandard1.5":
-	case "netstandard15":
+	case "netstandard1.5", "netstandard15":
 		return NetStandard15
-	case "netstandard1.6":
-	case "netstandard16":
+	case "netstandard1.6", "netstandard16":
 		return NetStandard16
-	case "netstandard1.7":
-	case "netstandard17":
+	case "netstandard1.7", "netstandard17":
 		return NetStandard17
-	case "netstandard2.0":
-	case "netstandard20":
+	case "netstandard2.0", "netstandard20":
 		return NetStandard20
-	case "netstandard2.1":
-	case "netstandard21":
+	case "netstandard2.1", "netstandard21":
 		return NetStandard21
 	case "netcoreapp1.0":
 		return NetCoreApp10
@@ -384,36 +365,21 @@ func parseCommonFramework(frameworkString string) *Framework {
 		return NetCoreApp11
 	case "netcoreapp2.0":
 		return NetCoreApp20
-	case "netcoreapp2.1":
-	case "netcoreapp21":
+	case "netcoreapp2.1", "netcoreapp21":
 		return NetCoreApp21
 	case "netcoreapp2.2":
 		return NetCoreApp22
-	case "netcoreapp3.0":
-	case "netcoreapp30":
+	case "netcoreapp3.0", "netcoreapp30":
 		return NetCoreApp30
-	case "netcoreapp3.1":
-	case "netcoreapp31":
+	case "netcoreapp3.1", "netcoreapp31":
 		return NetCoreApp31
-	case "netcoreapp5.0":
-	case "netcoreapp50":
-	case "net5.0":
-	case "net50":
+	case "netcoreapp5.0", "netcoreapp50", "net5.0", "net50":
 		return Net50
-	case "netcoreapp6.0":
-	case "netcoreapp60":
-	case "net6.0":
-	case "net60":
+	case "netcoreapp6.0", "netcoreapp60", "net6.0", "net60":
 		return Net60
-	case "netcoreapp7.0":
-	case "netcoreapp70":
-	case "net7.0":
-	case "net70":
+	case "netcoreapp7.0", "netcoreapp70", "net7.0", "net70":
 		return Net70
-	case "netcoreapp8.0":
-	case "netcoreapp80":
-	case "net8.0":
-	case "net80":
+	case "netcoreapp8.0", "netcoreapp80", "net8.0", "net80":
 		return Net80
 	case "net9.0":
 		return Net90

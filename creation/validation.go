@@ -28,13 +28,19 @@ func (p *PackageBuilder) validate() []error {
 	errs = append(errs, p.validateReadmeFile())
 	errs = append(errs, p.validateDependencyGroups())
 	errs = append(errs, p.validateManifest())
-	return errs
+
+	return nuget.Filter(errs, func(err error) bool {
+		return err != nil
+	})
 }
 func (p *PackageBuilder) validateManifest() error {
 	var results []string
 	results = append(results, p.validateArgs()...)
 	for _, reference := range p.PackageAssemblyReferences {
 		results = append(results, reference.Validate()...)
+	}
+	if len(results) == 0 {
+		return nil
 	}
 	return errors.New(strings.Join(results, "\n"))
 }
@@ -110,7 +116,7 @@ func (p *PackageBuilder) validateFilesUnique() error {
 }
 
 func (p *PackageBuilder) validateLicenseFile() error {
-	if (p.isHasSymbolsInPackageType() || p.LicenseMetadata == nil) && p.LicenseMetadata.GetLicenseType() != nuget.File {
+	if p.isHasSymbolsInPackageType() || p.LicenseMetadata == nil || p.LicenseMetadata.GetLicenseType() != nuget.File {
 		return nil
 	}
 	ext := path.Ext(p.LicenseMetadata.GetLicense())
@@ -288,12 +294,6 @@ func (p *PackageBuilder) validateArgs() []string {
 	}
 	if p.ProjectURL != nil && strings.TrimSpace(p.ProjectURL.String()) == "" {
 		errs = append(errs, "projectURL cannot be empty.")
-	}
-	if strings.TrimSpace(p.Icon) == "" {
-		errs = append(errs, "the element 'icon' cannot be empty.")
-	}
-	if strings.TrimSpace(p.Readme) == "" {
-		errs = append(errs, "the element 'readme' cannot be empty.")
 	}
 	if p.RequireLicenseAcceptance {
 		if p.LicenseURL == nil && p.LicenseMetadata == nil {

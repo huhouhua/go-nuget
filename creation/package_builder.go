@@ -185,9 +185,13 @@ func (p *PackageBuilder) Save(w io.Writer) error {
 	if err := ValidatePackageId(p.Id); err != nil {
 		return err
 	}
-	if p.Files == nil || len(p.Files) == 0 || nuget.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
+	isHasDependencyGroups := nuget.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
 		return group.Packages == nil || len(group.Packages) == 0
-	}) {
+	})
+
+	if p.Files == nil && len(p.Files) == 0 && isHasDependencyGroups &&
+		(p.FrameworkReferences == nil || len(p.FrameworkReferences) == 0) &&
+		(p.FrameworkReferenceGroups == nil || len(p.FrameworkReferenceGroups) == 0) {
 		return fmt.Errorf("cannot create a package that has no dependencies nor content")
 	}
 	if errs := p.validate(); len(errs) != 0 {
@@ -216,7 +220,10 @@ func (p *PackageBuilder) Save(w io.Writer) error {
 			return err
 		}
 	}
-	return nil
+	if err := writerPackage.Flush(); err != nil {
+		return err
+	}
+	return writerPackage.Close()
 }
 
 func (p *PackageBuilder) PopulateFiles(basePath string, files []*ManifestFile) error {
