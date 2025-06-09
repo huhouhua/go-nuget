@@ -71,13 +71,17 @@ func (p *PackageBuilder) ToXML() ([]xml.Token, error) {
 				tokens,
 				NewElement("requireLicenseAcceptance", strconv.FormatBool(p.RequireLicenseAcceptance))...)
 		}
+		licenseUrlToWrite := p.LicenseURL
 		if p.LicenseMetadata != nil {
 			tokens = append(tokens, getXMLElementFromLicenseMetadata(p.LicenseMetadata)...)
 			if licenseURL, err := p.LicenseMetadata.GetLicenseURL(); err != nil {
 				return nil, err
 			} else {
-				tokens = append(tokens, NewElement("licenseUrl", licenseURL.String())...)
+				licenseUrlToWrite = licenseURL
 			}
+		}
+		if licenseUrlToWrite != nil {
+			tokens = append(tokens, NewElement("licenseUrl", licenseUrlToWrite.String())...)
 		}
 		if strings.TrimSpace(p.Icon) != "" {
 			tokens = append(tokens, NewElement("icon", p.Icon)...)

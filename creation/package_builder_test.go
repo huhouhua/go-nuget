@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,9 +22,31 @@ func TestCreatePackage(t *testing.T) {
 	builder.Id = "MyPackage"
 	builder.Version = semver.New(1, 0, 0, "beta", "")
 	builder.Description = "My test package created from the API."
-	builder.Authors = append(builder.Authors, "Sample author")
+	builder.Title = "My Full Sample Package"
+	builder.Summary = "This is a summary for MyPackage."
+	builder.ReleaseNotes = "Initial beta release."
+	builder.Copyright = "Copyright 2025 by Sample author"
+	builder.Language = "en-US"
+	builder.Authors = append(builder.Authors, "Sample author", "Sample author2")
+	builder.Owners = append(builder.Owners, "Sample author", "Sample author2")
+	builder.Tags = append(builder.Tags, "utility", "sample")
+	projectURL, _ := url.Parse("https://example.com/mypackage")
+	licensesURL, _ := url.Parse("https://licenses.nuget.org/MIT")
+	iconURL, _ := url.Parse("https://example.com/images/icon.png")
+	builder.ProjectURL = projectURL
+	builder.LicenseURL = licensesURL
+	builder.IconURL = iconURL
+	//builder.Icon = "images/icon.png"
+	//builder.Readme = "docs/workflow.md"
+
+	builder.RequireLicenseAcceptance = false
+	builder.OutputName = "test"
+	builder.EmitRequireLicenseAcceptance = true
+	builder.DevelopmentDependency = true
+	builder.Serviceable = true
 	framework, err := ParseFolderFromDefault("netstandard1.4")
 	require.NoError(t, err)
+	builder.TargetFrameworks = append(builder.TargetFrameworks, framework)
 	versionRange, err := nuget.ParseVersionRange("10.0.1")
 	require.NoError(t, err)
 	builder.DependencyGroups = append(builder.DependencyGroups, &PackageDependencyGroup{
@@ -35,6 +58,7 @@ func TestCreatePackage(t *testing.T) {
 			},
 		},
 	})
+	//builder.Files = append(builder.Files, &PhysicalPackageFile{})
 	nupkgPath := "../_output/MyPackage.nupkg"
 	destDir := "../_output/test"
 	file, err := os.Create(nupkgPath)
