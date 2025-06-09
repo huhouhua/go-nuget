@@ -44,7 +44,7 @@ func TestCreatePackage(t *testing.T) {
 	builder.EmitRequireLicenseAcceptance = true
 	builder.DevelopmentDependency = true
 	builder.Serviceable = true
-	framework, err := ParseFolderFromDefault("netstandard1.4")
+	framework, err := Parse("netstandard1.4")
 	require.NoError(t, err)
 	builder.TargetFrameworks = append(builder.TargetFrameworks, framework)
 	versionRange, err := nuget.ParseVersionRange("10.0.1")

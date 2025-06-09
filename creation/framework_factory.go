@@ -15,7 +15,12 @@ import (
 )
 
 // Parse Creates a NuGetFramework from a folder name using the given provider.
-func Parse(folderName string, provider FrameworkNameProvider) (*Framework, error) {
+func Parse(folderName string) (*Framework, error) {
+	return ParseFromDefault(folderName, GetProviderInstance())
+}
+
+// ParseFromDefault Creates a NuGetFramework from a folder name using the given provider.
+func ParseFromDefault(folderName string, provider FrameworkNameProvider) (*Framework, error) {
 	if strings.Contains(folderName, ",") {
 		return ParseFrameworkName(folderName, provider)
 	}
