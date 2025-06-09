@@ -39,6 +39,7 @@ func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOpt
 	if err != nil {
 		return nil, err
 	}
+	//nolint:goconst
 	if sourceURL.Scheme == "file" {
 		return nil, fmt.Errorf("no support file system delete")
 	}
