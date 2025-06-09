@@ -118,7 +118,7 @@ func (p *PackageBuilder) ToXML() ([]xml.Token, error) {
 		tokens = append(tokens, NewElement("serviceable", strconv.FormatBool(p.Serviceable))...)
 	}
 	if p.PackageTypes != nil && len(p.PackageTypes) > 0 {
-		tokens = append(tokens, getXElementFromManifestPackageTypes(p.PackageTypes))
+		tokens = append(tokens, getXElementFromManifestPackageTypes(p.PackageTypes)...)
 	}
 	if repoElement := getXElementFromManifestRepository(p.Repository); repoElement != nil {
 		tokens = append(tokens)
@@ -234,23 +234,24 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 		}
 	}
 
-	var childElements []xml.Token
+	childElementMap := make(map[string][]xml.Token)
 	if groupableSets == nil || len(groupableSets) == 0 {
 		// none of the item sets are groupable, then flatten the items
 		for _, set := range objectSets {
-			for _, item := range getItems(set) {
-				childElements = append(childElements, getXElementFromItem(item)...)
+			for i, item := range getItems(set) {
+				childElementMap[strconv.Itoa(i)] = getXElementFromItem(item)
 			}
 		}
 	} else {
 		// move the group with null target framework (if any) to the front just for nicer display in UI
-		for _, set := range append(ungroupableSets, groupableSets...) {
+		for i, set := range append(ungroupableSets, groupableSets...) {
 			groupStart := xml.StartElement{Name: xml.Name{Local: "group"}}
 			groupTokens := []xml.Token{groupStart}
 
 			for _, item := range getItems(set) {
 				groupTokens = append(groupTokens, getXElementFromItem(item)...)
 			}
+			key := ""
 			if isGroupable(set) {
 				if groupIdentifier, err := getGroupIdentifier(set); err != nil {
 					return nil, err
@@ -258,18 +259,30 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 					if groupIdentifier != "" {
 						groupStart.Attr = append(groupStart.Attr, NewXMLAttr(identifierAttributeName, groupIdentifier))
 						groupTokens[0] = groupStart
+						key = groupIdentifier
 					}
 				}
 			}
-			groupTokens = append(groupTokens, xml.EndElement{Name: xml.Name{Local: "group"}})
-			childElements = append(childElements, groupTokens...)
+			if key == "" {
+				key = strconv.Itoa(i)
+			}
+			if childToken, ok := childElementMap[key]; ok {
+				childToken = append(childToken[:len(childToken)-1], groupTokens[1:]...)
+				childToken = append(childToken, xml.EndElement{Name: xml.Name{Local: "group"}})
+				childElementMap[key] = childToken
+			} else {
+				groupTokens = append(groupTokens, xml.EndElement{Name: xml.Name{Local: "group"}})
+				childElementMap[key] = groupTokens
+			}
 		}
 	}
 
 	tokens := []xml.Token{
 		xml.StartElement{Name: xml.Name{Local: parentName}},
 	}
-	tokens = append(tokens, childElements...)
+	for _, token := range childElementMap {
+		tokens = append(tokens, token...)
+	}
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: parentName}})
 	return tokens, nil
 }
@@ -356,7 +369,7 @@ func getXElementFromManifestContentFiles(contentFiles []*ManifestContentFiles) [
 	return tokens
 }
 func getXElementFromPackageReference(reference string) []xml.Token {
-	return NewElement(reference, "", NewXMLAttr("file", reference))
+	return NewElement("reference", "", NewXMLAttr("file", reference))
 }
 func getXElementFromFrameworkReference(frameworkReference *FrameworkReference) []xml.Token {
 	return NewElement("frameworkReference", "", NewXMLAttr("name", frameworkReference.Name))
@@ -393,11 +406,16 @@ func getXElementFromManifestRepository(repository *nuget.RepositoryMetadata) []x
 	return nil
 }
 func getXElementFromManifestPackageTypes(packageTypes []*PackageType) []xml.Token {
-	packageTypesElement := NewElement("packageTypes", "")
+	var childTokens []xml.Token
 	for _, packageType := range packageTypes {
-		packageTypesElement = append(packageTypesElement, getXElementFromManifestPackageType(packageType))
+		childTokens = append(childTokens, getXElementFromManifestPackageType(packageType)...)
 	}
-	return packageTypesElement
+	tokens := []xml.Token{
+		xml.StartElement{Name: xml.Name{Local: "packageTypes"}},
+	}
+	tokens = append(tokens, childTokens...)
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "packageTypes"}})
+	return tokens
 }
 func getXElementFromManifestPackageType(packageType *PackageType) []xml.Token {
 	var attrs []xml.Attr

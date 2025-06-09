@@ -44,9 +44,10 @@ func TestCreatePackage(t *testing.T) {
 	builder.EmitRequireLicenseAcceptance = true
 	builder.DevelopmentDependency = true
 	builder.Serviceable = true
-	framework, err := Parse("netstandard1.4")
+	netstandard14, err := Parse("netstandard1.4")
 	require.NoError(t, err)
-	builder.TargetFrameworks = append(builder.TargetFrameworks, framework)
+
+	builder.TargetFrameworks = append(builder.TargetFrameworks, netstandard14)
 	// Framework references
 	builder.FrameworkReferences = append(builder.FrameworkReferences, &FrameworkAssemblyReference{
 		AssemblyName:        "System.Xml",
@@ -54,10 +55,45 @@ func TestCreatePackage(t *testing.T) {
 	})
 	// License metadata
 	builder.LicenseMetadata = NewLicense(nuget.Expression, "MIT", semver.New(1, 0, 0, "", ""))
+
+	net80, err := Parse("net8.0")
+	require.NoError(t, err)
+
+	// Package assembly references
+	builder.PackageAssemblyReferences = append(builder.PackageAssemblyReferences, &PackageReferenceSet{
+		TargetFramework: net80,
+		References:      []string{"System.Text.Json.dll"},
+	})
+	builder.PackageAssemblyReferences = append(builder.PackageAssemblyReferences, &PackageReferenceSet{
+		TargetFramework: net80,
+		References:      []string{"System.Xml.dll"},
+	})
+	builder.PackageAssemblyReferences = append(builder.PackageAssemblyReferences, &PackageReferenceSet{
+		TargetFramework: netstandard14,
+		References:      []string{"System.Xml.Linq.dll"},
+	})
+
+	net50, err := Parse("net5.0")
+	require.NoError(t, err)
+
+	// Framework reference groups
+	builder.FrameworkReferenceGroups = append(builder.FrameworkReferenceGroups, &FrameworkReferenceGroup{
+		TargetFramework: net50,
+		FrameworkReferences: []*FrameworkReference{
+			{
+				Name: "Microsoft.NETCore.App",
+			},
+		},
+	})
+	// Package types
+	builder.PackageTypes = append(builder.PackageTypes, &PackageType{
+		Name:    "DotnetTool",
+		Version: semver.New(1, 0, 0, "", ""),
+	})
 	versionRange, err := nuget.ParseVersionRange("10.0.1")
 	require.NoError(t, err)
 	builder.DependencyGroups = append(builder.DependencyGroups, &PackageDependencyGroup{
-		TargetFramework: framework,
+		TargetFramework: netstandard14,
 		Packages: []*nuget.Dependency{
 			{
 				Id:           "Newtonsoft.Json",
@@ -65,7 +101,11 @@ func TestCreatePackage(t *testing.T) {
 			},
 		},
 	})
-	//builder.Files = append(builder.Files, &PhysicalPackageFile{})
+	// Add Files
+	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Text.Json.dll", "lib/net8.0/System.Text.Json.dll", nil))
+	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Xml.dll", "lib/net8.0/System.Xml.dll", nil))
+	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Xml.Linq.dll", "lib/net8.0/System.Xml.Linq.dll", nil))
+
 	nupkgPath := "../_output/MyPackage.nupkg"
 	destDir := "../_output/test"
 	file, err := os.Create(nupkgPath)
