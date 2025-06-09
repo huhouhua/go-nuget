@@ -16,6 +16,7 @@ import (
 var (
 	LicenseFileDeprecationURL  = url.URL{Scheme: "https", Host: "aka.ms", Path: "/deprecateLicenseUrl"}
 	LicenseServiceLinkTemplate = "https://licenses.nuget.org/%s"
+	LicenseEmptyVersion        = semver.New(1, 0, 0, "", "")
 )
 
 // LicenseExpression Represents a parsed NuGetLicenseExpression.
@@ -27,6 +28,7 @@ type LicenseExpression interface {
 }
 
 type LicenseMetadata struct {
+
 	// The LicenseType, never null
 	licenseType nuget.LicenseType
 
@@ -35,6 +37,14 @@ type LicenseMetadata struct {
 
 	// version LicenseMetadata (expression) version. Never null.
 	version *semver.Version
+}
+
+func NewLicense(licenseType nuget.LicenseType, license string, version *semver.Version) *LicenseMetadata {
+	return &LicenseMetadata{
+		licenseType: licenseType,
+		license:     license,
+		version:     version,
+	}
 }
 
 func (l *LicenseMetadata) GetLicenseType() nuget.LicenseType {

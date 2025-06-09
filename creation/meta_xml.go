@@ -313,7 +313,7 @@ func getXElementFromFrameworkAssemblies(references []*FrameworkAssemblyReference
 			}
 			attrs = append(attrs, NewXMLAttr("targetFramework", strings.Join(frameworkStrs, ", ")))
 		}
-		childTokens = append(childTokens, NewElement("frameworkAssembly", "", attrs...))
+		childTokens = append(childTokens, NewElement("frameworkAssembly", "", attrs...)...)
 	}
 	tokens := []xml.Token{
 		xml.StartElement{Name: xml.Name{Local: "frameworkAssemblies"}},
@@ -363,9 +363,9 @@ func getXElementFromFrameworkReference(frameworkReference *FrameworkReference) [
 }
 func getXMLElementFromLicenseMetadata(meta *LicenseMetadata) []xml.Token {
 	attrs := []xml.Attr{
-		NewXMLAttr("type", strconv.Itoa(int(meta.GetLicenseType()))),
+		NewXMLAttr("type", meta.GetLicenseType().String()),
 	}
-	if !meta.GetVersion().Equal(nuget.EmptyVersion) {
+	if !meta.GetVersion().Equal(LicenseEmptyVersion) {
 		attrs = append(attrs, NewXMLAttr("version", meta.GetVersion().String()))
 	}
 	return NewElement("license", meta.GetLicense(), attrs...)

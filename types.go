@@ -148,12 +148,16 @@ func newTypeOptions(types ServiceTypes, defaultURL string) *ServiceTypeOptions {
 	}
 }
 
-type LicenseType int
+type LicenseType string
+
+func (s LicenseType) String() string {
+	return string(s)
+}
 
 const (
-	File LicenseType = iota
+	File LicenseType = "file"
 
-	Expression LicenseType = iota
+	Expression LicenseType = "expression"
 )
 
 // LicenseExpressionType Represents the expression type of a NuGetLicenseExpression.

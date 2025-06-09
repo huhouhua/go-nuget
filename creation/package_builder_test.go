@@ -31,10 +31,10 @@ func TestCreatePackage(t *testing.T) {
 	builder.Owners = append(builder.Owners, "Sample author", "Sample author2")
 	builder.Tags = append(builder.Tags, "utility", "sample")
 	projectURL, _ := url.Parse("https://example.com/mypackage")
-	licensesURL, _ := url.Parse("https://licenses.nuget.org/MIT")
+	//licensesURL, _ := url.Parse("https://licenses.nuget.org/MIT")
 	iconURL, _ := url.Parse("https://example.com/images/icon.png")
 	builder.ProjectURL = projectURL
-	builder.LicenseURL = licensesURL
+	//builder.LicenseURL = licensesURL
 	builder.IconURL = iconURL
 	//builder.Icon = "images/icon.png"
 	//builder.Readme = "docs/workflow.md"
@@ -47,6 +47,13 @@ func TestCreatePackage(t *testing.T) {
 	framework, err := Parse("netstandard1.4")
 	require.NoError(t, err)
 	builder.TargetFrameworks = append(builder.TargetFrameworks, framework)
+	// Framework references
+	builder.FrameworkReferences = append(builder.FrameworkReferences, &FrameworkAssemblyReference{
+		AssemblyName:        "System.Xml",
+		SupportedFrameworks: builder.TargetFrameworks,
+	})
+	// License metadata
+	builder.LicenseMetadata = NewLicense(nuget.Expression, "MIT", semver.New(1, 0, 0, "", ""))
 	versionRange, err := nuget.ParseVersionRange("10.0.1")
 	require.NoError(t, err)
 	builder.DependencyGroups = append(builder.DependencyGroups, &PackageDependencyGroup{

@@ -209,7 +209,7 @@ func (f *FrameworkNameProvider) GetPortableFrameworks(shortPortableProfiles stri
 	}
 	var result []*Framework
 	for _, name := range shortNames {
-		if framework, err := Parse(name, *f); err != nil {
+		if framework, err := ParseFromDefault(name, *f); err != nil {
 			return nil, err
 		} else {
 			if strings.TrimSpace(framework.Profile) != "" {
