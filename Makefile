@@ -45,8 +45,6 @@ test: tools.verify.go-junit-report
 	@echo "===========> Run unit test"
 	@set -o pipefail;$(GO) test ./ -race -cover -coverprofile=$(OUTPUT_DIR)/coverage.out \
 		-timeout=10m -shuffle=on -short \
-
-	@sed -i '/mock_.*.go/d' $(OUTPUT_DIR)/coverage.out # remove mock_.*.go files from test coverage
 	@$(GO) tool cover -html=$(OUTPUT_DIR)/coverage.out -o $(OUTPUT_DIR)/coverage.html
 
 ## cover: Run unit test and get test coverage.
