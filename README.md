@@ -138,8 +138,9 @@ For complete usage of go-nuget, see the full [package docs](https://godoc.org/gi
 * [getdependency.go](https://github.com/huhouhua/go-nuget/blob/main/examples/getdependency.go)
 * [copynupkgtostream.go](https://github.com/huhouhua/go-nuget/blob/main/examples/copynupkgtostream.go)
 
-### Full Examples : Package Read Operations
+### Full Examples : Package Read and Create Operations
 * [readpackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/readpackage.go)
+* [createpackage.go](https://github.com/huhouhua/go-nuget/blob/main/examples/createpackage.go)
 
 ### Full Examples : Package Search Operations
 * [search.go](https://github.com/huhouhua/go-nuget/blob/main/examples/search.go)

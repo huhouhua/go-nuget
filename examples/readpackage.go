@@ -42,4 +42,9 @@ func readPackageExample() {
 			fmt.Printf("-  %s %s", dependency.Id, dependency.VersionRangeRaw)
 		}
 	}
+	// read files
+	fmt.Println("Files:")
+	for _, f := range reader.GetFiles() {
+		fmt.Println(fmt.Sprintf("- %s", f.Name))
+	}
 }
