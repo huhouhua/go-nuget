@@ -273,7 +273,7 @@ func (p *PackageBuilder) validateArgs() []string {
 	if p.Version == nil {
 		errs = append(errs, "version is required.")
 	}
-	if p.Authors == nil {
+	if p.Authors == nil || len(p.Authors) == 0 {
 		errs = append(errs, "authors is required.")
 	}
 	isHasEmpty := nuget.Some(p.Authors, func(s string) bool {
