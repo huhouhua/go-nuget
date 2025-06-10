@@ -40,7 +40,7 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Package Download
 - [x] Package Version
 - [x] Package Read
-- [ ] Package Create
+- [x] Package Create
 - [x] Package Dependencies
 - [x] Package Source Configuration
 - [x] Package Source Authentication
