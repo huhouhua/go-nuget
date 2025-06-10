@@ -187,7 +187,7 @@ func (p *PackageBuilder) validateReadmeFile() error {
 		return nil
 	}
 	ext := path.Ext(p.Readme)
-	if strings.TrimSpace(ext) != "" || !strings.EqualFold(ext, nuget.ReadmeExtension) {
+	if strings.TrimSpace(ext) != "" && !strings.EqualFold(ext, nuget.ReadmeExtension) {
 		return fmt.Errorf("the readme file '%s' has an invalid extension. It must end in .md", p.Readme)
 	}
 	readmePathStripped := stripLeadingDirectorySeparators(p.Readme)

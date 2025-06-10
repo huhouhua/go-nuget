@@ -36,8 +36,8 @@ func TestCreatePackage(t *testing.T) {
 	builder.ProjectURL = projectURL
 	//builder.LicenseURL = licensesURL
 	builder.IconURL = iconURL
-	//builder.Icon = "images/icon.png"
-	//builder.Readme = "docs/workflow.md"
+	builder.Icon = "images/test-nuget.png"
+	builder.Readme = "docs/README.md"
 
 	builder.RequireLicenseAcceptance = false
 	builder.OutputName = "test"
@@ -104,7 +104,10 @@ func TestCreatePackage(t *testing.T) {
 	// Add Files
 	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Text.Json.dll", "lib/net8.0/System.Text.Json.dll", nil))
 	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Xml.dll", "lib/net8.0/System.Xml.dll", nil))
-	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Xml.Linq.dll", "lib/net8.0/System.Xml.Linq.dll", nil))
+	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Xml.Linq.dll", "lib/netstandard1.4/System.Xml.Linq.dll", nil))
+
+	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/test-nuget.png", "images/test-nuget.png", nil))
+	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/README.md", "docs/README.md", nil))
 
 	nupkgPath := "../_output/MyPackage.nupkg"
 	destDir := "../_output/test"
