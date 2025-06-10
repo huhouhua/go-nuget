@@ -28,14 +28,7 @@ func (p *PackageBuilder) save(stream io.Writer, ns string) error {
 		return err
 	}
 	// Write XML
-	encoder := xml.NewEncoder(stream)
-	encoder.Indent("", "  ")
-	for _, token := range tokens {
-		if err := encoder.EncodeToken(token); err != nil {
-			return err
-		}
-	}
-	return encoder.Flush()
+	return BuildXml(stream, tokens)
 }
 
 // ToXML converts metadata  to XML
@@ -429,4 +422,14 @@ func getXElementFromManifestPackageType(packageType *PackageType) []xml.Token {
 }
 func NewXMLAttr(name string, value string) xml.Attr {
 	return xml.Attr{Name: xml.Name{Local: name}, Value: value}
+}
+func BuildXml(stream io.Writer, tokens []xml.Token) error {
+	encoder := xml.NewEncoder(stream)
+	encoder.Indent("", "  ")
+	for _, token := range tokens {
+		if err := encoder.EncodeToken(token); err != nil {
+			return err
+		}
+	}
+	return encoder.Flush()
 }

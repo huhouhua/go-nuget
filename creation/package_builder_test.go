@@ -6,15 +6,17 @@ package creation
 
 import (
 	"archive/zip"
-	"github.com/Masterminds/semver/v3"
-	"github.com/huhouhua/go-nuget"
-	"github.com/stretchr/testify/require"
 	"io"
 	"log"
 	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/Masterminds/semver/v3"
+	"github.com/stretchr/testify/require"
+
+	"github.com/huhouhua/go-nuget"
 )
 
 func TestCreatePackage(t *testing.T) {
@@ -78,7 +80,10 @@ func TestCreatePackage(t *testing.T) {
 		TargetFramework: netstandard14,
 		References:      []string{"System.Xml.Linq.dll"},
 	})
-
+	builder.PackageAssemblyReferences = append(builder.PackageAssemblyReferences, &PackageReferenceSet{
+		TargetFramework: netstandard14,
+		References:      []string{"System.Xml.Linq.dll", "System.Xml.Linq.dll", "System.Xml.Linq.dll"},
+	})
 	net50, err := Parse("net5.0")
 	require.NoError(t, err)
 
@@ -115,13 +120,24 @@ func TestCreatePackage(t *testing.T) {
 		},
 	})
 	// Add Files
-	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Text.Json.dll", "lib/net8.0/System.Text.Json.dll", nil))
-	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Xml.dll", "lib/net8.0/System.Xml.dll", nil))
-	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/System.Xml.Linq.dll", "lib/netstandard1.4/System.Xml.Linq.dll", nil))
+	builder.Files = append(
+		builder.Files,
+		NewPhysicalPackageFile("../testdata/System.Text.Json.dll", "lib/net8.0/System.Text.Json.dll", nil),
+	)
+	builder.Files = append(
+		builder.Files,
+		NewPhysicalPackageFile("../testdata/System.Xml.dll", "lib/net8.0/System.Xml.dll", nil),
+	)
+	builder.Files = append(
+		builder.Files,
+		NewPhysicalPackageFile("../testdata/System.Xml.Linq.dll", "lib/netstandard1.4/System.Xml.Linq.dll", nil),
+	)
 
-	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/test-nuget.png", "images/test-nuget.png", nil))
+	builder.Files = append(
+		builder.Files,
+		NewPhysicalPackageFile("../testdata/test-nuget.png", "images/test-nuget.png", nil),
+	)
 	builder.Files = append(builder.Files, NewPhysicalPackageFile("../testdata/README.md", "docs/README.md", nil))
-
 	nupkgPath := "../_output/MyPackage.nupkg"
 	destDir := "../_output/test"
 	file, err := os.Create(nupkgPath)

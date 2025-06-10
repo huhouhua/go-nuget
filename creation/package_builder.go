@@ -6,7 +6,7 @@ package creation
 
 import (
 	"archive/zip"
-	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -291,96 +291,128 @@ func (p *PackageBuilder) writeManifest(zipWriter *zip.Writer, minimumManifestVer
 }
 
 func (p *PackageBuilder) writeOpcManifestRelationship(zipWriter *zip.Writer, path, psmdcpPath string) error {
-	var buf bytes.Buffer
-
-	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
-	buf.WriteString(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` + "\n")
-
-	target1 := "/" + strings.TrimPrefix(path, "/")
-	id1 := generateRelationshipId(target1)
-	buf.WriteString(fmt.Sprintf(
-		`  <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="%s" Id="%s"/>\n`,
-		xmlEscape(target1),
-		xmlEscape(id1),
-	))
-
-	target2 := "/" + strings.TrimPrefix(psmdcpPath, "/")
-	id2 := generateRelationshipId(target2)
-	buf.WriteString(fmt.Sprintf(
-		`  <Relationship Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="%s" Id="%s"/>\n`,
-		xmlEscape(target2),
-		xmlEscape(id2),
-	))
-	buf.WriteString(`</Relationships>`)
-	if relsEntry, err := createEntry(zipWriter, "_rels/.rels", p.deterministic); err != nil {
-		return err
-	} else {
-		_, err = io.Copy(relsEntry, &buf)
+	var (
+		writer io.Writer
+		err    error
+	)
+	if writer, err = createEntry(zipWriter, "_rels/.rels", p.deterministic); err != nil {
 		return err
 	}
+	if _, err = writer.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")); err != nil {
+		return err
+	}
+	tokens := []xml.Token{
+		xml.StartElement{Name: xml.Name{Local: "Relationships"},
+			Attr: []xml.Attr{
+				NewXMLAttr("xmlns", "http://schemas.openxmlformats.org/package/2006/relationships"),
+			}},
+	}
+	var childTokens []xml.Token
+
+	targetPath := "/" + strings.TrimPrefix(path, "/")
+	targetId := generateRelationshipId(targetPath)
+
+	childTokens = append(childTokens, NewElement("Relationship", "",
+		NewXMLAttr("Type", "http://schemas.microsoft.com/packaging/2010/07/manifest"),
+		NewXMLAttr("Target", xmlEscape(targetPath)),
+		NewXMLAttr("Id", xmlEscape(targetId)))...)
+
+	psmdcpTarget := "/" + strings.TrimPrefix(psmdcpPath, "/")
+	psmdcpId := generateRelationshipId(psmdcpPath)
+
+	childTokens = append(childTokens, NewElement("Relationship", "",
+		NewXMLAttr("Type", "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"),
+		NewXMLAttr("Target", xmlEscape(psmdcpTarget)),
+		NewXMLAttr("Id", xmlEscape(psmdcpId)))...)
+
+	tokens = append(tokens, childTokens...)
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Relationships"}})
+	return BuildXml(writer, tokens)
 }
 
 func (p *PackageBuilder) writeOpcContentTypes(
 	zipWriter *zip.Writer,
 	extensions, filesWithoutExtensions map[string]bool,
 ) error {
-	var buf bytes.Buffer
-	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
-	buf.WriteString(`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` + "\n")
-	buf.WriteString(
-		`  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` + "\n",
+	var (
+		writer io.Writer
+		err    error
 	)
-	buf.WriteString(
-		`  <Default Extension="psmdcp" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>` + "\n",
-	)
-	for ext := range extensions {
-		buf.WriteString(`  <Default Extension="` + xmlEscape(ext) + `" ContentType="application/octet"/>` + "\n")
+	if writer, err = createEntry(zipWriter, "[Content_Types].xml", p.deterministic); err != nil {
+		return err
 	}
+	if _, err = writer.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")); err != nil {
+		return err
+	}
+	tokens := []xml.Token{
+		xml.StartElement{Name: xml.Name{Local: "Types"},
+			Attr: []xml.Attr{
+				NewXMLAttr("xmlns", "http://schemas.openxmlformats.org/package/2006/content-types"),
+			}},
+	}
+	var childTokens []xml.Token
+	childTokens = append(childTokens, NewElement("Default", "", NewXMLAttr("Extension", "rels"),
+		NewXMLAttr("ContentType", "application/vnd.openxmlformats-package.relationships+xml"))...)
+
+	childTokens = append(childTokens, NewElement("Default", "", NewXMLAttr("Extension", "psmdcp"),
+		NewXMLAttr("ContentType", "application/vnd.openxmlformats-package.core-properties+xml"))...)
+
+	for ext := range extensions {
+		childTokens = append(childTokens, NewElement("Default", "", NewXMLAttr("Extension", xmlEscape(ext)),
+			NewXMLAttr("ContentType", "application/octet"))...)
+	}
+
 	for file := range filesWithoutExtensions {
 		partName := file
 		if !strings.HasPrefix(partName, "/") {
 			partName = "/" + partName
 		}
-		buf.WriteString(`  <Override PartName="` + xmlEscape(partName) + `" ContentType="application/octet"/>` + "\n")
+		childTokens = append(childTokens, NewElement("Override", "", NewXMLAttr("PartName", xmlEscape(partName)),
+			NewXMLAttr("ContentType", "application/octet"))...)
 	}
-	buf.WriteString(`</Types>`)
-	if relsEntry, err := createEntry(zipWriter, "[Content_Types].xml", p.deterministic); err != nil {
-		return err
-	} else {
-		_, err = io.Copy(relsEntry, &buf)
-		return err
-	}
+
+	tokens = append(tokens, childTokens...)
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "Types"}})
+	return BuildXml(writer, tokens)
 }
 
 // writeOpcPackageProperties OPC backwards compatibility for package properties
 func (p *PackageBuilder) writeOpcPackageProperties(zipWriter *zip.Writer, psmdcpPath string) error {
-	var buf bytes.Buffer
-
-	buf.WriteString(`<?xml version="1.0" encoding="UTF-8"?>\n`)
-	buf.WriteString(
-		`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n`,
+	var (
+		writer io.Writer
+		err    error
 	)
-
-	buf.WriteString(fmt.Sprintf("  <dc:creator>%s</dc:creator>\n", xmlEscape(strings.Join(p.Authors, ", "))))
-	buf.WriteString(fmt.Sprintf("  <dc:description>%s</dc:description>\n", xmlEscape(p.Description)))
-	buf.WriteString(fmt.Sprintf("  <dc:identifier>%s</dc:identifier>\n", xmlEscape(p.Id)))
-	buf.WriteString(fmt.Sprintf("  <cp:version>%s</cp:version>\n", xmlEscape(p.Version.String())))
-	buf.WriteString(fmt.Sprintf("  <cp:keywords>%s</cp:keywords>\n", xmlEscape(strings.Join(p.Tags, ""))))
-	buf.WriteString(fmt.Sprintf("  <cp:lastModifiedBy>%s</cp:lastModifiedBy>\n", xmlEscape("")))
-
-	buf.WriteString(`</cp:coreProperties>`)
-
 	header := &zip.FileHeader{
 		Name:   psmdcpPath,
 		Method: zip.Deflate,
 	}
-	writer, err := zipWriter.CreateHeader(header)
-	if err != nil {
+	if writer, err = zipWriter.CreateHeader(header); err != nil {
 		return err
 	}
+	if _, err = writer.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")); err != nil {
+		return err
+	}
+	tokens := []xml.Token{
+		xml.StartElement{Name: xml.Name{Local: "cp:coreProperties"},
+			Attr: []xml.Attr{
+				NewXMLAttr("xmlns:dc", "http://purl.org/dc/elements/1.1/"),
+				NewXMLAttr("xmlns:dcterms", "http://purl.org/dc/terms/"),
+				NewXMLAttr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance"),
+				NewXMLAttr("xmlns:cp", "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"),
+			}},
+	}
+	var childTokens []xml.Token
+	childTokens = append(childTokens, NewElement("dc:creator", xmlEscape(strings.Join(p.Authors, ", ")))...)
+	childTokens = append(childTokens, NewElement("dc:description", xmlEscape(p.Description))...)
+	childTokens = append(childTokens, NewElement("dc:identifier", xmlEscape(p.Id))...)
+	childTokens = append(childTokens, NewElement("dc:version", xmlEscape(p.Version.String()))...)
+	childTokens = append(childTokens, NewElement("dc:keywords", xmlEscape(strings.Join(p.Tags, " ")))...)
+	childTokens = append(childTokens, NewElement("dc:lastModifiedBy", xmlEscape(""))...)
+	tokens = append(tokens, childTokens...)
+	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "cp:coreProperties"}})
 
-	_, err = io.Copy(writer, &buf)
-	return err
+	// Write XML
+	return BuildXml(writer, tokens)
 }
 
 func (p *PackageBuilder) writeFiles(
