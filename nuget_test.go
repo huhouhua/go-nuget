@@ -440,7 +440,7 @@ func TestUploadRequest(t *testing.T) {
 			os.Stderr, "", "", nil, nil)
 		wantErr := &os.PathError{
 			Op:   "read",
-			Path: "/dev/stderr",
+			Path: "/dev/stdout",
 			Err:  syscall.Errno(9),
 		}
 		require.Equal(t, wantErr, actualErr)

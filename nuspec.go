@@ -5,44 +5,121 @@
 package nuget
 
 import (
-	"archive/zip"
 	"bytes"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"os"
 	"strings"
-	"sync"
 )
 
-type Nuspec struct {
-	XMLName  xml.Name  `xml:"package"`
-	Metadata *Metadata `xml:"metadata"`
+// PackageFile is used in the NuSpec struct
+type PackageFile struct {
+	Source string `xml:"src,attr"`
+	Target string `xml:"target,attr"`
 }
+
+type PackageFiles struct {
+	File []*PackageFile `xml:"file"`
+}
+
+// Nuspec Represents a .nuspec XML file found in the root of the .nupck files
+type Nuspec struct {
+	XMLName  xml.Name     `xml:"package"`
+	Xmlns    string       `xml:"xmlns,attr,omitempty"`
+	Metadata *Metadata    `xml:"metadata"`
+	Files    PackageFiles `xml:"files,omitempty"`
+}
+
+// ToBytes exports the nuspec to bytes in XML format
+func (nsf *Nuspec) ToBytes() ([]byte, error) {
+	var b bytes.Buffer
+	// Unmarshal into XML
+	output, err := xml.MarshalIndent(nsf, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	// Self-Close any empty XML elements (to match original Nuget output)
+	// This assumes Indented Marshalling above, non Indented will break XML
+	for bytes.Contains(output, []byte(`></`)) {
+		i := bytes.Index(output, []byte(`></`))
+		j := bytes.Index(output[i+1:], []byte(`>`))
+		output = append(output[:i], append([]byte(` /`), output[i+j+1:]...)...)
+	}
+	// Write the XML Header
+	b.WriteString(xml.Header)
+	b.Write(output)
+	return b.Bytes(), nil
+}
+
+// FromBytes parses a Nuspec file from a byte slice and returns a Nuspec struct.
+func FromBytes(b []byte) (*Nuspec, error) {
+	nsf := Nuspec{}
+	err := xml.Unmarshal(b, &nsf)
+	if err != nil {
+		return nil, err
+	}
+	return &nsf, nil
+}
+
+// FromReader reads a Nuspec file from an io.ReadCloser, parses it, and returns a Nuspec struct.
+// The reader will be fully read into memory.
+func FromReader(r io.ReadCloser) (*Nuspec, error) {
+	// Read contents of reader
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return FromBytes(b)
+}
+
+// FromFile reads a nuspec file from the file system
+func FromFile(fn string) (*Nuspec, error) {
+	// Open File
+	xmlFile, err := os.Open(fn)
+	if err != nil {
+		return nil, err
+	}
+	return FromReader(xmlFile)
+}
+
 type PackageInfo struct {
-	ID                       string              `xml:"id"`
-	Version                  string              `xml:"version"`
-	Authors                  string              `xml:"authors"`
-	Owners                   string              `xml:"owners"`
-	RequireLicenseAcceptance bool                `xml:"requireLicenseAcceptance"`
-	License                  string              `xml:"license"`
-	LicenseURL               string              `xml:"licenseUrl"`
-	ProjectURL               string              `xml:"projectUrl"`
-	IconUrl                  string              `xml:"iconUrl"`
-	Description              string              `xml:"description"`
-	Summary                  string              `xml:"summary"`
-	ReleaseNotes             string              `xml:"releaseNotes"`
-	Copyright                string              `xml:"copyright"`
-	Tags                     string              `xml:"tags"`
-	Language                 string              `xml:"language"`
-	Repository               *RepositoryMetadata `xml:"repository"`
+	ID                       string              `xml:"id,omitempty"                       json:"ID,omitempty"`
+	Version                  string              `xml:"version,omitempty"                  json:"version,omitempty"`
+	Title                    string              `xml:"title,omitempty"                    json:"title,omitempty"`
+	Authors                  string              `xml:"authors,omitempty"                  json:"authors,omitempty"`
+	Owners                   string              `xml:"owners,omitempty"                   json:"owners,omitempty"`
+	RequireLicenseAcceptance bool                `xml:"requireLicenseAcceptance,omitempty" json:"requireLicenseAcceptance,omitempty"`
+	License                  string              `xml:"license,omitempty"                  json:"license,omitempty"`
+	LicenseURL               string              `xml:"licenseUrl,omitempty"               json:"licenseURL,omitempty"`
+	ProjectURL               string              `xml:"projectUrl,omitempty"               json:"projectURL,omitempty"`
+	Readme                   string              `xml:"readme,omitempty"                   json:"readme,omitempty"`
+	DevelopmentDependency    bool                `xml:"developmentDependency,omitempty"    json:"developmentDependency,omitempty"`
+	Icon                     string              `xml:"icon,omitempty"                  json:"icon,omitempty"`
+	IconURL                  string              `xml:"iconUrl,omitempty"                  json:"iconUrl,omitempty"`
+	Description              string              `xml:"description,omitempty"              json:"description,omitempty"`
+	Summary                  string              `xml:"summary,omitempty"                  json:"summary,omitempty"`
+	ReleaseNotes             string              `xml:"releaseNotes,omitempty"             json:"releaseNotes,omitempty"`
+	Copyright                string              `xml:"copyright,omitempty"                json:"copyright,omitempty"`
+	Tags                     string              `xml:"tags,omitempty"                     json:"tags,omitempty"`
+	Language                 string              `xml:"language,omitempty"                 json:"language,omitempty"`
+	Serviceable              bool                `xml:"serviceable,omitempty"              json:"serviceable,omitempty"`
+	PackageTypes             []*PackageType      `xml:"packageTypes,omitempty"              json:"packageTypes,omitempty"`
+	Repository               *RepositoryMetadata `xml:"repository,omitempty"               json:"repository,omitempty"`
 }
 
 type Metadata struct {
 	PackageInfo
-	Dependencies        *Dependencies        `xml:"dependencies"`
-	FrameworkAssemblies *FrameworkAssemblies `xml:"frameworkAssemblies"`
-	References          *References          `xml:"references"`
+	Dependencies        *Dependencies        `xml:"dependencies,omitempty"`
+	FrameworkAssemblies *FrameworkAssemblies `xml:"frameworkAssemblies,omitempty"`
+	References          *References          `xml:"references,omitempty"`
+	FrameworkReferences *FrameworkReferences `xml:"frameworkReferences,omitempty"`
+	ContentFile         *ContentFile         `xml:"contentFiles,omitempty"`
+	MinClientVersion    string               `xml:"minClientVersion,attr"`
+}
+
+type PackageType struct {
+	Name    string `xml:"name,attr"`
+	Version string `xml:"version,attr"`
 }
 
 type RepositoryMetadata struct {
@@ -110,6 +187,15 @@ type ReferenceGroup struct {
 	References      []*Reference `xml:"reference"`
 }
 
+type FrameworkReferences struct {
+	Groups []*FrameworkReferenceGroup `xml:"group"`
+}
+
+type FrameworkReferenceGroup struct {
+	TargetFramework     string                `xml:"targetFramework,attr"`
+	FrameworkReferences []*FrameworkReference `xml:"frameworkReference"`
+}
+
 type FrameworkAssemblies struct {
 	FrameworkAssembly []*FrameworkAssembly `xml:"frameworkAssembly"`
 }
@@ -123,116 +209,17 @@ type Reference struct {
 	File string `xml:"file,attr"`
 }
 
-// FromBytes parses a Nuspec file from a byte slice and returns a Nuspec struct.
-func FromBytes(b []byte) (*Nuspec, error) {
-	nsf := Nuspec{}
-	err := xml.Unmarshal(b, &nsf)
-	if err != nil {
-		return nil, err
-	}
-	return &nsf, nil
+type FrameworkReference struct {
+	Name string `xml:"name,attr"`
 }
 
-// FromReader reads a Nuspec file from an io.ReadCloser, parses it, and returns a Nuspec struct.
-// The reader will be fully read into memory.
-func FromReader(r io.ReadCloser) (*Nuspec, error) {
-	// Read contents of reader
-	b, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-	return FromBytes(b)
+type ContentFile struct {
+	Files []*ContentFileItem `xml:"files"`
 }
 
-// FromFile reads a nuspec file from the file system
-func FromFile(fn string) (*Nuspec, error) {
-	// Open File
-	xmlFile, err := os.Open(fn)
-	if err != nil {
-		return nil, err
-	}
-	return FromReader(xmlFile)
-}
-
-type PackageArchiveReader struct {
-	nuspec     *Nuspec
-	buf        *bytes.Buffer
-	archive    *zip.Reader
-	nuspecFile io.ReadCloser
-	once       sync.Once
-}
-
-func NewPackageArchiveReader(reader io.Reader) (*PackageArchiveReader, error) {
-	p := &PackageArchiveReader{
-		buf: &bytes.Buffer{},
-	}
-	if _, err := p.buf.ReadFrom(reader); err != nil {
-		return nil, err
-	}
-	if err := p.parse(); err != nil {
-		return nil, err
-	}
-	return p, nil
-}
-
-func (p *PackageArchiveReader) parse() error {
-	if p.buf == nil || p.buf.Len() == 0 {
-		return fmt.Errorf("package is empty")
-	}
-	// Create a zip reader from the buffer
-	r := p.buf.Bytes()
-	archive := bytes.NewReader(r)
-	var err error
-	if p.archive, err = zip.NewReader(archive, int64(len(r))); err != nil {
-		return err
-	}
-	// Extract the nuspec file
-	if p.nuspecFile, err = p.findNuspecFile(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
-	if p.nuspec != nil {
-		return p.nuspec, nil
-	}
-	var err error
-	p.once.Do(func() {
-		defer func() {
-			_ = p.nuspecFile.Close()
-		}()
-		// Reader the XML content into the Nuspec struct
-		p.nuspec, err = FromReader(p.nuspecFile)
-	})
-
-	return p.nuspec, err
-}
-
-func (p *PackageArchiveReader) GetFiles() []*zip.File {
-	return p.archive.File
-}
-
-func (p *PackageArchiveReader) GetFilesFromDir(folder string) []*zip.File {
-	files := make([]*zip.File, 0)
-	prefix := strings.ToLower(folder + "/")
-	for _, file := range p.GetFiles() {
-		if strings.HasPrefix(strings.ToLower(file.Name), prefix) {
-			files = append(files, file)
-		}
-	}
-	return files
-}
-
-func (p *PackageArchiveReader) findNuspecFile() (io.ReadCloser, error) {
-	for _, file := range p.archive.File {
-		if strings.HasSuffix(file.Name, NuspecExtension) {
-			if nuspecFile, err := file.Open(); err != nil {
-				return nil, err
-			} else {
-				return nuspecFile, nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("no .nuspec file found in the .nupkg archive")
+type ContentFileItem struct {
+	Include      string `xml:"include,attr"`
+	BuildAction  string `xml:"buildAction,attr"`
+	CopyToOutput string `xml:"copyToOutput,attr"`
+	Flatten      string `xml:"flatten,attr"`
 }
