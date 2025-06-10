@@ -38,9 +38,15 @@ func TestCreatePackage(t *testing.T) {
 	builder.IconURL = iconURL
 	builder.Icon = "images/test-nuget.png"
 	builder.Readme = "docs/README.md"
-
+	builder.Repository = &nuget.RepositoryMetadata{
+		Type:   "git",
+		URL:    "https://github.com/huhouhua/go-nuget",
+		Branch: "main",
+		Commit: "4a5eec0ec02cbc120f8fa85b3c37327c5c451640",
+	}
 	builder.RequireLicenseAcceptance = false
 	builder.OutputName = "test"
+	builder.MinClientVersion = semver.New(1, 0, 0, "", "")
 	builder.EmitRequireLicenseAcceptance = true
 	builder.DevelopmentDependency = true
 	builder.Serviceable = true
@@ -89,6 +95,13 @@ func TestCreatePackage(t *testing.T) {
 	builder.PackageTypes = append(builder.PackageTypes, &PackageType{
 		Name:    "DotnetTool",
 		Version: semver.New(1, 0, 0, "", ""),
+	})
+	// Content files
+	builder.ContentFiles = append(builder.ContentFiles, &ManifestContentFiles{
+		Include:      "contentFiles/any/any/config.json",
+		BuildAction:  "None",
+		CopyToOutput: "true",
+		Flatten:      "true",
 	})
 	versionRange, err := nuget.ParseVersionRange("10.0.1")
 	require.NoError(t, err)

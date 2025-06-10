@@ -121,7 +121,7 @@ func (p *PackageBuilder) ToXML() ([]xml.Token, error) {
 		tokens = append(tokens, getXElementFromManifestPackageTypes(p.PackageTypes)...)
 	}
 	if repoElement := getXElementFromManifestRepository(p.Repository); repoElement != nil {
-		tokens = append(tokens)
+		tokens = append(tokens, repoElement...)
 	}
 	if dependencyTokens, err := p.dependencyGroupsToTokens(); err != nil {
 		return nil, err
@@ -358,7 +358,7 @@ func getXElementFromManifestContentFiles(contentFiles []*ManifestContentFiles) [
 			attrs = append(attrs, NewXMLAttr("flatten", file.Flatten))
 		}
 		if attrs != nil && len(attrs) > 0 {
-			childTokens = append(childTokens, NewElement("files", "", attrs...))
+			childTokens = append(childTokens, NewElement("files", "", attrs...)...)
 		}
 	}
 	tokens := []xml.Token{
@@ -389,7 +389,7 @@ func getXElementFromManifestRepository(repository *nuget.RepositoryMetadata) []x
 	}
 	var attrs []xml.Attr
 	if strings.TrimSpace(repository.Type) != "" {
-		attrs = append(attrs, NewXMLAttr("type", repository.URL))
+		attrs = append(attrs, NewXMLAttr("type", repository.Type))
 	}
 	if strings.TrimSpace(repository.URL) != "" {
 		attrs = append(attrs, NewXMLAttr("url", repository.URL))
