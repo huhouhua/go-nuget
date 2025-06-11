@@ -101,7 +101,7 @@ func (p *PackageUpdateResource) Push(
 ) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), opt.TimeoutInDuration)
 	defer cancel()
-	packageUrl, err := p.getResourceURL(PackagePublish)
+	packageURL, err := p.getResourceURL(PackagePublish)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (p *PackageUpdateResource) Push(
 		var resp *http.Response
 		var err error
 		if !strings.HasSuffix(packagePath, SnupkgExtension) {
-			resp, err = p.pushPackagePath(opt, packagePath, packageUrl, symbolURL, options...)
+			resp, err = p.pushPackagePath(opt, packagePath, packageURL, symbolURL, options...)
 		} else if strings.TrimSpace(opt.SymbolSource) != "" {
 			// symbolSource is only set when:
 			// - The user specified it on the command line

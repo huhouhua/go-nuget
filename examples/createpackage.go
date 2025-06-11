@@ -5,11 +5,13 @@
 package main
 
 import (
-	"github.com/Masterminds/semver/v3"
-	"github.com/huhouhua/go-nuget"
-	"github.com/huhouhua/go-nuget/creation"
 	"log"
 	"os"
+
+	"github.com/Masterminds/semver/v3"
+
+	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/creation"
 )
 
 func createPackageExample() {
