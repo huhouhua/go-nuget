@@ -12,22 +12,11 @@ import (
 	"strings"
 )
 
-// PackageFile is used in the NuSpec struct
-type PackageFile struct {
-	Source string `xml:"src,attr"`
-	Target string `xml:"target,attr"`
-}
-
-type PackageFiles struct {
-	File []*PackageFile `xml:"file"`
-}
-
 // Nuspec Represents a .nuspec XML file found in the root of the .nupck files
 type Nuspec struct {
-	XMLName  xml.Name     `xml:"package"`
-	Xmlns    string       `xml:"xmlns,attr,omitempty"`
-	Metadata *Metadata    `xml:"metadata"`
-	Files    PackageFiles `xml:"files,omitempty"`
+	XMLName  xml.Name  `xml:"package"`
+	Xmlns    string    `xml:"xmlns,attr,omitempty"`
+	Metadata *Metadata `xml:"metadata"`
 }
 
 // ToBytes exports the nuspec to bytes in XML format
@@ -89,12 +78,12 @@ type PackageInfo struct {
 	Authors                  string              `xml:"authors,omitempty"                  json:"authors,omitempty"`
 	Owners                   string              `xml:"owners,omitempty"                   json:"owners,omitempty"`
 	RequireLicenseAcceptance bool                `xml:"requireLicenseAcceptance,omitempty" json:"requireLicenseAcceptance,omitempty"`
-	License                  string              `xml:"license,omitempty"                  json:"license,omitempty"`
+	License                  *LicenseMetadata    `xml:"license,omitempty"                  json:"license,omitempty"`
 	LicenseURL               string              `xml:"licenseUrl,omitempty"               json:"licenseURL,omitempty"`
 	ProjectURL               string              `xml:"projectUrl,omitempty"               json:"projectURL,omitempty"`
 	Readme                   string              `xml:"readme,omitempty"                   json:"readme,omitempty"`
 	DevelopmentDependency    bool                `xml:"developmentDependency,omitempty"    json:"developmentDependency,omitempty"`
-	Icon                     string              `xml:"icon,omitempty"                  json:"icon,omitempty"`
+	Icon                     string              `xml:"icon,omitempty"                     json:"icon,omitempty"`
 	IconURL                  string              `xml:"iconUrl,omitempty"                  json:"iconUrl,omitempty"`
 	Description              string              `xml:"description,omitempty"              json:"description,omitempty"`
 	Summary                  string              `xml:"summary,omitempty"                  json:"summary,omitempty"`
@@ -103,8 +92,13 @@ type PackageInfo struct {
 	Tags                     string              `xml:"tags,omitempty"                     json:"tags,omitempty"`
 	Language                 string              `xml:"language,omitempty"                 json:"language,omitempty"`
 	Serviceable              bool                `xml:"serviceable,omitempty"              json:"serviceable,omitempty"`
-	PackageTypes             []*PackageType      `xml:"packageTypes,omitempty"              json:"packageTypes,omitempty"`
+	PackageTypes             *PackageTypes       `xml:"packageTypes,omitempty"             json:"packageTypes,omitempty"`
 	Repository               *RepositoryMetadata `xml:"repository,omitempty"               json:"repository,omitempty"`
+}
+
+type LicenseMetadata struct {
+	Type  string `xml:"type,attr"`
+	Value string `xml:",chardata"`
 }
 
 type Metadata struct {
@@ -115,6 +109,10 @@ type Metadata struct {
 	FrameworkReferences *FrameworkReferences `xml:"frameworkReferences,omitempty"`
 	ContentFile         *ContentFile         `xml:"contentFiles,omitempty"`
 	MinClientVersion    string               `xml:"minClientVersion,attr"`
+}
+
+type PackageTypes struct {
+	PackageTypes []*PackageType `xml:"packageType"`
 }
 
 type PackageType struct {
