@@ -28,7 +28,7 @@ func (nsf *Nuspec) ToBytes() ([]byte, error) {
 		return nil, err
 	}
 	// Self-Close any empty XML elements (to match original Nuget output)
-	// This assumes Indented Marshalling above, non Indented will break XML
+	// This assumes Indented Marshaling above, non Indented will break XML
 	for bytes.Contains(output, []byte(`></`)) {
 		i := bytes.Index(output, []byte(`></`))
 		j := bytes.Index(output[i+1:], []byte(`>`))
