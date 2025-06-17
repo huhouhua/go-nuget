@@ -34,7 +34,7 @@ func TestNewLicense(t *testing.T) {
 		actual, err := license.GetLicenseURL()
 		require.NoError(t, err)
 		expected := &url.URL{Scheme: "https", Host: "licenses.nuget.org", Path: "/MIT"}
-		require.Equal(t, actual, expected)
+		require.Equal(t, expected, actual)
 	})
 	t.Run("no supported", func(t *testing.T) {
 		license := NewLicense("unsupported", "Apache", wantVersion)
