@@ -5,7 +5,6 @@
 package creation
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -24,16 +23,16 @@ type FrameworkName struct {
 //   - The version string must be in the System.Version format; an optional "v" or "V" prefix is allowed
 func NewFrameworkName(frameworkName string) (*FrameworkName, error) {
 	if strings.TrimSpace(frameworkName) == "" {
-		return nil, errors.New("frameworkName cannot be empty")
+		return nil, fmt.Errorf("frameworkName cannot be empty")
 	}
 	parts := strings.SplitN(frameworkName, ",", 4)
 	if len(parts) != 2 && len(parts) != 3 {
-		return nil, errors.New("frameworkName must have 2 or 3 components")
+		return nil, fmt.Errorf("frameworkName must have 2 or 3 components")
 	}
 
 	identifier := strings.TrimSpace(parts[0])
 	if identifier == "" {
-		return nil, errors.New("frameworkName identifier cannot be empty")
+		return nil, fmt.Errorf("frameworkName identifier cannot be empty")
 	}
 
 	var versionStr string
@@ -64,7 +63,7 @@ func NewFrameworkName(frameworkName string) (*FrameworkName, error) {
 		}
 	}
 	if !versionFound {
-		return nil, errors.New("frameworkName must contain a version")
+		return nil, fmt.Errorf("frameworkName must contain a version")
 	}
 	version, err := semver.NewVersion(versionStr)
 	if err != nil {
