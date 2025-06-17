@@ -13,4 +13,5 @@ import (
 func TestFactoryMapping(t *testing.T) {
 	instance := GetProviderInstance()
 	require.NotNil(t, instance)
+	require.Equal(t, instance, GetProviderInstance())
 }

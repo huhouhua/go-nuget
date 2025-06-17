@@ -63,11 +63,11 @@ func (l *LicenseMetadata) GetLicenseURL() (*url.URL, error) {
 	case nuget.File:
 		return &LicenseFileDeprecationURL, nil
 	case nuget.Expression:
-		u, err := url.Parse(fmt.Sprintf(LicenseServiceLinkTemplate, l.license))
-		if err != nil {
+		if u, err := url.Parse(fmt.Sprintf(LicenseServiceLinkTemplate, l.license)); err != nil {
 			return nil, err
+		} else {
+			return u, nil
 		}
-		return u, nil
 	default:
 		return nil, fmt.Errorf("unsupported license type: %v", l.licenseType)
 	}
