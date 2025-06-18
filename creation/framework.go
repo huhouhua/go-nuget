@@ -152,7 +152,6 @@ func (f *Framework) getFrameworkIdentifier() string {
 }
 
 // GetShortFolderName Creates the shortened version of the framework using the default mappings.
-// Ex: net45
 func (f *Framework) GetShortFolderName() (string, error) {
 	return f.getShortFolderName(GetProviderInstance())
 }
