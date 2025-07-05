@@ -25,10 +25,7 @@ XARGS := xargs -r
 
 # Minimum test coverage
 ifeq ($(origin COVERAGE),undefined)
-# prod
-#COVERAGE := 60
-# develop
-COVERAGE := 0.0
+COVERAGE := 60
 endif
 
 include scripts/tools.mk
@@ -73,15 +70,18 @@ verify-copyright: tools.verify.licctl
 add-copyright: tools.verify.licctl
 	@licctl -v -f $(ROOT_DIR)/scripts/boilerplate.txt $(ROOT_DIR) --skip-dirs=_output,testdata,.github,.idea
 
-## tools: install dependent tools.
+## tools: Install dependent tools.
 .PHONY: tools
 tools:
 	@$(MAKE) tools.install
 
+## tidy: Clean up go.mod and go.sum by removing unused dependencies and adding missing ones
 .PHONY: tidy
 tidy:
 	@$(GO) mod tidy
 
+## help: Show this help info.
 .PHONY: help
-help: ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+help: Makefile
+	@printf "\nUsage: make <TARGETS> <OPTIONS> ...\n\nTargets:\n"
+	@sed -n 's/^##//p' $< | column -t -s ':' | sed -e 's/^/ /'
