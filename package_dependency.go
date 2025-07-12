@@ -7,8 +7,6 @@ package nuget
 import (
 	"fmt"
 	"strings"
-
-	"github.com/Masterminds/semver/v3"
 )
 
 type PackageDependencyInfo struct {
@@ -40,12 +38,12 @@ func NewPackageDependencyGroup(targetFramework string, packages ...*Dependency) 
 }
 
 type PackageIdentity struct {
-	Id      string          `json:"id"`
-	Version *semver.Version `json:"version,omitempty"`
+	Id      string   `json:"id"`
+	Version *Version `json:"version,omitempty"`
 }
 
 func NewPackageIdentity(id, version string) (*PackageIdentity, error) {
-	nugetVersion, err := semver.NewVersion(version)
+	nugetVersion, err := ParseVersion(version)
 	if err != nil {
 		return nil, err
 	}

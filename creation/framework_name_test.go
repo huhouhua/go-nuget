@@ -9,7 +9,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
+	"github.com/huhouhua/go-nuget"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +26,7 @@ func TestNewFrameworkName(t *testing.T) {
 			input: ".NET Framework, Version=v4.5",
 			want: &FrameworkName{
 				identifier: ".NET Framework",
-				version:    *semver.New(4, 5, 0, "", ""),
+				version:    *nuget.NewVersionFrom(4, 5, 0, "", ""),
 				profile:    "",
 			},
 		},
@@ -34,7 +35,7 @@ func TestNewFrameworkName(t *testing.T) {
 			input: ".NET Framework, Version=v4.5, Profile=Client",
 			want: &FrameworkName{
 				identifier: ".NET Framework",
-				version:    *semver.New(4, 5, 0, "", ""),
+				version:    *nuget.NewVersionFrom(4, 5, 0, "", ""),
 				profile:    "Client",
 			},
 		},
@@ -43,7 +44,7 @@ func TestNewFrameworkName(t *testing.T) {
 			input: ".NET Framework, Version=V4.5",
 			want: &FrameworkName{
 				identifier: ".NET Framework",
-				version:    *semver.New(4, 5, 0, "", ""),
+				version:    *nuget.NewVersionFrom(4, 5, 0, "", ""),
 				profile:    "",
 			},
 		},
@@ -89,7 +90,7 @@ func TestNewFrameworkName(t *testing.T) {
 			require.Equal(t, tc.want.GetIdentifier(), got.GetIdentifier())
 			gotVersion := got.GetVersion()
 			wantVersion := tc.want.GetVersion()
-			require.True(t, wantVersion.Equal(&gotVersion))
+			require.True(t, wantVersion.Semver.Equal(gotVersion.Semver))
 			require.Equal(t, tc.want.GetProfile(), got.GetProfile())
 		})
 	}

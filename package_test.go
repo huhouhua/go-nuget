@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/require"
 )
@@ -31,9 +30,9 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 		mustWriteHTTPResponse(t, w, "testdata/list_all_versions.json")
 	})
 
-	want := []*semver.Version{
-		semver.New(6, 0, 1, "beta1", ""),
-		semver.New(6, 0, 1, "", ""),
+	want := []*Version{
+		NewVersionFrom(6, 0, 1, "beta1", ""),
+		NewVersionFrom(6, 0, 1, "", ""),
 	}
 
 	b, resp, err := client.FindPackageResource.ListAllVersions("newtonsoft.json", nil)
@@ -103,7 +102,7 @@ func TestPackageResource_ListAllVersions_ErrorScenarios(t *testing.T) {
 					mustWriteHTTPResponse(t, w, fileUrl)
 				})
 			},
-			error: errors.New("Invalid Semantic Version"),
+			error: errors.New("invalid Semantic Version"),
 		},
 	}
 	for _, tt := range tests {
@@ -146,7 +145,7 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestDependency",
-			Version: semver.New(1, 0, 0, "", ""),
+			Version: NewVersionFrom(1, 0, 0, "", ""),
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{

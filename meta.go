@@ -10,8 +10,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/Masterminds/semver/v3"
 )
 
 type PackageMetadataResource struct {
@@ -157,11 +155,11 @@ func (p *PackageMetadataResource) GetMetadata(
 		IncludePrerelease: true,
 		IncludeUnlisted:   true,
 	}
-	v, err := semver.NewVersion(version)
+	v, err := ParseVersion(version)
 	if err != nil {
 		return nil, nil, err
 	}
-	versionRange := NewVersionRange(v, v, true, true)
+	versionRange := NewVersionRange(v.Semver, v.Semver, true, true)
 	if list, resp, err := p.getMetadata(id, opt, versionRange, options...); err != nil {
 		return nil, nil, err
 	} else {
@@ -213,25 +211,25 @@ func (p *PackageMetadataResource) addMetadataToPackages(
 	opt *ListMetadataOptions,
 	versionRange *VersionRange,
 ) error {
-	Lower, err := semver.NewVersion(page.Lower)
+	Lower, err := ParseVersion(page.Lower)
 	if err != nil {
 		return err
 	}
-	upper, err := semver.NewVersion(page.Upper)
+	upper, err := ParseVersion(page.Upper)
 	if err != nil {
 		return err
 	}
-	catalogItemVersionRange := NewVersionRange(Lower, upper, true, true)
+	catalogItemVersionRange := NewVersionRange(Lower.Semver, upper.Semver, true, true)
 	if !versionRange.DoesRangeSatisfy(catalogItemVersionRange) {
 		return nil
 	}
 	for _, leafItem := range page.Items {
-		var v *semver.Version
-		v, err = semver.NewVersion(leafItem.CatalogEntry.Version)
+		var v *Version
+		v, err = ParseVersion(leafItem.CatalogEntry.Version)
 		if err != nil {
 			return err
 		}
-		if versionRange.Satisfies(v) && (opt.IncludePrerelease || v.Prerelease() != "") &&
+		if versionRange.Satisfies(v.Semver) && (opt.IncludePrerelease || v.Semver.Prerelease() != "") &&
 			(opt.IncludeUnlisted || leafItem.CatalogEntry.IsListed) {
 			if err = p.configureMetadataURL(leafItem.CatalogEntry); err != nil {
 				return err

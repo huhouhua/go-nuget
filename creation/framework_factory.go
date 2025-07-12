@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
-
 	"github.com/huhouhua/go-nuget"
 )
 
@@ -46,7 +44,7 @@ func ParseFrameworkName(frameworkName string, provider FrameworkNameProvider) (*
 	if err != nil {
 		return nil, err
 	}
-	if version.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, frameworkStr) {
+	if version.Semver.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, frameworkStr) {
 		return NewFrameworkWithPlatform(frameworkStr, version, "", nuget.EmptyVersion), nil
 	}
 	return NewFrameworkWithProfile(frameworkStr, version, profile), nil
@@ -55,7 +53,7 @@ func ParseFrameworkName(frameworkName string, provider FrameworkNameProvider) (*
 func parseFrameworkNameParts(
 	provider FrameworkNameProvider,
 	parts []string,
-) (framework, profile string, version *semver.Version, err error) {
+) (framework, profile string, version *nuget.Version, err error) {
 	framework = provider.GetIdentifier(parts[0])
 	if framework == "" {
 		framework = parts[0]
@@ -82,7 +80,7 @@ func parseFrameworkNameParts(
 		if !strings.Contains(versionString, ".") {
 			versionString += ".0"
 		}
-		if version, err = semver.NewVersion(versionString); err != nil {
+		if version, err = nuget.ParseVersion(versionString); err != nil {
 			return "", "", nil, fmt.Errorf("invalid framework version '%s'", versionString)
 		}
 	}
@@ -141,7 +139,7 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 		return result, nil
 	}
 	profileShort := profile
-	if nugetVersion.Major() >= 5 &&
+	if nugetVersion.Semver.Major() >= 5 &&
 		(strings.EqualFold(nuget.Net, framework) || strings.EqualFold(nuget.NetCoreApp, framework)) {
 		// net should be treated as netcoreapp in 5.0 and later
 		framework = nuget.NetCoreApp
@@ -159,7 +157,7 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 				platformVersionString = profileShort[versionStart:]
 			}
 			// Parse the version if it's there.
-			var platformVersion *semver.Version
+			var platformVersion *nuget.Version
 			if v, err := provider.GetPlatformVersion(platformVersionString); err == nil {
 				platformVersion = v
 			} else {

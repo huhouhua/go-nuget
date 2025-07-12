@@ -5,10 +5,9 @@
 package main
 
 import (
+	"github.com/Masterminds/semver/v3"
 	"log"
 	"os"
-
-	"github.com/Masterminds/semver/v3"
 
 	"github.com/huhouhua/go-nuget"
 	"github.com/huhouhua/go-nuget/creation"

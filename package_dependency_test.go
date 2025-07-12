@@ -8,7 +8,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,7 +79,7 @@ func TestNewPackageIdentity(t *testing.T) {
 			name:      "invalid version return error",
 			id:        "TestPackage",
 			version:   "invalid_version",
-			wantError: errors.New("Invalid Semantic Version"),
+			wantError: errors.New("invalid Semantic Version"),
 		},
 	}
 
@@ -196,7 +195,7 @@ func TestConfigurePackageDependency(t *testing.T) {
 					WithIdentity(meta),
 				}
 			},
-			wantError: errors.New("Invalid Semantic Version"),
+			wantError: errors.New("invalid Semantic Version"),
 		},
 		{
 			name: "with dependencyGroups in groups return success",
@@ -515,7 +514,7 @@ func TestConfigureDependencyInfo(t *testing.T) {
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestPackage",
-			Version: semver.New(1, 0, 0, "", ""),
+			Version: NewVersionFrom(1, 0, 0, "", ""),
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{

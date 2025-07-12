@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
+	"github.com/huhouhua/go-nuget"
 )
 
 type FrameworkName struct {
 	identifier string
 	profile    string
-	version    semver.Version
+	version    nuget.Version
 }
 
 // NewFrameworkName Parses strings in the following format: "<identifier>, Version=[v|V]<version>, Profile=<profile>"
@@ -65,7 +65,7 @@ func NewFrameworkName(frameworkName string) (*FrameworkName, error) {
 	if !versionFound {
 		return nil, fmt.Errorf("frameworkName must contain a version")
 	}
-	version, err := semver.NewVersion(versionStr)
+	version, err := nuget.ParseVersion(versionStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid version: %w", err)
 	}
@@ -76,7 +76,7 @@ func NewFrameworkName(frameworkName string) (*FrameworkName, error) {
 	}, nil
 }
 
-func (f *FrameworkName) GetVersion() semver.Version {
+func (f *FrameworkName) GetVersion() nuget.Version {
 	return f.version
 }
 func (f *FrameworkName) GetIdentifier() string {

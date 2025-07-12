@@ -167,7 +167,7 @@ func TestParseVersion(t *testing.T) {
 	tests := []struct {
 		name    string
 		version *VersionInfo
-		want    *semver.Version
+		want    *Version
 		error   error
 	}{
 		{
@@ -175,7 +175,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-beta",
 			},
-			want:  semver.New(1, 0, 0, "beta", ""),
+			want:  NewVersionFrom(1, 0, 0, "beta", ""),
 			error: nil,
 		},
 		{
@@ -183,7 +183,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-beta.1",
 			},
-			want:  semver.New(1, 0, 0, "beta.1", ""),
+			want:  NewVersionFrom(1, 0, 0, "beta.1", ""),
 			error: nil,
 		},
 		{
@@ -191,7 +191,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-preview.1",
 			},
-			want:  semver.New(1, 0, 0, "preview.1", ""),
+			want:  NewVersionFrom(1, 0, 0, "preview.1", ""),
 			error: nil,
 		},
 		{
@@ -199,7 +199,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-alpha.1",
 			},
-			want:  semver.New(1, 0, 0, "alpha.1", ""),
+			want:  NewVersionFrom(1, 0, 0, "alpha.1", ""),
 			error: nil,
 		},
 		{
@@ -207,7 +207,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65",
 			},
-			want:  semver.New(1, 0, 0, "rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65", ""),
+			want:  NewVersionFrom(1, 0, 0, "rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65", ""),
 			error: nil,
 		},
 		{
@@ -215,7 +215,7 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1-0-0",
 			},
-			want:  symbolVersion,
+			want:  NewVersion(symbolVersion, 0, symbolVersion.Original()),
 			error: nil,
 		},
 		{
@@ -223,8 +223,8 @@ func TestParseVersion(t *testing.T) {
 			version: &VersionInfo{
 				Version: "00000.0000.0",
 			},
-			want:  nil,
-			error: errors.New("Invalid Semantic Version"),
+			want:  NewVersion(semver.New(0, 0, 0, "", ""), 0, "00000.0000.0"),
+			error: nil,
 		},
 	}
 	for _, tt := range tests {

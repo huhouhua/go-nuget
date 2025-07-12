@@ -18,8 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
-
 	"github.com/huhouhua/go-nuget"
 )
 
@@ -66,7 +64,7 @@ func ValidatePackageId(packageId string) error {
 // PackageType It is important that this type remains immutable due to the cloning of package specs
 type PackageType struct {
 	Name    string
-	Version *semver.Version
+	Version *nuget.Version
 }
 
 func (p *PackageType) Equals(other *PackageType) bool {
@@ -80,7 +78,7 @@ func (p *PackageType) Equals(other *PackageType) bool {
 	case p.Version == nil && other.Version == nil:
 		return true
 	case p.Version != nil && other.Version != nil:
-		return p.Version.Equal(other.Version)
+		return p.Version.Semver.Equal(other.Version.Semver)
 	default:
 		return false
 	}
@@ -92,7 +90,7 @@ type PackageBuilder struct {
 	logger                  *log.Logger
 	Id                      string
 
-	Version *semver.Version
+	Version *nuget.Version
 
 	Repository *nuget.RepositoryMetadata
 
@@ -157,7 +155,7 @@ type PackageBuilder struct {
 
 	PackageTypes []*PackageType
 
-	MinClientVersion *semver.Version
+	MinClientVersion *nuget.Version
 }
 
 func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.Logger) *PackageBuilder {
@@ -405,7 +403,7 @@ func (p *PackageBuilder) writeOpcPackageProperties(zipWriter *zip.Writer, psmdcp
 	childTokens = append(childTokens, NewElement("dc:creator", xmlEscape(strings.Join(p.Authors, ", ")))...)
 	childTokens = append(childTokens, NewElement("dc:description", xmlEscape(p.Description))...)
 	childTokens = append(childTokens, NewElement("dc:identifier", xmlEscape(p.Id))...)
-	childTokens = append(childTokens, NewElement("dc:version", xmlEscape(p.Version.String()))...)
+	childTokens = append(childTokens, NewElement("dc:version", xmlEscape(p.Version.OriginalVersion))...)
 	childTokens = append(childTokens, NewElement("dc:keywords", xmlEscape(strings.Join(p.Tags, " ")))...)
 	childTokens = append(childTokens, NewElement("dc:lastModifiedBy", xmlEscape(""))...)
 	tokens = append(tokens, childTokens...)
@@ -475,7 +473,7 @@ func (p *PackageBuilder) GetVersion() int {
 			return TargetFrameworkSupportForDependencyContentsAndToolsVersion
 		}
 	}
-	if p.Version != nil && p.Version.Prerelease() != "" {
+	if p.Version != nil && p.Version.Semver.Prerelease() != "" {
 		return SemverVersion
 	}
 	return DefaultVersion
