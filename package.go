@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-
-	"github.com/Masterminds/semver/v3"
 )
 
 type FindPackageResource struct {
@@ -20,7 +18,7 @@ type FindPackageResource struct {
 func (f *FindPackageResource) ListAllVersions(
 	id string,
 	options ...RequestOptionFunc,
-) ([]*semver.Version, *http.Response, error) {
+) ([]*Version, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -40,9 +38,9 @@ func (f *FindPackageResource) ListAllVersions(
 		return nil, resp, err
 	}
 
-	var versions []*semver.Version
+	var versions []*Version
 	for _, v := range version.Versions {
-		if nugetVersion, err := semver.NewVersion(v); err != nil {
+		if nugetVersion, err := ParseVersion(v); err != nil {
 			return nil, resp, err
 		} else {
 			versions = append(versions, nugetVersion)

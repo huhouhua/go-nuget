@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/huhouhua/go-nuget"
@@ -22,7 +21,10 @@ import (
 func TestCreatePackage(t *testing.T) {
 	builder := NewPackageBuilder(false, false, &log.Logger{})
 	builder.Id = "MyPackage"
-	builder.Version = semver.New(1, 0, 0, "beta", "")
+	//builder.Version = nuget.NewVersionFrom(1, 0, 0, "beta", "")
+	v, err := nuget.ParseVersion("2018.4.8.256")
+	require.NoError(t, err)
+	builder.Version = v
 	builder.Description = "My test package created from the API."
 	builder.Title = "My Full Sample Package"
 	builder.Summary = "This is a summary for MyPackage."
@@ -48,7 +50,7 @@ func TestCreatePackage(t *testing.T) {
 	}
 	builder.RequireLicenseAcceptance = false
 	builder.OutputName = "test"
-	builder.MinClientVersion = semver.New(1, 0, 0, "", "")
+	builder.MinClientVersion = nuget.NewVersionFrom(1, 0, 0, "", "")
 	builder.EmitRequireLicenseAcceptance = true
 	builder.DevelopmentDependency = true
 	builder.Serviceable = true
@@ -62,7 +64,7 @@ func TestCreatePackage(t *testing.T) {
 		SupportedFrameworks: builder.TargetFrameworks,
 	})
 	// License metadata
-	builder.LicenseMetadata = NewLicense(nuget.Expression, "MIT", semver.New(1, 0, 0, "", ""))
+	builder.LicenseMetadata = NewLicense(nuget.Expression, "MIT", nuget.NewVersionFrom(1, 0, 0, "", ""))
 
 	net80, err := Parse("net8.0")
 	require.NoError(t, err)
@@ -99,7 +101,7 @@ func TestCreatePackage(t *testing.T) {
 	// Package types
 	builder.PackageTypes = append(builder.PackageTypes, &PackageType{
 		Name:    "DotnetTool",
-		Version: semver.New(1, 0, 0, "", ""),
+		Version: nuget.NewVersionFrom(1, 0, 0, "", ""),
 	})
 	// Content files
 	builder.ContentFiles = append(builder.ContentFiles, &ManifestContentFiles{

@@ -75,14 +75,14 @@ func (f *FrameworkNameProvider) GetIdentifier(framework string) string {
 func (f *FrameworkNameProvider) GetProfile(profileShortName string) string {
 	return f.convertOrNormalize(profileShortName, f.profileShortToLongMap, f.profilesToShortNameMap)
 }
-func (f *FrameworkNameProvider) GetVersion(versionString string) (*semver.Version, error) {
+func (f *FrameworkNameProvider) GetVersion(versionString string) (*nuget.Version, error) {
 	versionString = strings.TrimSpace(versionString)
 	if versionString == "" {
 		return nil, fmt.Errorf("version is empty")
 	}
 	if strings.Contains(versionString, ".") {
 		// parse the version as a normal dot delimited version
-		return semver.NewVersion(versionString)
+		return nuget.ParseVersion(versionString)
 	}
 
 	// make sure we have at least 2 digits
@@ -102,7 +102,7 @@ func (f *FrameworkNameProvider) GetVersion(versionString string) (*semver.Versio
 		}
 		parts = append(parts, byte(ch))
 	}
-	return semver.NewVersion(string(parts))
+	return nuget.ParseVersion(string(parts))
 }
 
 func (f *FrameworkNameProvider) GetVersionString(framework string, version *semver.Version) string {
@@ -143,7 +143,7 @@ func joinInts(nums []int, sep string) string {
 	}
 	return strings.Join(strs, sep)
 }
-func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*semver.Version, error) {
+func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*nuget.Version, error) {
 	versionString = strings.TrimSpace(versionString)
 	if versionString == "" {
 		return nil, fmt.Errorf("version is empty")
@@ -151,7 +151,7 @@ func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*semve
 	if !strings.Contains(versionString, ".") {
 		versionString += ".0"
 	}
-	return semver.NewVersion(versionString)
+	return nuget.ParseVersion(versionString)
 }
 func (f *FrameworkNameProvider) GetShortIdentifier(identifier string) string {
 	return f.convertOrNormalize(identifier, f.identifierToShortNameMap, f.identifierShortToLongMap)
@@ -237,7 +237,7 @@ func (f *FrameworkNameProvider) GetPortableProfile(supportedFrameworks []*Framew
 				for _, optionalFramework := range f.getOptionalFrameworks(k) {
 					if reflect.DeepEqual(optionalFramework, curFw) &&
 						strings.EqualFold(optionalFramework.Profile, curFw.Profile) &&
-						curFw.Version.Compare(optionalFramework.Version) >= 0 {
+						curFw.Version.Semver.Compare(optionalFramework.Version.Semver) >= 0 {
 						isOptional = true
 					}
 				}

@@ -4,8 +4,6 @@
 
 package nuget
 
-import "github.com/Masterminds/semver/v3"
-
 type ServiceTypes []string
 
 type ServiceType string
@@ -193,13 +191,13 @@ const (
 
 var (
 	All          = NewVersionRange(nil, nil, true, true)
-	EmptyVersion = semver.New(0, 0, 0, "", "")
-	Version5     = semver.New(5, 0, 0, "", "")
-	Version6     = semver.New(6, 0, 0, "", "")
-	Version7     = semver.New(7, 0, 0, "", "")
-	Version8     = semver.New(8, 0, 0, "", "")
-	Version9     = semver.New(9, 0, 0, "", "")
-	Version10    = semver.New(10, 0, 0, "", "")
+	EmptyVersion = NewVersionFrom(0, 0, 0, "", "")
+	Version5     = NewVersionFrom(5, 0, 0, "", "")
+	Version6     = NewVersionFrom(6, 0, 0, "", "")
+	Version7     = NewVersionFrom(7, 0, 0, "", "")
+	Version8     = NewVersionFrom(8, 0, 0, "", "")
+	Version9     = NewVersionFrom(9, 0, 0, "", "")
+	Version10    = NewVersionFrom(10, 0, 0, "", "")
 )
 
 // FloatBehavior represents how version floating should behave

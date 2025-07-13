@@ -9,14 +9,13 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/huhouhua/go-nuget"
 )
 
 func TestNewLicense(t *testing.T) {
-	wantVersion := semver.New(1, 0, 0, "", "")
+	wantVersion := nuget.NewVersionFrom(1, 0, 0, "", "")
 	t.Run("with File", func(t *testing.T) {
 		license := NewLicense(nuget.File, "/docs/LICENSE", wantVersion)
 		require.Equal(t, "/docs/LICENSE", license.GetLicense())

@@ -8,15 +8,13 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/Masterminds/semver/v3"
-
 	"github.com/huhouhua/go-nuget"
 )
 
 var (
 	LicenseFileDeprecationURL  = url.URL{Scheme: "https", Host: "aka.ms", Path: "/deprecateLicenseUrl"}
 	LicenseServiceLinkTemplate = "https://licenses.nuget.org/%s"
-	LicenseEmptyVersion        = semver.New(1, 0, 0, "", "")
+	LicenseEmptyVersion        = nuget.NewVersionFrom(1, 0, 0, "", "")
 )
 
 // LicenseExpression Represents a parsed NuGetLicenseExpression.
@@ -36,10 +34,10 @@ type LicenseMetadata struct {
 	license string
 
 	// version LicenseMetadata (expression) version. Never null.
-	version *semver.Version
+	version *nuget.Version
 }
 
-func NewLicense(licenseType nuget.LicenseType, license string, version *semver.Version) *LicenseMetadata {
+func NewLicense(licenseType nuget.LicenseType, license string, version *nuget.Version) *LicenseMetadata {
 	return &LicenseMetadata{
 		licenseType: licenseType,
 		license:     license,
@@ -54,7 +52,7 @@ func (l *LicenseMetadata) GetLicenseType() nuget.LicenseType {
 func (l *LicenseMetadata) GetLicense() string {
 	return l.license
 }
-func (l *LicenseMetadata) GetVersion() *semver.Version {
+func (l *LicenseMetadata) GetVersion() *nuget.Version {
 	return l.version
 }
 

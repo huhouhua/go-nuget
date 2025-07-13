@@ -35,16 +35,16 @@ func (p *PackageBuilder) save(stream io.Writer, ns string) error {
 func (p *PackageBuilder) ToXML() ([]xml.Token, error) {
 	var tokens []xml.Token
 	elem := xml.StartElement{Name: xml.Name{Local: "metadata"}}
-	if p.MinClientVersion != nil && p.MinClientVersion.String() != "" {
+	if p.MinClientVersion != nil && p.MinClientVersion.OriginalVersion != "" {
 		elem.Attr = append(
 			elem.Attr,
-			xml.Attr{Name: xml.Name{Local: "minClientVersion"}, Value: p.MinClientVersion.String()},
+			xml.Attr{Name: xml.Name{Local: "minClientVersion"}, Value: p.MinClientVersion.OriginalVersion},
 		)
 	}
 	tokens = append(tokens, elem)
 	tokens = append(tokens, NewElement("id", p.Id)...)
-	if strings.TrimSpace(p.Version.String()) != "" {
-		tokens = append(tokens, NewElement("version", p.Version.String())...)
+	if strings.TrimSpace(p.Version.OriginalVersion) != "" {
+		tokens = append(tokens, NewElement("version", p.Version.OriginalVersion)...)
 	}
 	if strings.TrimSpace(p.Title) != "" {
 		tokens = append(tokens, NewElement("title", p.Title)...)
@@ -371,8 +371,8 @@ func getXMLElementFromLicenseMetadata(meta *LicenseMetadata) []xml.Token {
 	attrs := []xml.Attr{
 		NewXMLAttr("type", meta.GetLicenseType().String()),
 	}
-	if !meta.GetVersion().Equal(LicenseEmptyVersion) {
-		attrs = append(attrs, NewXMLAttr("version", meta.GetVersion().String()))
+	if !meta.GetVersion().Semver.Equal(LicenseEmptyVersion.Semver) {
+		attrs = append(attrs, NewXMLAttr("version", meta.GetVersion().OriginalVersion))
 	}
 	return NewElement("license", meta.GetLicense(), attrs...)
 }
@@ -415,8 +415,8 @@ func getXElementFromManifestPackageType(packageType *PackageType) []xml.Token {
 	if strings.TrimSpace(packageType.Name) != "" {
 		attrs = append(attrs, NewXMLAttr("name", packageType.Name))
 	}
-	if !packageType.Version.Equal(nuget.EmptyVersion) {
-		attrs = append(attrs, NewXMLAttr("version", packageType.Version.String()))
+	if !packageType.Version.Semver.Equal(nuget.EmptyVersion.Semver) {
+		attrs = append(attrs, NewXMLAttr("version", packageType.Version.OriginalVersion))
 	}
 	return NewElement("packageType", "", attrs...)
 }

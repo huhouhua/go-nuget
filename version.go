@@ -5,484 +5,348 @@
 package nuget
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"strings"
+	"sync"
 
 	"github.com/Masterminds/semver/v3"
 )
 
-//type NuGetVersion struct {
-//	*semver.Version
-//}
-//
-//func (v *NuGetVersion) IsSemVer2() bool {
-//	return v.Prerelease() != "" || v.Metadata() != ""
-//}
-//
-//func (v *NuGetVersion) IsPrerelease() bool {
-//	return v.Prerelease() != ""
-//}
+var (
+	parsedVersionsMapping versionsMapping
+)
 
-// VersionRange represents a range of versions that satisfy a given constraint.
-// This is similar to NuGet's VersionRange class.
-type VersionRange struct {
-	// MinVersion is the minimum version in the range (inclusive)
-	MinVersion *semver.Version
-	// MaxVersion is the maximum version in the range (inclusive)
-	MaxVersion *semver.Version
-	// IncludeMin indicates whether the minimum version is included in the range
-	IncludeMin bool
-	// IncludeMax indicates whether the maximum version is included in the range
-	IncludeMax bool
-	// Float indicates the floating behavior of the version range
-	Float FloatBehavior
-}
-
-// ParseVersionRange parses a version range string into a VersionRange
-// Examples:
-//   - "1.0.0" -> exact version
-//   - "[1.0.0, 2.0.0]" -> range from 1.0.0 to 2.0.0 (inclusive)
-//   - "(1.0.0, 2.0.0)" -> range from 1.0.0 to 2.0.0 (exclusive)
-//   - "[1.0.0,)" -> range from 1.0.0 to infinity
-//   - "(,2.0.0]" -> range from negative infinity to 2.0.0
-func ParseVersionRange(rangeStr string) (*VersionRange, error) {
-	rangeStr = strings.TrimSpace(rangeStr)
-	if rangeStr == "" {
-		return nil, fmt.Errorf("empty version range")
-	}
-
-	// Handle floating versions
-	if strings.Contains(rangeStr, "*") {
-		return parseFloatingVersion(rangeStr)
-	}
-
-	// Handle tilde and caret ranges
-	if strings.HasPrefix(rangeStr, "~") || strings.HasPrefix(rangeStr, "^") {
-		return parseFloatingRange(rangeStr)
-	}
-
-	// Handle exact version
-	if !strings.HasPrefix(rangeStr, "[") && !strings.HasPrefix(rangeStr, "(") {
-		v, err := semver.NewVersion(rangeStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid version: %s", err.Error())
-		}
-		return NewVersionRange(v, v, true, true), nil
-	}
-
-	// Parse range
-	parts := strings.Split(rangeStr[1:len(rangeStr)-1], ",")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid range format: %s", rangeStr)
-	}
-
-	minStr := strings.TrimSpace(parts[0])
-	maxStr := strings.TrimSpace(parts[1])
-
-	var min, max *semver.Version
-	var err error
-
-	if minStr != "" {
-		min, err = semver.NewVersion(minStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid min version: %s", err.Error())
-		}
-	}
-
-	if maxStr != "" {
-		max, err = semver.NewVersion(maxStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid max version: %s", err.Error())
-		}
-	}
-
-	return NewVersionRange(min, max, strings.HasPrefix(rangeStr, "["), strings.HasSuffix(rangeStr, "]")), nil
-}
-
-// parseFloatingVersion parses a floating version string
-func parseFloatingVersion(rangeStr string) (*VersionRange, error) {
-	switch {
-	case rangeStr == "*":
-		return &VersionRange{Float: Major}, nil
-	case strings.HasPrefix(rangeStr, "*-"):
-		return &VersionRange{Float: Prerelease}, nil
-	case strings.Contains(rangeStr, "-*"):
-		baseVersion := strings.TrimSuffix(rangeStr, "-*")
-		v, err := semver.NewVersion(baseVersion)
-		if err != nil {
-			return nil, fmt.Errorf("invalid version in prerelease range: %s", err.Error())
-		}
-		vr := NewVersionRange(v, nil, true, false)
-		vr.Float = Prerelease
-		return vr, nil
-	case strings.HasPrefix(rangeStr, "~") || strings.HasPrefix(rangeStr, "^"):
-		return parseFloatingRange(rangeStr)
-	default:
-		return nil, fmt.Errorf("invalid floating version format: %s", rangeStr)
+func init() {
+	parsedVersionsMapping = versionsMapping{
+		versionMap: make(map[string]Version),
 	}
 }
 
-// parseFloatingRange parses a floating range string
-func parseFloatingRange(rangeStr string) (*VersionRange, error) {
-	var prefix string
-	var floatType FloatBehavior
-
-	switch {
-	case strings.HasPrefix(rangeStr, "~"):
-		prefix = "~"
-		floatType = Patch
-	case strings.HasPrefix(rangeStr, "^"):
-		prefix = "^"
-		floatType = Minor
-	default:
-		return nil, fmt.Errorf("invalid floating range format: %s", rangeStr)
-	}
-
-	v, err := semver.NewVersion(strings.TrimPrefix(rangeStr, prefix))
-	if err != nil {
-		return nil, fmt.Errorf("invalid version in %s range: %s", prefix, err.Error())
-	}
-
-	var maxVersion *semver.Version
-	if floatType == Patch {
-		maxVersion = semver.New(v.Major(), v.Minor()+1, 0, "", "")
-	} else { // Minor
-		if v.Major() == 0 {
-			maxVersion = semver.New(v.Major(), v.Minor()+1, 0, "", "")
-		} else {
-			maxVersion = semver.New(v.Major()+1, 0, 0, "", "")
-		}
-	}
-
-	vr := NewVersionRange(v, maxVersion, true, false)
-	vr.Float = floatType
-	return vr, nil
+type versionsMapping struct {
+	mu         sync.RWMutex
+	versionMap map[string]Version
 }
 
-// NewVersionRange creates a new VersionRange with the specified parameters
-func NewVersionRange(min, max *semver.Version, includeMin, includeMax bool) *VersionRange {
-	v := &VersionRange{
-		IncludeMin: includeMin,
-		IncludeMax: includeMax,
-		Float:      None,
+func (c *versionsMapping) setVersion(key string, version Version) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.versionMap) >= 500 {
+		c.versionMap = make(map[string]Version)
 	}
-	if min != nil {
-		v.MinVersion = min
-	}
-	if max != nil {
-		v.MaxVersion = max
-	}
+	c.versionMap[key] = version
+}
 
+func (c *versionsMapping) getVersion(key string) (Version, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	version, ok := c.versionMap[key]
+	return version, ok
+}
+
+type Version struct {
+	Semver *semver.Version `json:"semver"`
+	// Revision version R (x. y. z. R)
+	Revision        int    `json:"revision"`
+	OriginalVersion string `json:"originalVersion"`
+}
+
+// IsLegacyVersion returns True if the Version is using legacy behavior.
+func (v *Version) IsLegacyVersion() bool {
+	return v.Revision > 0
+}
+
+// IsSemVer2 returns true if version is a SemVer 2.0.0 version
+func (v *Version) IsSemVer2() bool {
+	return strings.TrimSpace(v.Semver.Prerelease()) != "" || strings.TrimSpace(v.Semver.Metadata()) != ""
+}
+
+func NewVersion(semver *semver.Version, revision int,
+	originalVersion string) *Version {
+	v := &Version{
+		Semver:          semver,
+		Revision:        revision,
+		OriginalVersion: originalVersion,
+	}
 	return v
 }
 
-// Satisfies checks if a version satisfies this version range
-func (vr *VersionRange) Satisfies(v *semver.Version) bool {
-	if vr.Float != None {
-		return vr.satisfiesFloat(v)
+func NewVersionFrom(major, minor, patch uint64, pre, metadata string) *Version {
+	v := semver.New(major, minor, patch, pre, metadata)
+	return &Version{
+		Semver:          v,
+		OriginalVersion: v.Original(),
+	}
+}
+
+// ParseVersion parse a Version from a string representing the semantic version.
+func ParseVersion(value string) (*Version, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, errors.New("argument cannot be null or empty")
 	}
 
-	if vr.MinVersion != nil {
-		if vr.IncludeMin {
-			if v.LessThan(vr.MinVersion) {
-				return false
+	ok, version, err := TryParseVersion(value)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("invalid Semantic Version")
+	}
+	return version, nil
+}
+
+func TryParseVersion(value string) (bool, *Version, error) {
+	if strings.TrimSpace(value) == "" {
+		return false, nil, fmt.Errorf("argument cannot be null or empty")
+	}
+	if v, ok := parsedVersionsMapping.getVersion(value); ok {
+		return true, &v, nil
+	}
+	if semVersion, err := semver.NewVersion(value); err == nil {
+		v := NewVersion(semVersion, 0, value)
+		parsedVersionsMapping.setVersion(value, *v)
+		return true, v, nil
+	}
+	versionString, releaseLabels, buildMetadata := parseSections(strings.TrimSpace(value))
+	if strings.TrimSpace(versionString) == "" {
+		return false, nil, fmt.Errorf("versionString is null or empty")
+	}
+	if version1, vok := tryGetNormalizedVersion(versionString); vok {
+		if releaseLabels != nil {
+			for index := 0; index < len(releaseLabels); index++ {
+				if !isValidPart(releaseLabels[index], false) {
+					return false, nil, nil
+				}
 			}
+		}
+		if strings.TrimSpace(buildMetadata) != "" && !isValid(buildMetadata, true) {
+			return false, nil, nil
+		}
+		originalVersion := value
+		var err error
+		if strings.ContainsAny(originalVersion, " ") {
+			originalVersion = strings.ReplaceAll(value, " ", "")
+		}
+		version, err := ConvertVersion(version1, originalVersion, buildMetadata, releaseLabels)
+		if err != nil {
+			return false, nil, err
+		}
+		parsedVersionsMapping.setVersion(originalVersion, *version)
+		return true, version, nil
+	}
+	return false, nil, nil
+}
+
+func tryGetNormalizedVersion(str string) (*SemanticVersion, bool) {
+	str = strings.TrimSpace(str)
+	if str == "" {
+		return nil, false
+	}
+
+	lastParsedPosition, major, majorOk := parseSection(str, 0)
+	lastParsedPosition, minor, minorOk := parseSection(str, lastParsedPosition)
+	lastParsedPosition, build, buildOk := parseSection(str, lastParsedPosition)
+	lastParsedPosition, revision, revisionOk := parseSection(str, lastParsedPosition)
+	if majorOk && minorOk && buildOk && revisionOk && lastParsedPosition == len(str) {
+		return &SemanticVersion{
+			Major:    major,
+			Minor:    minor,
+			Build:    build,
+			Revision: revision,
+		}, true
+	}
+	return nil, false
+}
+
+func parseSection(str string, start int) (end, versionNumber int, ok bool) {
+	if start == len(str) {
+		return start, 0, true
+	}
+	for end = start; end < len(str); end++ {
+		ch := str[end]
+		if ch != ' ' {
+			if !isDigit(ch) {
+				return end, 0, false
+			}
+			break
+		}
+	}
+	var done, digitFound = false, false
+	intermediateVersionNumber := int64(0)
+	for ; end < len(str); end++ {
+		ch := str[end]
+		if isDigit(ch) {
+			digitFound = true
+			intermediateVersionNumber = intermediateVersionNumber*10 + int64(ch-'0')
+			if intermediateVersionNumber > math.MaxInt32 {
+				return end, 0, false
+			}
+		} else if ch == '.' {
+			end++
+			if end == len(str) {
+				return end, 0, false
+			}
+			done = true
+			break
+		} else if ch != ' ' {
+			break
 		} else {
-			if !v.GreaterThan(vr.MinVersion) {
-				return false
+			return end, 0, false
+		}
+	}
+	if !digitFound {
+		return end, 0, false
+	}
+	if end == len(str) {
+		done = true
+	}
+	if !done {
+		for ; end < len(str); end++ {
+			ch := str[end]
+			if ch != ' ' {
+				if ch == '.' {
+					end++
+					if end == len(str) {
+						return end, 0, false
+					}
+					break
+				}
+				return end, 0, false
 			}
 		}
 	}
+	return end, int(intermediateVersionNumber), true
+}
 
-	if vr.MaxVersion != nil {
-		if vr.IncludeMax {
-			if v.GreaterThan(vr.MaxVersion) {
-				return false
+func isDigit(c uint8) bool {
+	return c >= '0' && c <= '9'
+}
+
+type SemanticVersion struct {
+	Major    int
+	Minor    int
+	Build    int
+	Revision int
+}
+
+func ConvertVersion(
+	version *SemanticVersion,
+	originalVersion, metadata string,
+	releaseLabels []string,
+) (*Version, error) {
+	if version == nil {
+		return nil, fmt.Errorf("version is nil")
+	}
+	normalizedVersion := normalizeVersionValue(version)
+	release := ""
+	if len(releaseLabels) > 0 {
+		release = strings.Join(releaseLabels, ".")
+	}
+	v := semver.New(uint64(normalizedVersion.Major), uint64(normalizedVersion.Minor),
+		uint64(normalizedVersion.Build), release, metadata)
+	return NewVersion(v, normalizedVersion.Revision, originalVersion), nil
+}
+
+// parseSections Parse the version string into version/release/build The goal of
+// this code is to take the most direct and optimized path to parsing and validating a semver.
+// Regex would be much cleaner, but due to the number of versions created in NuGet Regex is too slow.
+func parseSections(value string) (versionString string,
+	releaseLabels []string, buildMetadata string) {
+	dashPos, plusPos := -1, -1
+	var end bool
+	for index := 0; index < len(value); index++ {
+		end = index == len(value)-1
+		if dashPos < 0 {
+			if end || value[index] == '-' || value[index] == '+' {
+				endPos := index
+				if end {
+					endPos += 1
+				}
+				versionString = value[0:endPos]
+				dashPos = index
+				if value[index] == '+' {
+					plusPos = index
+				}
 			}
-		} else {
-			if !v.LessThan(vr.MaxVersion) {
-				return false
+		} else if plusPos < 0 {
+			if end || value[index] == '+' {
+				start := dashPos + 1
+				endPos := index
+				if end {
+					endPos += 1
+				}
+				str := value[start:endPos]
+				releaseLabels = strings.Split(str, ".")
+				plusPos = index
 			}
+		} else if end {
+			start := plusPos + 1
+			endPos := index + 1
+			buildMetadata = value[start:endPos]
 		}
 	}
+	return versionString, releaseLabels, buildMetadata
+}
 
+func isValidPart(s string, allowLeadingZeros bool) bool {
+	if len(s) == 0 {
+		// empty labels are not allowed
+		return false
+	}
+	// 0 is fine, but 00 is not.
+	// 0A counts as an alpha numeric string where zeros are not counted
+	if !allowLeadingZeros && len(s) > 1 && s[0] == '0' {
+		var allDigits = true
+
+		// Check if all characters are digits.
+		// The first is already checked above
+		for i := 1; i < len(s); i++ {
+			if !isDigit(s[i]) {
+				allDigits = false
+				break
+			}
+		}
+
+		if allDigits {
+			// leading zeros are not allowed in numeric labels
+			return false
+		}
+	}
+	for i := 0; i < len(s); i++ {
+		if !((s[i] >= 48 && s[i] <= 57) || (s[i] >= 65 && s[i] <= 90) || (s[i] >= 97 && s[i] <= 122) || s[i] == 45) {
+			return false
+		}
+	}
 	return true
 }
 
-// satisfiesFloat checks if a version satisfies the floating behavior
-func (vr *VersionRange) satisfiesFloat(v *semver.Version) bool {
-	switch vr.Float {
-	case Major:
-		return true
-	case Prerelease:
-		return v.Prerelease() != ""
-	case Patch:
-		return v.Major() == vr.MinVersion.Major() &&
-			v.Minor() == vr.MinVersion.Minor() &&
-			v.Patch() >= vr.MinVersion.Patch()
-	case Minor:
-		if vr.MinVersion.Major() == 0 {
-			return v.Major() == 0 &&
-				v.Minor() == vr.MinVersion.Minor() &&
-				v.Patch() >= vr.MinVersion.Patch()
+func isValid(s string, allowLeadingZeros bool) bool {
+	parts := strings.Split(s, ".")
+
+	// Check each part individually
+	for i := 0; i < len(parts); i++ {
+		if !isValidPart(parts[i], allowLeadingZeros) {
+			return false
 		}
-		return v.Major() == vr.MinVersion.Major() &&
-			v.Minor() >= vr.MinVersion.Minor()
-	default:
-		return false
 	}
+	return true
 }
 
-// DoesRangeSatisfy checks if this version range satisfies another version range
-func (vr *VersionRange) DoesRangeSatisfy(other *VersionRange) bool {
-	// If this range has both lower and upper bounds
-	if vr.MinVersion != nil && vr.MaxVersion != nil {
-		// Create a new range with the bounds of this range
-		rangeWithBounds := &VersionRange{
-			MinVersion: vr.MinVersion,
-			MaxVersion: vr.MaxVersion,
-			IncludeMin: true,
-			IncludeMax: true,
-		}
-
-		// Check if either the min or max version of the other range satisfies this range
-		return rangeWithBounds.Satisfies(other.MinVersion) ||
-			rangeWithBounds.Satisfies(other.MaxVersion)
-	} else {
-		// If this range doesn't have both bounds, check if either bound of the other range satisfies this range
-		return vr.Satisfies(other.MinVersion) || vr.Satisfies(other.MaxVersion)
+func normalizeVersionValue(version *SemanticVersion) *SemanticVersion {
+	if version.Build < 0 || version.Revision < 0 {
+		return &SemanticVersion{
+			Major:    version.Major,
+			Minor:    version.Minor,
+			Build:    mathMax(version.Build, 0),
+			Revision: mathMax(version.Revision, 0)}
 	}
+	return version
 }
 
-// String returns the string representation of the version range
-func (vr *VersionRange) String() string {
-	if vr.Float != None {
-		return vr.stringFloat()
+func mathMax(a, b int) int {
+	if a > b {
+		return a
 	}
-
-	if vr.MinVersion != nil && vr.MaxVersion != nil && vr.MinVersion.Equal(vr.MaxVersion) {
-		return vr.MinVersion.String()
-	}
-
-	var sb strings.Builder
-	if vr.MinVersion != nil {
-		if vr.IncludeMin {
-			sb.WriteString("[")
-		} else {
-			sb.WriteString("(")
-		}
-		sb.WriteString(vr.MinVersion.String())
-	} else {
-		sb.WriteString("(")
-	}
-
-	sb.WriteString(",")
-
-	if vr.MaxVersion != nil {
-		sb.WriteString(vr.MaxVersion.String())
-		if vr.IncludeMax {
-			sb.WriteString("]")
-		} else {
-			sb.WriteString(")")
-		}
-	} else {
-		sb.WriteString(")")
-	}
-
-	return sb.String()
-}
-
-// stringFloat returns the string representation of a floating version range
-func (vr *VersionRange) stringFloat() string {
-	switch vr.Float {
-	case Major:
-		return "*"
-	case Prerelease:
-		return "*-"
-	case Patch:
-		return "~" + vr.MinVersion.String()
-	case Minor:
-		return "^" + vr.MinVersion.String()
-	default:
-		return ""
-	}
-}
-
-// FindBestMatch returns the version that best matches the range from a list of versions
-func (vr *VersionRange) FindBestMatch(versions []*semver.Version) *semver.Version {
-	var bestMatch *semver.Version
-	for _, version := range versions {
-		if vr.IsBetter(bestMatch, version) {
-			bestMatch = version
-		}
-	}
-	return bestMatch
-}
-
-// IsBetter determines if a given version is better suited to the range than a current version
-func (vr *VersionRange) IsBetter(current, considering *semver.Version) bool {
-	if current == considering {
-		return false
-	}
-
-	// null checks
-	if considering == nil {
-		return false
-	}
-
-	// If the range contains only stable versions disallow prerelease versions
-	if !vr.hasPrereleaseBounds() && considering.Prerelease() != "" &&
-		vr.Float != Prerelease && vr.Float != Major {
-		return false
-	}
-
-	if !vr.Satisfies(considering) {
-		// keep null over a value outside of the range
-		return false
-	}
-
-	if current == nil {
-		return true
-	}
-
-	if vr.Float != None {
-		// check if either version is in the floating range
-		curInRange := vr.satisfiesFloat(current)
-
-		if curInRange {
-			// prefer the highest one if both are in the range
-			return current.LessThan(considering)
-		} else {
-			// neither are in range
-			curToLower := current.LessThan(vr.MinVersion)
-			conToLower := considering.LessThan(vr.MinVersion)
-
-			if curToLower && !conToLower {
-				// favor the version above the range
-				return true
-			} else if !curToLower && conToLower {
-				return false
-			} else if !curToLower {
-				// favor the lower version if we are above the range
-				return current.GreaterThan(considering)
-			} else {
-				// favor the higher version if we are below the range
-				return current.LessThan(considering)
-			}
-		}
-	}
-
-	// Favor lower versions
-	return current.GreaterThan(considering)
-}
-
-// hasPrereleaseBounds returns true if either bound is a prerelease version
-func (vr *VersionRange) hasPrereleaseBounds() bool {
-	return (vr.MinVersion != nil && vr.MinVersion.Prerelease() != "") ||
-		(vr.MaxVersion != nil && vr.MaxVersion.Prerelease() != "")
-}
-
-// ToNonSnapshotRange removes the floating snapshot part of the minimum version if it exists
-func (vr *VersionRange) ToNonSnapshotRange() *VersionRange {
-	if vr.MinVersion == nil && vr.MaxVersion == nil {
-		return vr
-	}
-
-	minVersion := vr.MinVersion
-	maxVersion := vr.MaxVersion
-
-	// Handle floating versions
-	if vr.Float != None {
-		if minVersion != nil {
-			var major, minor uint64
-			if vr.Float == Minor {
-				major = minVersion.Major() + 1
-				minor = 0
-			} else if vr.Float == Patch {
-				major = minVersion.Major()
-				minor = minVersion.Minor() + 1
-			}
-			maxVersion = semver.New(major, minor, 0, "", "")
-		}
-		return NewVersionRange(minVersion, maxVersion, true, false)
-	}
-
-	// Handle prerelease versions
-	if minVersion != nil {
-		minVersion = processPrereleaseVersion(minVersion)
-	}
-	if maxVersion != nil {
-		maxVersion = processPrereleaseVersion(maxVersion)
-	}
-
-	// Create new version range with original include flags
-	return NewVersionRange(minVersion, maxVersion, vr.IncludeMin, vr.IncludeMax)
-}
-
-// processPrereleaseVersion processes a version with prerelease information
-func processPrereleaseVersion(v *semver.Version) *semver.Version {
-	if v == nil || v.Prerelease() == "" {
-		return v
-	}
-
-	prerelease := strings.TrimRight(v.Prerelease(), "-")
-	if prerelease == "0" {
-		return semver.New(v.Major(), v.Minor(), v.Patch(), "", "")
-	}
-	return semver.New(v.Major(), v.Minor(), v.Patch(), prerelease, "")
-}
-
-// PrettyPrint returns a human-readable string representation of the version range
-func (vr *VersionRange) PrettyPrint() string {
-	if vr.Float != None {
-		switch vr.Float {
-		case Major:
-			return "Latest version"
-		case Minor:
-			if vr.MinVersion != nil {
-				return fmt.Sprintf("Latest minor version >= %s", vr.MinVersion)
-			}
-			return "Latest minor version"
-		case Patch:
-			if vr.MinVersion != nil {
-				return fmt.Sprintf("Latest patch version >= %s", vr.MinVersion)
-			}
-			return "Latest patch version"
-		case Prerelease:
-			if vr.MinVersion != nil {
-				return fmt.Sprintf("Latest prerelease version >= %s", vr.MinVersion)
-			}
-			return "Latest prerelease version"
-		}
-	}
-
-	if vr.MinVersion == nil && vr.MaxVersion == nil {
-		return "Any version"
-	}
-
-	if vr.MinVersion != nil && vr.MaxVersion != nil && vr.MinVersion.Equal(vr.MaxVersion) {
-		return fmt.Sprintf("Version %s exactly", vr.MinVersion)
-	}
-
-	var result strings.Builder
-	if vr.MinVersion != nil {
-		if vr.IncludeMin {
-			result.WriteString(fmt.Sprintf(">= %s", vr.MinVersion))
-		} else {
-			result.WriteString(fmt.Sprintf("> %s", vr.MinVersion))
-		}
-	}
-
-	if vr.MaxVersion != nil {
-		if result.Len() > 0 {
-			result.WriteString(" and ")
-		}
-		if vr.IncludeMax {
-			result.WriteString(fmt.Sprintf("<= %s", vr.MaxVersion))
-		} else {
-			result.WriteString(fmt.Sprintf("< %s", vr.MaxVersion))
-		}
-	}
-
-	return result.String()
+	return b
 }

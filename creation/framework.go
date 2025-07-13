@@ -38,13 +38,13 @@ type Framework struct {
 	Framework string
 
 	// Version Target framework version
-	Version *semver.Version
+	Version *nuget.Version
 
 	// Platform Framework Platform (net5.0+)
 	Platform string
 
 	// PlatformVersion Framework Platform Version (net5.0+)
-	PlatformVersion *semver.Version
+	PlatformVersion *nuget.Version
 
 	// Target framework profile
 	Profile string
@@ -53,35 +53,35 @@ type Framework struct {
 func NewFramework(framework string) *Framework {
 	return NewFrameworkWithVersion(framework, nuget.EmptyVersion)
 }
-func NewFrameworkWithVersion(framework string, version *semver.Version) *Framework {
+func NewFrameworkWithVersion(framework string, version *nuget.Version) *Framework {
 	return NewFrameworkWithProfile(framework, version, "")
 }
-func NewFrameworkWithProfile(framework string, version *semver.Version, profile string) *Framework {
+func NewFrameworkWithProfile(framework string, version *nuget.Version, profile string) *Framework {
 	return newFrameworkFrom(framework, version, profile, "", nuget.EmptyVersion)
 }
 
 func NewFrameworkWithPlatform(
 	framework string,
-	version *semver.Version,
+	version *nuget.Version,
 	platform string,
-	platformVersion *semver.Version,
+	platformVersion *nuget.Version,
 ) *Framework {
 	return newFrameworkFrom(framework, version, "", platform, platformVersion)
 }
 
 func newFrameworkFrom(
 	framework string,
-	version *semver.Version,
+	version *nuget.Version,
 	profile string,
 	platform string,
-	platformVersion *semver.Version,
+	platformVersion *nuget.Version,
 ) *Framework {
 	nf := &Framework{
 		Framework: framework,
 		Version:   version,
 		Profile:   profile,
 	}
-	nf.isNet5Era = nf.Version.Major() >= 5 &&
+	nf.isNet5Era = nf.Version.Semver.Major() >= 5 &&
 		strings.EqualFold(strings.ToLower(framework), strings.ToLower(nuget.NetCoreApp))
 
 	if nf.isNet5Era {
@@ -116,17 +116,18 @@ func (f *Framework) IsSpecificFramework() bool {
 
 // AllFrameworkVersions True if this framework matches for all versions.
 func (f *Framework) AllFrameworkVersions() bool {
-	return f.Version.Major() == 0 && f.Version.Minor() == 0 && f.Version.Patch() == 0 && f.Version.Metadata() == ""
+	return f.Version.Semver.Major() == 0 && f.Version.Semver.Minor() == 0 && f.Version.Semver.Patch() == 0 &&
+		f.Version.Semver.Metadata() == ""
 }
 
 // IsPCL Portable class library check
 func (f *Framework) IsPCL() bool {
-	return strings.EqualFold(f.Framework, nuget.Portable) && f.Version.Major() < 5
+	return strings.EqualFold(f.Framework, nuget.Portable) && f.Version.Semver.Major() < 5
 }
 
 // GetFrameworkString which is relevant for building packages. This isn't needed for net5.0+ frameworks.
 func (f *Framework) GetFrameworkString() (string, error) {
-	isNet5Era := f.Version.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, f.Framework)
+	isNet5Era := f.Version.Semver.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, f.Framework)
 	if isNet5Era {
 		return f.GetShortFolderName()
 	}
@@ -135,7 +136,7 @@ func (f *Framework) GetFrameworkString() (string, error) {
 		return "", err
 	}
 	version := frameworkName.GetVersion()
-	original := version.Original()
+	original := version.OriginalVersion
 	name := fmt.Sprintf("%s%s", frameworkName.GetIdentifier(), original)
 	if strings.TrimSpace(frameworkName.GetProfile()) == "" {
 		return name, nil
@@ -178,7 +179,7 @@ func (f *Framework) getShortFolderName(mappings FrameworkNameProvider) (string, 
 
 	// add the version if it is non-empty
 	if !f.AllFrameworkVersions() {
-		sb.WriteString(mappings.GetVersionString(framework.Framework, framework.Version))
+		sb.WriteString(mappings.GetVersionString(framework.Framework, framework.Version.Semver))
 	}
 	if f.IsPCL() {
 		sb.WriteString("-")
@@ -218,8 +219,8 @@ func (f *Framework) getShortFolderName(mappings FrameworkNameProvider) (string, 
 		if strings.TrimSpace(framework.Platform) != "" {
 			sb.WriteString("-")
 			sb.WriteString(strings.ToLower(framework.Platform))
-			if framework.PlatformVersion.Equal(nuget.EmptyVersion) {
-				sb.WriteString(mappings.GetVersionString(framework.Framework, framework.PlatformVersion))
+			if framework.PlatformVersion.Semver.Equal(nuget.EmptyVersion.Semver) {
+				sb.WriteString(mappings.GetVersionString(framework.Framework, framework.PlatformVersion.Semver))
 			}
 		}
 	} else {
@@ -249,7 +250,7 @@ func (f *Framework) getDotNetFrameworkName(mappings FrameworkNameProvider) strin
 	framework := mappings.GetFullNameReplacement(f)
 	if framework.IsSpecificFramework() {
 		parts := []string{f.Framework}
-		parts = append(parts, fmt.Sprintf("Version=v%s", getDisplayVersion(framework.Version)))
+		parts = append(parts, fmt.Sprintf("Version=v%s", getDisplayVersion(framework.Version.Semver)))
 		if strings.TrimSpace(framework.Profile) != "" {
 			parts = append(parts, fmt.Sprintf("Profile=%s", framework.Profile))
 		}
@@ -271,11 +272,11 @@ func (f *Framework) Equals(other *Framework) bool {
 	if other == nil {
 		return f == other
 	}
-	return f.Version.Equal(other.Version) &&
+	return f.Version.Semver.Equal(other.Version.Semver) &&
 		strings.EqualFold(f.Framework, other.Framework) &&
 		strings.EqualFold(f.Profile, other.Profile) &&
 		strings.EqualFold(f.Platform, other.Platform) &&
-		f.PlatformVersion.Equal(other.PlatformVersion) &&
+		f.PlatformVersion.Semver.Equal(other.PlatformVersion.Semver) &&
 		!f.IsUnsupported()
 }
 
