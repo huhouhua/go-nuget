@@ -91,7 +91,7 @@ func ParseVersion(value string) (*Version, error) {
 		return nil, err
 	}
 	if !ok {
-		return nil, fmt.Errorf("invalid Semantic Version")
+		return nil, fmt.Errorf("invalid semantic version")
 	}
 	return version, nil
 }

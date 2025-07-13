@@ -234,7 +234,7 @@ func TestParseFloatingRange(t *testing.T) {
 	require.Equal(t, expectedErr, actualErr)
 
 	_, actualErr = parseFloatingRange("^*")
-	expectedErr = fmt.Errorf("invalid version in ^ range: Invalid Semantic Version")
+	expectedErr = fmt.Errorf("invalid version in ^ range: invalid semantic version")
 	require.Equal(t, expectedErr, actualErr)
 }
 

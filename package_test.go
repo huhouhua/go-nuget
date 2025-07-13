@@ -102,7 +102,7 @@ func TestPackageResource_ListAllVersions_ErrorScenarios(t *testing.T) {
 					mustWriteHTTPResponse(t, w, fileUrl)
 				})
 			},
-			error: errors.New("invalid Semantic Version"),
+			error: errors.New("invalid semantic version"),
 		},
 	}
 	for _, tt := range tests {
