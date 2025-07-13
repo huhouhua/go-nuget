@@ -16,8 +16,8 @@ func listAllVersionsExample() {
 	// Create a new NuGet client with custom retry settings
 	client, err := nuget.NewClient(
 		nuget.WithSourceURL("https://your-private-feed.com/v3/index.json"),
-		nuget.WithCustomRetryMax(5),
-		nuget.WithCustomRetryWaitMinMax(time.Second*1, time.Second*10),
+		nuget.WithRetryMax(5),
+		nuget.WithRetryWaitMinMax(time.Second*1, time.Second*10),
 	)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create client: %v", err))
@@ -30,7 +30,7 @@ func listAllVersionsExample() {
 	}
 	// print the versions
 	for _, v := range versions {
-		fmt.Printf("Found version %s", v.String())
+		fmt.Printf("Found version %s", v.OriginalVersion)
 	}
 
 }

@@ -1,5 +1,7 @@
 github.com/Masterminds/semver/v3 v3.3.1 h1:QtNSWtVZ3nBfk8mAOu/B6v7FMJ+NHTIgUPi7rj+4nv4=
 github.com/Masterminds/semver/v3 v3.3.1/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
+github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1Xbatp0=
+github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
 github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
@@ -7,6 +9,8 @@ github.com/hashicorp/go-cleanhttp v0.5.2 h1:035FKYIWjmULyFRBKPs8TBQoi0x6d9G4xc9n
 github.com/hashicorp/go-cleanhttp v0.5.2/go.mod h1:kO/YDlP8L1346E6Sodw+PrpBSV4/SoxCXGY6BqNFT48=
 github.com/hashicorp/go-retryablehttp v0.7.7 h1:C8hUCYzor8PIfXHa4UrZkU4VvK8o9ISHxT2Q8+VepXU=
 github.com/hashicorp/go-retryablehttp v0.7.7/go.mod h1:pkQpWZeYWskR+D1tR2O5OcBFOxfA7DoAO6xtkuQnHTk=
+github.com/hashicorp/go-retryablehttp v0.7.8 h1:ylXZWnqa7Lhqpk0L1P1LzDtGcCR0rPVUrx/c8Unxc48=
+github.com/hashicorp/go-retryablehttp v0.7.8/go.mod h1:rjiScheydd+CxvumBsIrFKlx3iS0jrZ7LvzFGFmuKbw=
 github.com/huhouhua/go-nuget v0.0.0-20250411161449-80d791617381 h1:MIg026I/TGwtt8Qy2tysnRhqmmF1gWZO4qwoaArzmb8=
 github.com/huhouhua/go-nuget v0.0.0-20250411161449-80d791617381/go.mod h1:qk6phurkhC/+y97Xvdr6AVMat0GVTnkHQeOhGLZt2zI=
 github.com/huhouhua/go-nuget v0.0.0-20250429032224-5ffab2d7ffa0 h1:06mtR2TtKvI3LhSES83jvGqObBrfJITEYmfihSbAwfc=
@@ -19,6 +23,8 @@ github.com/huhouhua/go-nuget v0.0.1 h1:77H3FMoTMyPRXZCv5MNsxA7U1EAAefQSAFRdevwNO
 github.com/huhouhua/go-nuget v0.0.1/go.mod h1:o5ELiVGZh7/xfbbeJ1Zc8g2dVHgPYbZOMbPlRIzyAuQ=
 github.com/huhouhua/go-nuget v0.0.2 h1:v+rJQDYpo3Pmd94yJ12WkJRxMygmYpLvwC98ZrvtSYU=
 github.com/huhouhua/go-nuget v0.0.2/go.mod h1:6M32TZ1iAa0GP/KfnhP20iZvBs0+qwbcSZSWZl66WzA=
+github.com/huhouhua/go-nuget v0.0.4 h1:g/V/CB/IPxm3vOjBUnADhiHlLWzUknQQjRHtFjBj+dQ=
+github.com/huhouhua/go-nuget v0.0.4/go.mod h1:xUzem6u4ymoKTRJwIKtV8uRqP0qfJr4KwUVpxsuLwZo=
 golang.org/x/time v0.11.0 h1:/bpjEDfN9tkoN/ryeYHnv5hcMlc8ncjMcM4XBk5NWV0=
 golang.org/x/time v0.11.0/go.mod h1:CDIdPxbZBQxdj6cxyCIdrNogrJKMJ7pr37NYpMcMDSg=
 golang.org/x/time v0.12.0 h1:ScB/8o8olJvc+CQPWrK3fPZNfh7qgwCrY0zJmoEQLSE=
