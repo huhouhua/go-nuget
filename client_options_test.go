@@ -21,14 +21,14 @@ func TestClientWithCustomOptions(t *testing.T) {
 	sourceURL := fmt.Sprintf("%s/v3/index.json", server.URL)
 	c, err := NewClient(
 		WithSourceURL(sourceURL),
-		WithCustomLeveledLogger(new(testleveledLogger)),
-		WithCustomLimiter(new(testRateLimiter)),
-		WithCustomLogger(new(testLogger)),
-		WithCustomRetry(func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		WithLeveledLogger(new(testleveledLogger)),
+		WithLimiter(new(testRateLimiter)),
+		WithLogger(new(testLogger)),
+		WithRetry(func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 			return true, nil
 		}),
-		WithCustomRetryMax(1),
-		WithCustomRetryWaitMinMax(100*time.Millisecond, 400*time.Millisecond),
+		WithRetryMax(1),
+		WithRetryWaitMinMax(100*time.Millisecond, 400*time.Millisecond),
 		WithErrorHandler(func(resp *http.Response, err error, numTries int) (*http.Response, error) {
 			return resp, nil
 		}),

@@ -42,7 +42,7 @@ func setup(t *testing.T, indexPath string) (*http.ServeMux, *Client) {
 	client, err := NewOAuthClient("test_go_nuget_key",
 		WithSourceURL(fmt.Sprintf("%s/v3/index.json", server.URL)),
 		// Disable backoff to speed up tests that expect errors.
-		WithCustomBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
+		WithBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
 			return 0
 		}),
 	)
