@@ -134,7 +134,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 			id:      "json",
 			version: "x.0.0",
 			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
-				wantErr := errors.New("invalid Semantic Version")
+				wantErr := errors.New("invalid semantic version")
 				require.Equal(t, wantErr, err)
 			},
 		},
@@ -248,7 +248,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 				mustWriteHTTPResponse(t, w, fileUrl)
 			},
 			wantFunc: func(client *Client, err error, meta *PackageSearchMetadataRegistration) {
-				wantErr := errors.New("invalid Semantic Version")
+				wantErr := errors.New("invalid semantic version")
 				require.Equal(t, wantErr, err)
 			},
 		},
@@ -390,7 +390,7 @@ func TestPackageSearchMetadataRegistration(t *testing.T) {
 				Version:   "^0.0.1",
 			},
 		}
-		wantErr := errors.New("invalid Semantic Version")
+		wantErr := errors.New("invalid semantic version")
 		_, err := inputErr.Identity()
 		require.Equal(t, wantErr, err)
 	})
@@ -749,7 +749,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
 				return emptyPkg
 			},
-			error: errors.New("invalid Semantic Version"),
+			error: errors.New("invalid semantic version"),
 		},
 		{
 			name: "invalid upper version in page return error",
@@ -764,7 +764,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
 				return emptyPkg
 			},
-			error: errors.New("invalid Semantic Version"),
+			error: errors.New("invalid semantic version"),
 		},
 		{
 			name: "version out of range",
@@ -850,7 +850,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
 				return emptyPkg
 			},
-			error: errors.New("invalid Semantic Version"),
+			error: errors.New("invalid semantic version"),
 		},
 		{
 			name: "includeUnlisted is false and package is unlisted return success",
@@ -982,7 +982,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				IncludePrerelease: true,
 				IncludeUnlisted:   true,
 			},
-			error: errors.New("invalid version: Invalid Semantic Version"),
+			error: errors.New("invalid version: invalid semantic version"),
 			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
 				return emptyPkg
 			},

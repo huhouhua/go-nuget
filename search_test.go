@@ -164,6 +164,10 @@ func createUrl(t *testing.T, u string) *url.URL {
 func TestParseVersionInfo(t *testing.T) {
 	symbolVersion, err := semver.NewVersion("1-0-0")
 	require.NoError(t, err)
+
+	vZeroes, err := semver.NewVersion("00000.0000.0")
+	require.NoError(t, err)
+
 	tests := []struct {
 		name    string
 		version *VersionInfo
@@ -223,7 +227,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "00000.0000.0",
 			},
-			want:  NewVersion(semver.New(0, 0, 0, "", ""), 0, "00000.0000.0"),
+			want:  NewVersion(vZeroes, 0, "00000.0000.0"),
 			error: nil,
 		},
 	}

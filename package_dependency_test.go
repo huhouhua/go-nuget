@@ -48,7 +48,7 @@ func TestNewPackageDependencyGroup(t *testing.T) {
 					VersionRaw: "invalid_version",
 				},
 			},
-			wantError: errors.New("invalid version: Invalid Semantic Version"),
+			wantError: errors.New("invalid version: invalid semantic version"),
 		},
 	}
 
@@ -79,7 +79,7 @@ func TestNewPackageIdentity(t *testing.T) {
 			name:      "invalid version return error",
 			id:        "TestPackage",
 			version:   "invalid_version",
-			wantError: errors.New("invalid Semantic Version"),
+			wantError: errors.New("invalid semantic version"),
 		},
 	}
 
@@ -195,7 +195,7 @@ func TestConfigurePackageDependency(t *testing.T) {
 					WithIdentity(meta),
 				}
 			},
-			wantError: errors.New("invalid Semantic Version"),
+			wantError: errors.New("invalid semantic version"),
 		},
 		{
 			name: "with dependencyGroups in groups return success",
