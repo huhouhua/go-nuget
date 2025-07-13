@@ -161,7 +161,7 @@ func createUrl(t *testing.T, u string) *url.URL {
 	return rawUrl
 }
 
-func TestParseVersion(t *testing.T) {
+func TestParseVersionInfo(t *testing.T) {
 	symbolVersion, err := semver.NewVersion("1-0-0")
 	require.NoError(t, err)
 	tests := []struct {

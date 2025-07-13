@@ -52,7 +52,7 @@ type Version struct {
 	OriginalVersion string `json:"originalVersion"`
 }
 
-// IsLegacyVersion returns True if the NuGetVersion is using legacy behavior.
+// IsLegacyVersion returns True if the Version is using legacy behavior.
 func (v *Version) IsLegacyVersion() bool {
 	return v.Revision > 0
 }
@@ -80,7 +80,7 @@ func NewVersionFrom(major, minor, patch uint64, pre, metadata string) *Version {
 	}
 }
 
-// ParseVersion Creates a Version from a string representing the semantic version.
+// ParseVersion parse a Version from a string representing the semantic version.
 func ParseVersion(value string) (*Version, error) {
 	if strings.TrimSpace(value) == "" {
 		return nil, errors.New("argument cannot be null or empty")
@@ -98,7 +98,7 @@ func ParseVersion(value string) (*Version, error) {
 
 func TryParseVersion(value string) (bool, *Version, error) {
 	if strings.TrimSpace(value) == "" {
-		return false, nil, fmt.Errorf("value is null or empty")
+		return false, nil, fmt.Errorf("argument cannot be null or empty")
 	}
 	if v, ok := parsedVersionsMapping.getVersion(value); ok {
 		return true, &v, nil
@@ -248,7 +248,7 @@ func ConvertVersion(
 	return NewVersion(v, normalizedVersion.Revision, originalVersion), nil
 }
 
-// ParseSections Parse the version string into version/release/build The goal of
+// parseSections Parse the version string into version/release/build The goal of
 // this code is to take the most direct and optimized path to parsing and validating a semver.
 // Regex would be much cleaner, but due to the number of versions created in NuGet Regex is too slow.
 func parseSections(value string) (versionString string,
