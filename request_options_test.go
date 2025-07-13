@@ -56,7 +56,7 @@ func TestWithHeader(t *testing.T) {
 		// same base options as setup
 		WithSourceURL(client.SourceURL().String()),
 		// Disable backoff to speed up tests that expect errors.
-		WithCustomBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
+		WithBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
 			return 0
 		}),
 		// add client headers
@@ -127,7 +127,7 @@ func TestWithHeaders(t *testing.T) {
 		// same base options as setup
 		WithSourceURL(client.SourceURL().String()),
 		// Disable backoff to speed up tests that expect errors.
-		WithCustomBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
+		WithBackoff(func(_, _ time.Duration, _ int, _ *http.Response) time.Duration {
 			return 0
 		}),
 		// add client headers

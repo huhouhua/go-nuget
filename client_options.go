@@ -21,25 +21,25 @@ func WithSourceURL(urlStr string) ClientOptionFunc {
 	}
 }
 
-// WithCustomBackoff can be used to configure a custom backoff policy.
-func WithCustomBackoff(backoff retryablehttp.Backoff) ClientOptionFunc {
+// WithBackoff can be used to configure a custom backoff policy.
+func WithBackoff(backoff retryablehttp.Backoff) ClientOptionFunc {
 	return func(c *Client) error {
 		c.client.Backoff = backoff
 		return nil
 	}
 }
 
-// WithCustomLeveledLogger can be used to configure a custom retryablehttp
+// WithLeveledLogger can be used to configure a custom retryablehttp
 // leveled logger.
-func WithCustomLeveledLogger(leveledLogger retryablehttp.LeveledLogger) ClientOptionFunc {
+func WithLeveledLogger(leveledLogger retryablehttp.LeveledLogger) ClientOptionFunc {
 	return func(c *Client) error {
 		c.client.Logger = leveledLogger
 		return nil
 	}
 }
 
-// WithCustomLimiter injects a custom rate limiter to the client.
-func WithCustomLimiter(limiter RateLimiter) ClientOptionFunc {
+// WithLimiter injects a custom rate limiter to the client.
+func WithLimiter(limiter RateLimiter) ClientOptionFunc {
 	return func(c *Client) error {
 		c.configureLimiterOnce.Do(func() {})
 		c.limiter = limiter
@@ -47,33 +47,33 @@ func WithCustomLimiter(limiter RateLimiter) ClientOptionFunc {
 	}
 }
 
-// WithCustomLogger can be used to configure a custom retryablehttp logger.
-func WithCustomLogger(logger retryablehttp.Logger) ClientOptionFunc {
+// WithLogger can be used to configure a custom retryablehttp logger.
+func WithLogger(logger retryablehttp.Logger) ClientOptionFunc {
 	return func(c *Client) error {
 		c.client.Logger = logger
 		return nil
 	}
 }
 
-// WithCustomRetry can be used to configure a custom retry policy.
-func WithCustomRetry(checkRetry retryablehttp.CheckRetry) ClientOptionFunc {
+// WithRetry can be used to configure a custom retry policy.
+func WithRetry(checkRetry retryablehttp.CheckRetry) ClientOptionFunc {
 	return func(c *Client) error {
 		c.client.CheckRetry = checkRetry
 		return nil
 	}
 }
 
-// WithCustomRetryMax can be used to configure a custom maximum number of retries.
-func WithCustomRetryMax(retryMax int) ClientOptionFunc {
+// WithRetryMax can be used to configure a custom maximum number of retries.
+func WithRetryMax(retryMax int) ClientOptionFunc {
 	return func(c *Client) error {
 		c.client.RetryMax = retryMax
 		return nil
 	}
 }
 
-// WithCustomRetryWaitMinMax can be used to configure a custom minimum and
+// WithRetryWaitMinMax can be used to configure a custom minimum and
 // maximum time to wait between retries.
-func WithCustomRetryWaitMinMax(waitMin, waitMax time.Duration) ClientOptionFunc {
+func WithRetryWaitMinMax(waitMin, waitMax time.Duration) ClientOptionFunc {
 	return func(c *Client) error {
 		c.client.RetryWaitMin = waitMin
 		c.client.RetryWaitMax = waitMax
