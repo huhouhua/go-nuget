@@ -8,8 +8,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/Masterminds/semver/v3"
-
 	"github.com/huhouhua/go-nuget"
 	"github.com/huhouhua/go-nuget/creation"
 )
@@ -17,7 +15,7 @@ import (
 func createPackageExample() {
 	builder := creation.NewPackageBuilder(false, false, logger)
 	builder.Id = "MyPackage"
-	builder.Version = semver.New(1, 0, 0, "beta", "")
+	builder.Version = nuget.NewVersionFrom(1, 0, 0, "beta", "")
 	builder.Description = "My package created from the API."
 	builder.Authors = append(builder.Authors, "Sample author")
 	netstandard14, err := creation.Parse("netstandard1.4")
