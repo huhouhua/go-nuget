@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	parsedVersionsMapping versionsMapping
+	parsedVersionMapping           versionsMapping
+	parsedVersionMappingMaxEntries = 500
 )
 
 func init() {
-	parsedVersionsMapping = versionsMapping{
+	parsedVersionMapping = versionsMapping{
 		versionMap: make(map[string]Version),
 	}
 }
@@ -32,7 +33,7 @@ type versionsMapping struct {
 func (c *versionsMapping) setVersion(key string, version Version) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if len(c.versionMap) >= 500 {
+	if len(c.versionMap) >= parsedVersionMappingMaxEntries {
 		c.versionMap = make(map[string]Version)
 	}
 	c.versionMap[key] = version
@@ -100,12 +101,12 @@ func TryParse(value string) (bool, *Version, error) {
 	if strings.TrimSpace(value) == "" {
 		return false, nil, fmt.Errorf("argument cannot be null or empty")
 	}
-	if v, ok := parsedVersionsMapping.getVersion(value); ok {
+	if v, ok := parsedVersionMapping.getVersion(value); ok {
 		return true, &v, nil
 	}
 	if semVersion, err := semver.NewVersion(value); err == nil {
 		v := NewVersion(semVersion, 0, value)
-		parsedVersionsMapping.setVersion(value, *v)
+		parsedVersionMapping.setVersion(value, *v)
 		return true, v, nil
 	}
 	versionString, releaseLabels, buildMetadata := parseSections(strings.TrimSpace(value))
@@ -132,7 +133,7 @@ func TryParse(value string) (bool, *Version, error) {
 		if err != nil {
 			return false, nil, err
 		}
-		parsedVersionsMapping.setVersion(originalVersion, *version)
+		parsedVersionMapping.setVersion(originalVersion, *version)
 		return true, version, nil
 	}
 	return false, nil, nil

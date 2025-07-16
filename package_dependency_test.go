@@ -50,7 +50,7 @@ func TestNewPackageDependencyGroup(t *testing.T) {
 					VersionRaw: "invalid_version",
 				},
 			},
-			wantError: errors.New("invalid version: invalid semantic version"),
+			wantError: errors.New("'invalid_version' is not a valid version string"),
 		},
 	}
 
@@ -360,7 +360,7 @@ func TestConfigurePackageDependency(t *testing.T) {
 			},
 		},
 		{
-			name: "with dependencyGroups parse version in groups return error",
+			name: "with dependencyGroups parse version in groups return success",
 			optionsFunc: func() []PackageDependencyInfoFunc {
 				dependencies := &Dependencies{
 					Groups: []*DependenciesGroup{
@@ -377,10 +377,22 @@ func TestConfigurePackageDependency(t *testing.T) {
 					WithDependencyGroups(dependencies),
 				}
 			},
-			wantError: errors.New("invalid range format: [1.0.0]"),
+			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
+				group, err := NewPackageDependencyGroup("", []*Dependency{
+					{
+						VersionRaw: "[1.0.0]",
+					},
+				}...)
+				require.NoError(t, err)
+				return &PackageDependencyInfo{
+					DependencyGroups: []*PackageDependencyGroup{
+						group,
+					},
+				}
+			},
 		},
 		{
-			name: "with dependencyGroups parse version in dependency return error",
+			name: "with dependencyGroups parse version in dependency return success",
 			optionsFunc: func() []PackageDependencyInfoFunc {
 				dependencies := &Dependencies{
 					Dependency: []*Dependency{
@@ -393,7 +405,17 @@ func TestConfigurePackageDependency(t *testing.T) {
 					WithDependencyGroups(dependencies),
 				}
 			},
-			wantError: errors.New("invalid range format: [1.0.0]"),
+			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
+				group, err := NewPackageDependencyGroup("Any", &Dependency{
+					VersionRaw: "[1.0.0]",
+				})
+				require.NoError(t, err)
+				return &PackageDependencyInfo{
+					DependencyGroups: []*PackageDependencyGroup{
+						group,
+					},
+				}
+			},
 		},
 		{
 			name: "with frameworkReferenceGroups return success",

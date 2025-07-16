@@ -230,7 +230,7 @@ func (p *PackageMetadataResource) addMetadataToPackages(
 		if err != nil {
 			return err
 		}
-		if versionRange.Satisfies(v) && (opt.IncludePrerelease || v.Semver.Prerelease() != "") &&
+		if versionRange.Satisfies(v) && (opt.IncludePrerelease || strings.TrimSpace(v.Semver.Prerelease()) == "") &&
 			(opt.IncludeUnlisted || leafItem.CatalogEntry.IsListed) {
 			if err = p.configureMetadataURL(leafItem.CatalogEntry); err != nil {
 				return err

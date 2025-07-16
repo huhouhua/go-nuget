@@ -84,7 +84,7 @@ func (f *FrameworkNameProvider) GetVersion(versionString string) (*nugetVersion.
 	}
 	if strings.Contains(versionString, ".") {
 		// parse the version as a normal dot delimited version
-		return nugetVersion.ParseVersion(versionString)
+		return nugetVersion.Parse(versionString)
 	}
 
 	// make sure we have at least 2 digits

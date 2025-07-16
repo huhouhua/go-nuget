@@ -66,7 +66,6 @@ func NewFloatRangeFrom(floatBehavior FloatBehavior) *FloatRange {
 // NewFloatRangeFromVersion Create a floating range.
 func NewFloatRangeFromVersion(floatBehavior FloatBehavior, version *Version) *FloatRange {
 	return NewFloatRange(floatBehavior, version, "")
-
 }
 
 // NewFloatRange Create a floating range.
@@ -115,14 +114,13 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 	} else if strings.EqualFold(versionString, "*-*") {
 		v, _ := Parse("0.0.0-0")
 		floatRange = NewFloatRangeFromVersion(AbsoluteLatest, v)
-	} else if firstStarPosition != lastStarPosition && lastStarPosition != -1 && strings.Index(versionString, "+") == -1 {
+	} else if firstStarPosition != lastStarPosition && lastStarPosition != -1 && !strings.Contains(versionString, "+") {
 		behavior := None
 		dashPosition := strings.Index(versionString, "-")
 		var actualVersion string
 		// Last star is at the end of the full string
 		// First star is right before the first dash.
 		if dashPosition != -1 && lastStarPosition == (len(versionString)-1) && firstStarPosition == (dashPosition-1) {
-
 			// Get the stable part.
 			// Get the part without the *
 			stablePart := versionString[:dashPosition-1]
@@ -131,16 +129,12 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 			switch versionParts {
 			case 1:
 				behavior = PrereleaseMajor
-				break
 			case 2:
 				behavior = PrereleaseMinor
-				break
 			case 3:
 				behavior = PrereleasePatch
-				break
 			case 4:
 				behavior = PrereleaseRevision
-				break
 			default:
 				break
 			}
@@ -157,13 +151,13 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 		if version, err := Parse(actualVersion); err == nil {
 			floatRange = NewFloatRange(behavior, version, releasePrefix)
 		}
-	} else if lastStarPosition == len(versionString)-1 && strings.Index(versionString, "+") == -1 {
+	} else if lastStarPosition == len(versionString)-1 && !strings.Contains(versionString, "+") {
 		// A single * can only appear as the last char in the string.
 		// * cannot appear in the metadata section after the +
 
 		behavior := None
 		actualVersion := versionString[:len(versionString)-1]
-		if strings.Index(versionString, "-") == -1 {
+		if !strings.Contains(versionString, "-") {
 			// replace the * with a 0
 			actualVersion += "0"
 			versionParts := calculateVersionParts(actualVersion)
@@ -186,7 +180,6 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 					// 1.0.0-* scenario, an empty label is not a valid version.
 					actualVersion += "0"
 				} else if strings.HasSuffix(actualVersion, "-") {
-
 					// Append a dash to allow floating on the next character.
 					actualVersion += "-"
 				}
@@ -217,4 +210,63 @@ func calculateVersionParts(line string) int {
 		}
 	}
 	return count
+}
+
+// String Create a floating version string in the format: 1.0.0-alpha-*
+func (f *FloatRange) String() string {
+	builder := &strings.Builder{}
+	f.string(builder)
+	return builder.String()
+}
+
+// string Create a floating version string in the format: 1.0.0-alpha-*
+func (f *FloatRange) string(builder *strings.Builder) {
+	switch f.FloatBehavior {
+	case None:
+		builder.WriteString(f.MinVersion.Semver.String())
+	case Prerelease:
+		builder.WriteString(fmt.Sprintf("%s-%s", f.MinVersion.Semver.String(), f.OriginalReleasePrefix))
+	case Revision:
+		builder.WriteString(
+			fmt.Sprintf(
+				"%v.%v.%v.*",
+				f.MinVersion.Semver.Major(),
+				f.MinVersion.Semver.Minor(),
+				f.MinVersion.Semver.Patch(),
+			),
+		)
+	case Patch:
+		builder.WriteString(fmt.Sprintf("%v.%v.*", f.MinVersion.Semver.Major(), f.MinVersion.Semver.Minor()))
+	case Minor:
+		builder.WriteString(fmt.Sprintf("%v.*", f.MinVersion.Semver.Major()))
+	case Major:
+		builder.WriteString("*")
+	case PrereleaseRevision:
+		builder.WriteString(
+			fmt.Sprintf(
+				"%v.%v.%v.*-%s*",
+				f.MinVersion.Semver.Major(),
+				f.MinVersion.Semver.Minor(),
+				f.MinVersion.Semver.Patch(),
+				f.OriginalReleasePrefix,
+			),
+		)
+	case PrereleasePatch:
+		builder.WriteString(
+			fmt.Sprintf(
+				"%v.%v.*-%s*",
+				f.MinVersion.Semver.Major(),
+				f.MinVersion.Semver.Minor(),
+				f.OriginalReleasePrefix,
+			),
+		)
+	case PrereleaseMinor:
+		builder.WriteString(fmt.Sprintf("%v.*-%s*", f.MinVersion.Semver.Major(), f.OriginalReleasePrefix))
+	case PrereleaseMajor:
+		builder.WriteString(fmt.Sprintf("*-%s*", f.OriginalReleasePrefix))
+	case AbsoluteLatest:
+		builder.WriteString("*-*")
+	default:
+		break
+	}
 }

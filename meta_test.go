@@ -984,7 +984,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				IncludePrerelease: true,
 				IncludeUnlisted:   true,
 			},
-			error: errors.New("invalid version: invalid semantic version"),
+			error: errors.New("'1.0.0%' is not a valid version string"),
 			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
 				return emptyPkg
 			},

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/huhouhua/go-nuget"
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
 func (p *PackageBuilder) save(stream io.Writer, ns string) error {
@@ -211,7 +212,7 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 	isGroupable func(TSet) bool,
 	getGroupIdentifier func(TSet) (string, error),
 	getItems func(TSet) []TItem,
-	getXElementFromItem func(item TItem) []xml.Token,
+	getXElementFromItem func(item TItem) ([]xml.Token, error),
 	parentName string,
 	identifierAttributeName string,
 ) ([]xml.Token, error) {
@@ -232,7 +233,11 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 		// none of the item sets are groupable, then flatten the items
 		for _, set := range objectSets {
 			for i, item := range getItems(set) {
-				childElementMap[strconv.Itoa(i)] = getXElementFromItem(item)
+				if el, err := getXElementFromItem(item); err != nil {
+					return nil, err
+				} else {
+					childElementMap[strconv.Itoa(i)] = el
+				}
 			}
 		}
 	} else {
@@ -242,7 +247,11 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 			groupTokens := []xml.Token{groupStart}
 
 			for _, item := range getItems(set) {
-				groupTokens = append(groupTokens, getXElementFromItem(item)...)
+				if el, err := getXElementFromItem(item); err != nil {
+					return nil, err
+				} else {
+					groupTokens = append(groupTokens, el...)
+				}
 			}
 			key := ""
 			if isGroupable(set) {
@@ -279,15 +288,19 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: parentName}})
 	return tokens, nil
 }
-func getXElementFromPackageDependency(dependency *nuget.Dependency) []xml.Token {
+func getXElementFromPackageDependency(dependency *nuget.Dependency) ([]xml.Token, error) {
 	if dependency == nil {
-		return nil
+		return nil, nil
 	}
 	attrs := []xml.Attr{
 		NewXMLAttr("id", dependency.Id),
 	}
-	if dependency.VersionRange != nil && dependency.VersionRange != nuget.All {
-		attrs = append(attrs, NewXMLAttr("version", dependency.VersionRange.String()))
+	if dependency.VersionRange != nil && dependency.VersionRange != nugetVersion.All {
+		if str, err := dependency.VersionRange.String(); err != nil {
+			return nil, err
+		} else {
+			attrs = append(attrs, NewXMLAttr("version", str))
+		}
 	}
 	if dependency.Include != nil && len(dependency.Include) > 0 {
 		attrs = append(attrs, NewXMLAttr("include", strings.Join(dependency.Include, ",")))
@@ -295,7 +308,7 @@ func getXElementFromPackageDependency(dependency *nuget.Dependency) []xml.Token 
 	if dependency.Exclude != nil && len(dependency.Exclude) > 0 {
 		attrs = append(attrs, NewXMLAttr("exclude", strings.Join(dependency.Exclude, ",")))
 	}
-	return NewElement("dependency", "", attrs...)
+	return NewElement("dependency", "", attrs...), nil
 }
 func getXElementFromFrameworkAssemblies(references []*FrameworkAssemblyReference) ([]xml.Token, error) {
 	if references == nil || len(references) == 0 {
@@ -361,11 +374,11 @@ func getXElementFromManifestContentFiles(contentFiles []*ManifestContentFiles) [
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: "contentFiles"}})
 	return tokens
 }
-func getXElementFromPackageReference(reference string) []xml.Token {
-	return NewElement("reference", "", NewXMLAttr("file", reference))
+func getXElementFromPackageReference(reference string) ([]xml.Token, error) {
+	return NewElement("reference", "", NewXMLAttr("file", reference)), nil
 }
-func getXElementFromFrameworkReference(frameworkReference *FrameworkReference) []xml.Token {
-	return NewElement("frameworkReference", "", NewXMLAttr("name", frameworkReference.Name))
+func getXElementFromFrameworkReference(frameworkReference *FrameworkReference) ([]xml.Token, error) {
+	return NewElement("frameworkReference", "", NewXMLAttr("name", frameworkReference.Name)), nil
 }
 func getXMLElementFromLicenseMetadata(meta *LicenseMetadata) []xml.Token {
 	attrs := []xml.Attr{

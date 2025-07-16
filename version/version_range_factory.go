@@ -113,10 +113,8 @@ func TryParseRange(value string, allowFloating bool) (*VersionRange, bool) {
 		switch runes[0] {
 		case '[':
 			isMinInclusive = true
-			break
 		case '(':
 			isMinInclusive = false
-			break
 		default:
 			return nil, false
 		}
@@ -124,10 +122,8 @@ func TryParseRange(value string, allowFloating bool) (*VersionRange, bool) {
 		switch runes[len(runes)-1] {
 		case ']':
 			isMaxInclusive = true
-			break
 		case ')':
 			isMaxInclusive = false
-			break
 		default:
 			return nil, false
 		}
