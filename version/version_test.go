@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package nuget
+package version
 
 import (
 	"errors"
@@ -35,7 +35,7 @@ func TestVersionLength(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			semVer, err := ParseVersion(tt.input)
+			semVer, err := Parse(tt.input)
 			require.Equal(t, tt.wantErr, err)
 			if err != nil {
 				return
@@ -464,21 +464,21 @@ func TestIsValidPart(t *testing.T) {
 func parse(t *testing.T, version string) []*Version {
 	// Parse
 	versions := make([]*Version, 0)
-	v, err := ParseVersion(version)
+	v, err := Parse(version)
 	require.NoError(t, err)
 	versions = append(versions, v)
 
-	vCache, err := ParseVersion(version)
+	vCache, err := Parse(version)
 	require.NoError(t, err)
 	versions = append(versions, vCache)
 
 	// TryParse
-	ok, semVer, err := TryParseVersion(version)
+	ok, semVer, err := TryParse(version)
 	require.True(t, ok)
 	require.NoError(t, err)
 	versions = append(versions, semVer)
 
-	ok, semVerCache, err := TryParseVersion(version)
+	ok, semVerCache, err := TryParse(version)
 	require.True(t, ok)
 	require.NoError(t, err)
 	versions = append(versions, semVerCache)

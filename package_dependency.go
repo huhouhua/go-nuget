@@ -7,6 +7,8 @@ package nuget
 import (
 	"fmt"
 	"strings"
+
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
 type PackageDependencyInfo struct {
@@ -38,18 +40,18 @@ func NewPackageDependencyGroup(targetFramework string, packages ...*Dependency) 
 }
 
 type PackageIdentity struct {
-	Id      string   `json:"id"`
-	Version *Version `json:"version,omitempty"`
+	Id      string                `json:"id"`
+	Version *nugetVersion.Version `json:"version,omitempty"`
 }
 
 func NewPackageIdentity(id, version string) (*PackageIdentity, error) {
-	nugetVersion, err := ParseVersion(version)
+	nv, err := nugetVersion.Parse(version)
 	if err != nil {
 		return nil, err
 	}
 	return &PackageIdentity{
 		Id:      id,
-		Version: nugetVersion,
+		Version: nv,
 	}, err
 }
 

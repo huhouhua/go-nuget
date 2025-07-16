@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	nugetVersion "github.com/huhouhua/go-nuget/version"
+
 	"github.com/huhouhua/go-nuget"
 
 	"github.com/Masterminds/semver/v3"
@@ -75,14 +77,14 @@ func (f *FrameworkNameProvider) GetIdentifier(framework string) string {
 func (f *FrameworkNameProvider) GetProfile(profileShortName string) string {
 	return f.convertOrNormalize(profileShortName, f.profileShortToLongMap, f.profilesToShortNameMap)
 }
-func (f *FrameworkNameProvider) GetVersion(versionString string) (*nuget.Version, error) {
+func (f *FrameworkNameProvider) GetVersion(versionString string) (*nugetVersion.Version, error) {
 	versionString = strings.TrimSpace(versionString)
 	if versionString == "" {
 		return nil, fmt.Errorf("version is empty")
 	}
 	if strings.Contains(versionString, ".") {
 		// parse the version as a normal dot delimited version
-		return nuget.ParseVersion(versionString)
+		return nugetVersion.ParseVersion(versionString)
 	}
 
 	// make sure we have at least 2 digits
@@ -102,7 +104,7 @@ func (f *FrameworkNameProvider) GetVersion(versionString string) (*nuget.Version
 		}
 		parts = append(parts, byte(ch))
 	}
-	return nuget.ParseVersion(string(parts))
+	return nugetVersion.Parse(string(parts))
 }
 
 func (f *FrameworkNameProvider) GetVersionString(framework string, version *semver.Version) string {
@@ -143,7 +145,7 @@ func joinInts(nums []int, sep string) string {
 	}
 	return strings.Join(strs, sep)
 }
-func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*nuget.Version, error) {
+func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*nugetVersion.Version, error) {
 	versionString = strings.TrimSpace(versionString)
 	if versionString == "" {
 		return nil, fmt.Errorf("version is empty")
@@ -151,7 +153,7 @@ func (f *FrameworkNameProvider) GetPlatformVersion(versionString string) (*nuget
 	if !strings.Contains(versionString, ".") {
 		versionString += ".0"
 	}
-	return nuget.ParseVersion(versionString)
+	return nugetVersion.Parse(versionString)
 }
 func (f *FrameworkNameProvider) GetShortIdentifier(identifier string) string {
 	return f.convertOrNormalize(identifier, f.identifierToShortNameMap, f.identifierShortToLongMap)

@@ -8,6 +8,8 @@ import (
 	"errors"
 	"testing"
 
+	nugetVersion "github.com/huhouhua/go-nuget/version"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -240,10 +242,10 @@ func TestConfigurePackageDependency(t *testing.T) {
 				}
 			},
 			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
-				versionRange1203, err := ParseVersionRange("12.0.3")
+				versionRange1203, err := nugetVersion.ParseRange("12.0.3")
 				require.NoError(t, err)
 
-				versionRange500, err := ParseVersionRange("5.0.0")
+				versionRange500, err := nugetVersion.ParseRange("5.0.0")
 				require.NoError(t, err)
 
 				return &PackageDependencyInfo{
@@ -310,10 +312,10 @@ func TestConfigurePackageDependency(t *testing.T) {
 				}
 			},
 			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
-				versionRange1203, err := ParseVersionRange("12.0.3")
+				versionRange1203, err := nugetVersion.ParseRange("12.0.3")
 				require.NoError(t, err)
 
-				versionRange500, err := ParseVersionRange("5.0.0")
+				versionRange500, err := nugetVersion.ParseRange("5.0.0")
 				require.NoError(t, err)
 
 				return &PackageDependencyInfo{
@@ -505,16 +507,16 @@ func TestConfigureDependencyInfo(t *testing.T) {
 		},
 	}
 
-	versionRange1203, err := ParseVersionRange("12.0.3")
+	versionRange1203, err := nugetVersion.ParseRange("12.0.3")
 	require.NoError(t, err)
 
-	versionRange500, err := ParseVersionRange("5.0.0")
+	versionRange500, err := nugetVersion.ParseRange("5.0.0")
 	require.NoError(t, err)
 
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestPackage",
-			Version: NewVersionFrom(1, 0, 0, "", ""),
+			Version: nugetVersion.NewVersionFrom(1, 0, 0, "", ""),
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{

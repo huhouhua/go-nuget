@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package nuget
+package version
 
 import (
 	"errors"
@@ -80,13 +80,13 @@ func NewVersionFrom(major, minor, patch uint64, pre, metadata string) *Version {
 	}
 }
 
-// ParseVersion parse a Version from a string representing the semantic version.
-func ParseVersion(value string) (*Version, error) {
+// Parse a Version from a string representing the semantic version.
+func Parse(value string) (*Version, error) {
 	if strings.TrimSpace(value) == "" {
 		return nil, errors.New("argument cannot be null or empty")
 	}
 
-	ok, version, err := TryParseVersion(value)
+	ok, version, err := TryParse(value)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func ParseVersion(value string) (*Version, error) {
 	return version, nil
 }
 
-func TryParseVersion(value string) (bool, *Version, error) {
+func TryParse(value string) (bool, *Version, error) {
 	if strings.TrimSpace(value) == "" {
 		return false, nil, fmt.Errorf("argument cannot be null or empty")
 	}

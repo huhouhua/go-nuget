@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
 type PackageMetadataResource struct {
@@ -143,7 +145,7 @@ func (p *PackageMetadataResource) ListMetadata(
 	opt *ListMetadataOptions,
 	options ...RequestOptionFunc,
 ) ([]*PackageSearchMetadataRegistration, *http.Response, error) {
-	return p.getMetadata(id, opt, All, options...)
+	return p.getMetadata(id, opt, nugetVersion.All, options...)
 }
 
 // GetMetadata returns the registration metadata for the id and version
@@ -155,11 +157,11 @@ func (p *PackageMetadataResource) GetMetadata(
 		IncludePrerelease: true,
 		IncludeUnlisted:   true,
 	}
-	v, err := ParseVersion(version)
+	v, err := nugetVersion.Parse(version)
 	if err != nil {
 		return nil, nil, err
 	}
-	versionRange := NewVersionRange(v.Semver, v.Semver, true, true)
+	versionRange, _ := nugetVersion.NewVersionRange(v, v, true, true, nil, "")
 	if list, resp, err := p.getMetadata(id, opt, versionRange, options...); err != nil {
 		return nil, nil, err
 	} else {
@@ -174,7 +176,7 @@ func (p *PackageMetadataResource) GetMetadata(
 func (p *PackageMetadataResource) getMetadata(
 	id string,
 	opt *ListMetadataOptions,
-	versionRange *VersionRange,
+	versionRange *nugetVersion.VersionRange,
 	options ...RequestOptionFunc,
 ) ([]*PackageSearchMetadataRegistration, *http.Response, error) {
 	packageId, err := parseID(id)
@@ -209,27 +211,26 @@ func (p *PackageMetadataResource) addMetadataToPackages(
 	packages *[]*PackageSearchMetadataRegistration,
 	page *registrationPage,
 	opt *ListMetadataOptions,
-	versionRange *VersionRange,
+	versionRange *nugetVersion.VersionRange,
 ) error {
-	Lower, err := ParseVersion(page.Lower)
+	Lower, err := nugetVersion.Parse(page.Lower)
 	if err != nil {
 		return err
 	}
-	upper, err := ParseVersion(page.Upper)
+	upper, err := nugetVersion.Parse(page.Upper)
 	if err != nil {
 		return err
 	}
-	catalogItemVersionRange := NewVersionRange(Lower.Semver, upper.Semver, true, true)
-	if !versionRange.DoesRangeSatisfy(catalogItemVersionRange) {
+	if !versionRange.DoesRangeSatisfy(Lower, upper) {
 		return nil
 	}
 	for _, leafItem := range page.Items {
-		var v *Version
-		v, err = ParseVersion(leafItem.CatalogEntry.Version)
+		var v *nugetVersion.Version
+		v, err = nugetVersion.Parse(leafItem.CatalogEntry.Version)
 		if err != nil {
 			return err
 		}
-		if versionRange.Satisfies(v.Semver) && (opt.IncludePrerelease || v.Semver.Prerelease() != "") &&
+		if versionRange.Satisfies(v) && (opt.IncludePrerelease || v.Semver.Prerelease() != "") &&
 			(opt.IncludeUnlisted || leafItem.CatalogEntry.IsListed) {
 			if err = p.configureMetadataURL(leafItem.CatalogEntry); err != nil {
 				return err

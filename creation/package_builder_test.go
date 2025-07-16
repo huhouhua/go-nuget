@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	nugetVersion "github.com/huhouhua/go-nuget/version"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/huhouhua/go-nuget"
@@ -22,7 +24,7 @@ func TestCreatePackage(t *testing.T) {
 	builder := NewPackageBuilder(false, false, &log.Logger{})
 	builder.Id = "MyPackage"
 	//builder.Version = nuget.NewVersionFrom(1, 0, 0, "beta", "")
-	v, err := nuget.ParseVersion("2018.4.8.256")
+	v, err := nugetVersion.Parse("2018.4.8.256")
 	require.NoError(t, err)
 	builder.Version = v
 	builder.Description = "My test package created from the API."
@@ -50,7 +52,7 @@ func TestCreatePackage(t *testing.T) {
 	}
 	builder.RequireLicenseAcceptance = false
 	builder.OutputName = "test"
-	builder.MinClientVersion = nuget.NewVersionFrom(1, 0, 0, "", "")
+	builder.MinClientVersion = nugetVersion.NewVersionFrom(1, 0, 0, "", "")
 	builder.EmitRequireLicenseAcceptance = true
 	builder.DevelopmentDependency = true
 	builder.Serviceable = true
@@ -64,7 +66,7 @@ func TestCreatePackage(t *testing.T) {
 		SupportedFrameworks: builder.TargetFrameworks,
 	})
 	// License metadata
-	builder.LicenseMetadata = NewLicense(nuget.Expression, "MIT", nuget.NewVersionFrom(1, 0, 0, "", ""))
+	builder.LicenseMetadata = NewLicense(nuget.Expression, "MIT", nugetVersion.NewVersionFrom(1, 0, 0, "", ""))
 
 	net80, err := Parse("net8.0")
 	require.NoError(t, err)
@@ -101,7 +103,7 @@ func TestCreatePackage(t *testing.T) {
 	// Package types
 	builder.PackageTypes = append(builder.PackageTypes, &PackageType{
 		Name:    "DotnetTool",
-		Version: nuget.NewVersionFrom(1, 0, 0, "", ""),
+		Version: nugetVersion.NewVersionFrom(1, 0, 0, "", ""),
 	})
 	// Content files
 	builder.ContentFiles = append(builder.ContentFiles, &ManifestContentFiles{
@@ -110,7 +112,7 @@ func TestCreatePackage(t *testing.T) {
 		CopyToOutput: "true",
 		Flatten:      "true",
 	})
-	versionRange, err := nuget.ParseVersionRange("10.0.1")
+	versionRange, err := nugetVersion.ParseRange("10.0.1")
 	require.NoError(t, err)
 	builder.DependencyGroups = append(builder.DependencyGroups, &PackageDependencyGroup{
 		TargetFramework: netstandard14,

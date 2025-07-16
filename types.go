@@ -4,6 +4,8 @@
 
 package nuget
 
+import nugetVersion "github.com/huhouhua/go-nuget/version"
+
 type ServiceTypes []string
 
 type ServiceType string
@@ -190,30 +192,13 @@ const (
 )
 
 var (
-	All          = NewVersionRange(nil, nil, true, true)
-	EmptyVersion = NewVersionFrom(0, 0, 0, "", "")
-	Version5     = NewVersionFrom(5, 0, 0, "", "")
-	Version6     = NewVersionFrom(6, 0, 0, "", "")
-	Version7     = NewVersionFrom(7, 0, 0, "", "")
-	Version8     = NewVersionFrom(8, 0, 0, "", "")
-	Version9     = NewVersionFrom(9, 0, 0, "", "")
-	Version10    = NewVersionFrom(10, 0, 0, "", "")
-)
-
-// FloatBehavior represents how version floating should behave
-type FloatBehavior int
-
-const (
-	// None means no floating behavior
-	None FloatBehavior = iota
-	// Prerelease allows floating to prerelease versions
-	Prerelease
-	// Patch allows floating to patch versions
-	Patch
-	// Minor allows floating to minor versions
-	Minor
-	// Major allows floating to major versions
-	Major
+	EmptyVersion = nugetVersion.NewVersionFrom(0, 0, 0, "", "")
+	Version5     = nugetVersion.NewVersionFrom(5, 0, 0, "", "")
+	Version6     = nugetVersion.NewVersionFrom(6, 0, 0, "", "")
+	Version7     = nugetVersion.NewVersionFrom(7, 0, 0, "", "")
+	Version8     = nugetVersion.NewVersionFrom(8, 0, 0, "", "")
+	Version9     = nugetVersion.NewVersionFrom(9, 0, 0, "", "")
+	Version10    = nugetVersion.NewVersionFrom(10, 0, 0, "", "")
 )
 
 const (

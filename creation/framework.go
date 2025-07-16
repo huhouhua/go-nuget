@@ -12,6 +12,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/huhouhua/go-nuget/version"
+
 	"github.com/Masterminds/semver/v3"
 
 	"github.com/huhouhua/go-nuget"
@@ -38,13 +40,13 @@ type Framework struct {
 	Framework string
 
 	// Version Target framework version
-	Version *nuget.Version
+	Version *version.Version
 
 	// Platform Framework Platform (net5.0+)
 	Platform string
 
 	// PlatformVersion Framework Platform Version (net5.0+)
-	PlatformVersion *nuget.Version
+	PlatformVersion *version.Version
 
 	// Target framework profile
 	Profile string
@@ -53,28 +55,28 @@ type Framework struct {
 func NewFramework(framework string) *Framework {
 	return NewFrameworkWithVersion(framework, nuget.EmptyVersion)
 }
-func NewFrameworkWithVersion(framework string, version *nuget.Version) *Framework {
+func NewFrameworkWithVersion(framework string, version *version.Version) *Framework {
 	return NewFrameworkWithProfile(framework, version, "")
 }
-func NewFrameworkWithProfile(framework string, version *nuget.Version, profile string) *Framework {
+func NewFrameworkWithProfile(framework string, version *version.Version, profile string) *Framework {
 	return newFrameworkFrom(framework, version, profile, "", nuget.EmptyVersion)
 }
 
 func NewFrameworkWithPlatform(
 	framework string,
-	version *nuget.Version,
+	version *version.Version,
 	platform string,
-	platformVersion *nuget.Version,
+	platformVersion *version.Version,
 ) *Framework {
 	return newFrameworkFrom(framework, version, "", platform, platformVersion)
 }
 
 func newFrameworkFrom(
 	framework string,
-	version *nuget.Version,
+	version *version.Version,
 	profile string,
 	platform string,
-	platformVersion *nuget.Version,
+	platformVersion *version.Version,
 ) *Framework {
 	nf := &Framework{
 		Framework: framework,

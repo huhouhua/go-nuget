@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	nugetVersion "github.com/huhouhua/go-nuget/version"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/require"
 )
@@ -30,9 +32,9 @@ func TestPackageResource_ListAllVersions(t *testing.T) {
 		mustWriteHTTPResponse(t, w, "testdata/list_all_versions.json")
 	})
 
-	want := []*Version{
-		NewVersionFrom(6, 0, 1, "beta1", ""),
-		NewVersionFrom(6, 0, 1, "", ""),
+	want := []*nugetVersion.Version{
+		nugetVersion.NewVersionFrom(6, 0, 1, "beta1", ""),
+		nugetVersion.NewVersionFrom(6, 0, 1, "", ""),
 	}
 
 	b, resp, err := client.FindPackageResource.ListAllVersions("newtonsoft.json", nil)
@@ -136,16 +138,16 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 		mustWriteHTTPResponse(t, w, "testdata/testDependency.nuspec")
 	})
 
-	versionRange1203, err := ParseVersionRange("12.0.3")
+	versionRange1203, err := nugetVersion.ParseRange("12.0.3")
 	require.NoError(t, err)
 
-	versionRange500, err := ParseVersionRange("5.0.0")
+	versionRange500, err := nugetVersion.ParseRange("5.0.0")
 	require.NoError(t, err)
 
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestDependency",
-			Version: NewVersionFrom(1, 0, 0, "", ""),
+			Version: nugetVersion.NewVersionFrom(1, 0, 0, "", ""),
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{

@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 
+	nugetVersion "github.com/huhouhua/go-nuget/version"
+
 	"github.com/huhouhua/go-nuget"
 )
 
@@ -53,7 +55,7 @@ func ParseFrameworkName(frameworkName string, provider FrameworkNameProvider) (*
 func parseFrameworkNameParts(
 	provider FrameworkNameProvider,
 	parts []string,
-) (framework, profile string, version *nuget.Version, err error) {
+) (framework, profile string, version *nugetVersion.Version, err error) {
 	framework = provider.GetIdentifier(parts[0])
 	if framework == "" {
 		framework = parts[0]
@@ -80,7 +82,7 @@ func parseFrameworkNameParts(
 		if !strings.Contains(versionString, ".") {
 			versionString += ".0"
 		}
-		if version, err = nuget.ParseVersion(versionString); err != nil {
+		if version, err = nugetVersion.Parse(versionString); err != nil {
 			return "", "", nil, fmt.Errorf("invalid framework version '%s'", versionString)
 		}
 	}
@@ -134,12 +136,12 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 	if strings.TrimSpace(framework) == "" {
 		return result, nil
 	}
-	nugetVersion, err := provider.GetVersion(version)
+	nv, err := provider.GetVersion(version)
 	if strings.TrimSpace(version) != "" || err != nil {
 		return result, nil
 	}
 	profileShort := profile
-	if nugetVersion.Semver.Major() >= 5 &&
+	if nv.Semver.Major() >= 5 &&
 		(strings.EqualFold(nuget.Net, framework) || strings.EqualFold(nuget.NetCoreApp, framework)) {
 		// net should be treated as netcoreapp in 5.0 and later
 		framework = nuget.NetCoreApp
@@ -156,21 +158,22 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 				platform = profileShort[0:versionStart]
 				platformVersionString = profileShort[versionStart:]
 			}
+
 			// Parse the version if it's there.
-			var platformVersion *nuget.Version
+			var platformVersion *nugetVersion.Version
 			if v, err := provider.GetPlatformVersion(platformVersionString); err == nil {
 				platformVersion = v
 			} else {
 				platformVersion = nuget.EmptyVersion
 			}
 			if strings.TrimSpace(platformVersionString) == "" || platformVersion != nil {
-				result = NewFrameworkWithPlatform(framework, nugetVersion, platform, platformVersion)
+				result = NewFrameworkWithPlatform(framework, nv, platform, platformVersion)
 			} else {
 				// with result == UnsupportedFramework
 				return result, nil
 			}
 		} else {
-			result = NewFrameworkWithPlatform(framework, nugetVersion, "", nuget.EmptyVersion)
+			result = NewFrameworkWithPlatform(framework, nv, "", nuget.EmptyVersion)
 		}
 	} else {
 		pro := ""
@@ -183,13 +186,13 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 			} else {
 				if profileNumber := provider.GetPortableProfile(clientFrameworks); profileNumber != -1 {
 					portableProfileNumber := GetPortableProfileNumberString(profileNumber)
-					result = NewFrameworkWithProfile(framework, nugetVersion, portableProfileNumber)
+					result = NewFrameworkWithProfile(framework, nv, portableProfileNumber)
 				} else {
-					result = NewFrameworkWithProfile(framework, nugetVersion, profileShort)
+					result = NewFrameworkWithProfile(framework, nv, profileShort)
 				}
 			}
 		} else {
-			result = NewFrameworkWithProfile(framework, nugetVersion, pro)
+			result = NewFrameworkWithProfile(framework, nv, pro)
 		}
 	}
 	return result, nil

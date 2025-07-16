@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/huhouhua/go-nuget/version"
+
 	"github.com/huhouhua/go-nuget"
 )
 
@@ -64,7 +66,7 @@ func ValidatePackageId(packageId string) error {
 // PackageType It is important that this type remains immutable due to the cloning of package specs
 type PackageType struct {
 	Name    string
-	Version *nuget.Version
+	Version *version.Version
 }
 
 func (p *PackageType) Equals(other *PackageType) bool {
@@ -90,7 +92,7 @@ type PackageBuilder struct {
 	logger                  *log.Logger
 	Id                      string
 
-	Version *nuget.Version
+	Version *version.Version
 
 	Repository *nuget.RepositoryMetadata
 
@@ -155,7 +157,7 @@ type PackageBuilder struct {
 
 	PackageTypes []*PackageType
 
-	MinClientVersion *nuget.Version
+	MinClientVersion *version.Version
 }
 
 func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.Logger) *PackageBuilder {

@@ -7,6 +7,8 @@ package creation
 import (
 	"sync"
 
+	"github.com/huhouhua/go-nuget/version"
+
 	"github.com/huhouhua/go-nuget"
 )
 
@@ -319,32 +321,32 @@ func (d *DefaultFrameworkMappings) GetEquivalentFrameworkMap() []*KeyValuePair[*
 
 		{
 			// win8 <-> netcore45
-			Key:   NewFrameworkWithVersion(nuget.NetCore, nuget.NewVersionFrom(0, 5, 0, "", "")),
+			Key:   NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(0, 5, 0, "", "")),
 			Value: Win8,
 		},
 
 		{
 			// netcore45 <-> winrt45
-			Key:   NewFrameworkWithVersion(nuget.NetCore, nuget.NewVersionFrom(4, 5, 0, "", "")),
-			Value: NewFrameworkWithVersion(nuget.WinRT, nuget.NewVersionFrom(4, 5, 0, "", "")),
+			Key:   NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(4, 5, 0, "", "")),
+			Value: NewFrameworkWithVersion(nuget.WinRT, version.NewVersionFrom(4, 5, 0, "", "")),
 		},
 
 		{
 			// netcore <-> netcore45
 			Key:   NewFrameworkWithVersion(nuget.NetCore, nuget.EmptyVersion),
-			Value: NewFrameworkWithVersion(nuget.NetCore, nuget.NewVersionFrom(4, 5, 0, "", "")),
+			Value: NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(4, 5, 0, "", "")),
 		},
 
 		{
 			// winrt <-> winrt45
 			Key:   NewFrameworkWithVersion(nuget.WinRT, nuget.EmptyVersion),
-			Value: NewFrameworkWithVersion(nuget.WinRT, nuget.NewVersionFrom(4, 5, 0, "", "")),
+			Value: NewFrameworkWithVersion(nuget.WinRT, version.NewVersionFrom(4, 5, 0, "", "")),
 		},
 
 		{
 			// win81 <-> netcore451
 			Key:   Win81,
-			Value: NewFrameworkWithVersion(nuget.NetCore, nuget.NewVersionFrom(4, 5, 1, "", "")),
+			Value: NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(4, 5, 1, "", "")),
 		},
 
 		{
@@ -356,22 +358,22 @@ func (d *DefaultFrameworkMappings) GetEquivalentFrameworkMap() []*KeyValuePair[*
 		{
 			// wp7 <-> f:sl3-wp
 			Key:   WP7,
-			Value: NewFrameworkWithProfile(nuget.Silverlight, nuget.NewVersionFrom(3, 0, 0, "", ""), "WindowsPhone"),
+			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(3, 0, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wp71 <-> f:sl4-wp71
-			Key:   NewFrameworkWithVersion(nuget.WindowsPhone, nuget.NewVersionFrom(7, 1, 0, "", "")),
-			Value: NewFrameworkWithProfile(nuget.Silverlight, nuget.NewVersionFrom(4, 0, 0, "", ""), "WindowsPhone"),
+			Key:   NewFrameworkWithVersion(nuget.WindowsPhone, version.NewVersionFrom(7, 1, 0, "", "")),
+			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(4, 0, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wp8 <-> f:sl8-wp
 			Key:   WP8,
-			Value: NewFrameworkWithProfile(nuget.Silverlight, nuget.NewVersionFrom(8, 0, 0, "", ""), "WindowsPhone"),
+			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(8, 0, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wp81 <-> f:sl81-wp
 			Key:   WP81,
-			Value: NewFrameworkWithProfile(nuget.Silverlight, nuget.NewVersionFrom(8, 1, 0, "", ""), "WindowsPhone"),
+			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(8, 1, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wpa <-> wpa81
@@ -539,12 +541,12 @@ func createProfileFrameworks(profile int, framework ...*Framework) *KeyValuePair
 }
 
 func (d *DefaultPortableFrameworkMappings) GetProfileOptionalFrameworkMap() []*KeyValuePair[int, []*Framework] {
-	monoandroid := NewFrameworkWithVersion(nuget.MonoAndroid, nuget.NewVersionFrom(0, 0, 0, "", ""))
-	monotouch := NewFrameworkWithVersion(nuget.MonoTouch, nuget.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinIOs := NewFrameworkWithVersion(nuget.XamarinIOs, nuget.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinMac := NewFrameworkWithVersion(nuget.XamarinMac, nuget.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinTVOS := NewFrameworkWithVersion(nuget.XamarinTVOS, nuget.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinWatchOS := NewFrameworkWithVersion(nuget.XamarinWatchOS, nuget.NewVersionFrom(0, 0, 0, "", ""))
+	monoandroid := NewFrameworkWithVersion(nuget.MonoAndroid, version.NewVersionFrom(0, 0, 0, "", ""))
+	monotouch := NewFrameworkWithVersion(nuget.MonoTouch, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinIOs := NewFrameworkWithVersion(nuget.XamarinIOs, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinMac := NewFrameworkWithVersion(nuget.XamarinMac, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinTVOS := NewFrameworkWithVersion(nuget.XamarinTVOS, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinWatchOS := NewFrameworkWithVersion(nuget.XamarinWatchOS, version.NewVersionFrom(0, 0, 0, "", ""))
 	monoFrameworks := []*Framework{monoandroid, monotouch, xamarinIOs, xamarinMac, xamarinTVOS, xamarinWatchOS}
 
 	profileOptionalFrameworks := make([]*KeyValuePair[int, []*Framework], 0)
