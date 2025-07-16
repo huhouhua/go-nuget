@@ -48,16 +48,16 @@ func (v *VersionRangeBase) Satisfies(version *Version) bool {
 	condition := true
 	if v.HasLowerBound() {
 		if v.IsMinInclusive() {
-			condition = v.MinVersion.Semver.Compare(version.Semver) <= 0
+			condition = condition && v.MinVersion.Semver.Compare(version.Semver) <= 0
 		} else {
-			condition = v.MinVersion.Semver.Compare(version.Semver) < 0
+			condition = condition && v.MinVersion.Semver.Compare(version.Semver) < 0
 		}
 	}
 	if v.HasUpperBound() {
 		if v.IsMaxInclusive() {
-			condition = v.MaxVersion.Semver.Compare(version.Semver) <= 0
+			condition = condition && v.MaxVersion.Semver.Compare(version.Semver) >= 0
 		} else {
-			condition = v.MaxVersion.Semver.Compare(version.Semver) < 0
+			condition = condition && v.MaxVersion.Semver.Compare(version.Semver) > 0
 		}
 	}
 	return condition

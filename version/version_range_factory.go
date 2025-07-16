@@ -137,7 +137,7 @@ func TryParseRange(value string, allowFloating bool) (*VersionRange, bool) {
 		} else {
 			allEmpty := true
 			for i := 0; i < len(parts); i++ {
-				if strings.TrimSpace(parts[i]) != "" {
+				if parts[i] != "" {
 					allEmpty = false
 					break
 				}
@@ -170,6 +170,7 @@ func TryParseRange(value string, allowFloating bool) (*VersionRange, bool) {
 	if strings.TrimSpace(minVersionString) != "" {
 		if allowFloating && strings.Contains(minVersionString, "*") {
 			if float, ok := TryParseFloatRange(minVersionString); ok && float.HasMinVersion() {
+				floatRange = float
 				minVersion = float.MinVersion
 			} else {
 				// invalid float

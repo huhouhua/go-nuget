@@ -76,3 +76,19 @@ func (r *VersionRange) String() (string, error) {
 func (r *VersionRange) ToNormalizedString() (string, error) {
 	return Format("N", *r)
 }
+
+// PrettyPrint format the version range in Pretty Print format.
+func (r *VersionRange) PrettyPrint() (string, error) {
+	return Format("P", *r)
+}
+
+// ToLegacyString A legacy version range compatible with NuGet 2.8.3
+func (r *VersionRange) ToLegacyString() (string, error) {
+	return Format("D", *r)
+}
+
+// ToLegacyShortString A short legacy version range compatible with NuGet 2.8.3.
+// Ex: 1.0.0
+func (r *VersionRange) ToLegacyShortString() (string, error) {
+	return Format("T", *r)
+}
