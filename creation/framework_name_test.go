@@ -66,7 +66,7 @@ func TestNewFrameworkName(t *testing.T) {
 		{
 			name:  "invalid version format",
 			input: ".NET Framework, Version=invalid",
-			error: fmt.Errorf("invalid version: %w", errors.New("Invalid Semantic Version")),
+			error: fmt.Errorf("invalid version: %w", errors.New("invalid semantic version")),
 		},
 		{
 			name:  "invalid key in component",
