@@ -8,6 +8,8 @@ import (
 	"errors"
 	"testing"
 
+	nugetVersion "github.com/huhouhua/go-nuget/version"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,7 +50,7 @@ func TestNewPackageDependencyGroup(t *testing.T) {
 					VersionRaw: "invalid_version",
 				},
 			},
-			wantError: errors.New("invalid version: invalid semantic version"),
+			wantError: errors.New("'invalid_version' is not a valid version string"),
 		},
 	}
 
@@ -240,10 +242,10 @@ func TestConfigurePackageDependency(t *testing.T) {
 				}
 			},
 			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
-				versionRange1203, err := ParseVersionRange("12.0.3")
+				versionRange1203, err := nugetVersion.ParseRange("12.0.3")
 				require.NoError(t, err)
 
-				versionRange500, err := ParseVersionRange("5.0.0")
+				versionRange500, err := nugetVersion.ParseRange("5.0.0")
 				require.NoError(t, err)
 
 				return &PackageDependencyInfo{
@@ -310,10 +312,10 @@ func TestConfigurePackageDependency(t *testing.T) {
 				}
 			},
 			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
-				versionRange1203, err := ParseVersionRange("12.0.3")
+				versionRange1203, err := nugetVersion.ParseRange("12.0.3")
 				require.NoError(t, err)
 
-				versionRange500, err := ParseVersionRange("5.0.0")
+				versionRange500, err := nugetVersion.ParseRange("5.0.0")
 				require.NoError(t, err)
 
 				return &PackageDependencyInfo{
@@ -358,7 +360,7 @@ func TestConfigurePackageDependency(t *testing.T) {
 			},
 		},
 		{
-			name: "with dependencyGroups parse version in groups return error",
+			name: "with dependencyGroups parse version in groups return success",
 			optionsFunc: func() []PackageDependencyInfoFunc {
 				dependencies := &Dependencies{
 					Groups: []*DependenciesGroup{
@@ -375,10 +377,22 @@ func TestConfigurePackageDependency(t *testing.T) {
 					WithDependencyGroups(dependencies),
 				}
 			},
-			wantError: errors.New("invalid range format: [1.0.0]"),
+			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
+				group, err := NewPackageDependencyGroup("", []*Dependency{
+					{
+						VersionRaw: "[1.0.0]",
+					},
+				}...)
+				require.NoError(t, err)
+				return &PackageDependencyInfo{
+					DependencyGroups: []*PackageDependencyGroup{
+						group,
+					},
+				}
+			},
 		},
 		{
-			name: "with dependencyGroups parse version in dependency return error",
+			name: "with dependencyGroups parse version in dependency return success",
 			optionsFunc: func() []PackageDependencyInfoFunc {
 				dependencies := &Dependencies{
 					Dependency: []*Dependency{
@@ -391,7 +405,17 @@ func TestConfigurePackageDependency(t *testing.T) {
 					WithDependencyGroups(dependencies),
 				}
 			},
-			wantError: errors.New("invalid range format: [1.0.0]"),
+			wantDataFunc: func(t *testing.T) *PackageDependencyInfo {
+				group, err := NewPackageDependencyGroup("Any", &Dependency{
+					VersionRaw: "[1.0.0]",
+				})
+				require.NoError(t, err)
+				return &PackageDependencyInfo{
+					DependencyGroups: []*PackageDependencyGroup{
+						group,
+					},
+				}
+			},
 		},
 		{
 			name: "with frameworkReferenceGroups return success",
@@ -505,16 +529,16 @@ func TestConfigureDependencyInfo(t *testing.T) {
 		},
 	}
 
-	versionRange1203, err := ParseVersionRange("12.0.3")
+	versionRange1203, err := nugetVersion.ParseRange("12.0.3")
 	require.NoError(t, err)
 
-	versionRange500, err := ParseVersionRange("5.0.0")
+	versionRange500, err := nugetVersion.ParseRange("5.0.0")
 	require.NoError(t, err)
 
 	want := &PackageDependencyInfo{
 		PackageIdentity: &PackageIdentity{
 			Id:      "TestPackage",
-			Version: NewVersionFrom(1, 0, 0, "", ""),
+			Version: nugetVersion.NewVersionFrom(1, 0, 0, "", ""),
 		},
 		DependencyGroups: []*PackageDependencyGroup{
 			{

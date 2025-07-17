@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/huhouhua/go-nuget/version"
 )
 
 // Nuspec Represents a .nuspec XML file found in the root of the .nupck files
@@ -139,14 +141,14 @@ type DependenciesGroup struct {
 
 // Dependency Represents a package dependency Id and allowed version range.
 type Dependency struct {
-	Id              string        `xml:"id,attr"      json:"id"`
-	VersionRaw      string        `xml:"version,attr" json:"version"`
-	ExcludeRaw      string        `xml:"exclude,attr" json:"exclude"`
-	IncludeRaw      string        `xml:"include,attr" json:"include"`
-	VersionRangeRaw string        `                   json:"range"`
-	VersionRange    *VersionRange `xml:"-"`
-	Include         []string      `xml:"-"`
-	Exclude         []string      `xml:"-"`
+	Id              string                `xml:"id,attr"      json:"id"`
+	VersionRaw      string                `xml:"version,attr" json:"version"`
+	ExcludeRaw      string                `xml:"exclude,attr" json:"exclude"`
+	IncludeRaw      string                `xml:"include,attr" json:"include"`
+	VersionRangeRaw string                `                   json:"range"`
+	VersionRange    *version.VersionRange `xml:"-"`
+	Include         []string              `xml:"-"`
+	Exclude         []string              `xml:"-"`
 }
 
 // Parse parses the dependency version and splits the include/exclude strings into slices.
@@ -167,7 +169,7 @@ func (d *Dependency) Parse() error {
 }
 
 func (d *Dependency) parseRange(rangeVersion string) error {
-	versionRanger, err := ParseVersionRange(rangeVersion)
+	versionRanger, err := version.ParseRange(rangeVersion)
 	if err != nil {
 		return err
 	}

@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	version2 "github.com/huhouhua/go-nuget/version"
+
 	"github.com/Masterminds/semver/v3"
 
 	"github.com/stretchr/testify/require"
@@ -171,7 +173,7 @@ func TestParseVersionInfo(t *testing.T) {
 	tests := []struct {
 		name    string
 		version *VersionInfo
-		want    *Version
+		want    *version2.Version
 		error   error
 	}{
 		{
@@ -179,7 +181,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-beta",
 			},
-			want:  NewVersionFrom(1, 0, 0, "beta", ""),
+			want:  version2.NewVersionFrom(1, 0, 0, "beta", ""),
 			error: nil,
 		},
 		{
@@ -187,7 +189,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-beta.1",
 			},
-			want:  NewVersionFrom(1, 0, 0, "beta.1", ""),
+			want:  version2.NewVersionFrom(1, 0, 0, "beta.1", ""),
 			error: nil,
 		},
 		{
@@ -195,7 +197,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-preview.1",
 			},
-			want:  NewVersionFrom(1, 0, 0, "preview.1", ""),
+			want:  version2.NewVersionFrom(1, 0, 0, "preview.1", ""),
 			error: nil,
 		},
 		{
@@ -203,7 +205,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-alpha.1",
 			},
-			want:  NewVersionFrom(1, 0, 0, "alpha.1", ""),
+			want:  version2.NewVersionFrom(1, 0, 0, "alpha.1", ""),
 			error: nil,
 		},
 		{
@@ -211,7 +213,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1.0.0-rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65",
 			},
-			want:  NewVersionFrom(1, 0, 0, "rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65", ""),
+			want:  version2.NewVersionFrom(1, 0, 0, "rc.22997fbc939e55215eb5162aa4ad6edafe4e7b65", ""),
 			error: nil,
 		},
 		{
@@ -219,7 +221,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "1-0-0",
 			},
-			want:  NewVersion(symbolVersion, 0, symbolVersion.Original()),
+			want:  version2.NewVersion(symbolVersion, 0, symbolVersion.Original()),
 			error: nil,
 		},
 		{
@@ -227,7 +229,7 @@ func TestParseVersionInfo(t *testing.T) {
 			version: &VersionInfo{
 				Version: "00000.0000.0",
 			},
-			want:  NewVersion(vZeroes, 0, "00000.0000.0"),
+			want:  version2.NewVersion(vZeroes, 0, "00000.0000.0"),
 			error: nil,
 		},
 	}

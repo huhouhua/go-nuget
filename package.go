@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
 type FindPackageResource struct {
@@ -18,7 +20,7 @@ type FindPackageResource struct {
 func (f *FindPackageResource) ListAllVersions(
 	id string,
 	options ...RequestOptionFunc,
-) ([]*Version, *http.Response, error) {
+) ([]*nugetVersion.Version, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -38,12 +40,12 @@ func (f *FindPackageResource) ListAllVersions(
 		return nil, resp, err
 	}
 
-	var versions []*Version
+	var versions []*nugetVersion.Version
 	for _, v := range version.Versions {
-		if nugetVersion, err := ParseVersion(v); err != nil {
+		if nv, err := nugetVersion.Parse(v); err != nil {
 			return nil, resp, err
 		} else {
-			versions = append(versions, nugetVersion)
+			versions = append(versions, nv)
 		}
 	}
 	return versions, resp, nil

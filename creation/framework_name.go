@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/huhouhua/go-nuget"
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
 type FrameworkName struct {
 	identifier string
 	profile    string
-	version    nuget.Version
+	version    nugetVersion.Version
 }
 
 // NewFrameworkName Parses strings in the following format: "<identifier>, Version=[v|V]<version>, Profile=<profile>"
@@ -65,7 +65,7 @@ func NewFrameworkName(frameworkName string) (*FrameworkName, error) {
 	if !versionFound {
 		return nil, fmt.Errorf("frameworkName must contain a version")
 	}
-	version, err := nuget.ParseVersion(versionStr)
+	version, err := nugetVersion.Parse(versionStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid version: %w", err)
 	}
@@ -76,7 +76,7 @@ func NewFrameworkName(frameworkName string) (*FrameworkName, error) {
 	}, nil
 }
 
-func (f *FrameworkName) GetVersion() nuget.Version {
+func (f *FrameworkName) GetVersion() nugetVersion.Version {
 	return f.version
 }
 func (f *FrameworkName) GetIdentifier() string {

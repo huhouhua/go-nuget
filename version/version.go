@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package nuget
+package version
 
 import (
 	"errors"
@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	parsedVersionsMapping versionsMapping
+	parsedVersionMapping           versionsMapping
+	parsedVersionMappingMaxEntries = 500
 )
 
 func init() {
-	parsedVersionsMapping = versionsMapping{
+	parsedVersionMapping = versionsMapping{
 		versionMap: make(map[string]Version),
 	}
 }
@@ -32,7 +33,7 @@ type versionsMapping struct {
 func (c *versionsMapping) setVersion(key string, version Version) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if len(c.versionMap) >= 500 {
+	if len(c.versionMap) >= parsedVersionMappingMaxEntries {
 		c.versionMap = make(map[string]Version)
 	}
 	c.versionMap[key] = version
@@ -80,13 +81,13 @@ func NewVersionFrom(major, minor, patch uint64, pre, metadata string) *Version {
 	}
 }
 
-// ParseVersion parse a Version from a string representing the semantic version.
-func ParseVersion(value string) (*Version, error) {
+// Parse a Version from a string representing the semantic version.
+func Parse(value string) (*Version, error) {
 	if strings.TrimSpace(value) == "" {
 		return nil, errors.New("argument cannot be null or empty")
 	}
 
-	ok, version, err := TryParseVersion(value)
+	ok, version, err := TryParse(value)
 	if err != nil {
 		return nil, err
 	}
@@ -96,16 +97,16 @@ func ParseVersion(value string) (*Version, error) {
 	return version, nil
 }
 
-func TryParseVersion(value string) (bool, *Version, error) {
+func TryParse(value string) (bool, *Version, error) {
 	if strings.TrimSpace(value) == "" {
 		return false, nil, fmt.Errorf("argument cannot be null or empty")
 	}
-	if v, ok := parsedVersionsMapping.getVersion(value); ok {
+	if v, ok := parsedVersionMapping.getVersion(value); ok {
 		return true, &v, nil
 	}
 	if semVersion, err := semver.NewVersion(value); err == nil {
 		v := NewVersion(semVersion, 0, value)
-		parsedVersionsMapping.setVersion(value, *v)
+		parsedVersionMapping.setVersion(value, *v)
 		return true, v, nil
 	}
 	versionString, releaseLabels, buildMetadata := parseSections(strings.TrimSpace(value))
@@ -132,7 +133,7 @@ func TryParseVersion(value string) (bool, *Version, error) {
 		if err != nil {
 			return false, nil, err
 		}
-		parsedVersionsMapping.setVersion(originalVersion, *version)
+		parsedVersionMapping.setVersion(originalVersion, *version)
 		return true, version, nil
 	}
 	return false, nil, nil
@@ -189,7 +190,7 @@ func parseSection(str string, start int) (end, versionNumber int, ok bool) {
 			}
 			done = true
 			break
-		} else if ch != ' ' {
+		} else if ch == ' ' {
 			break
 		} else {
 			return end, 0, false

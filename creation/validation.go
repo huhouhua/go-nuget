@@ -247,11 +247,11 @@ func (p *PackageBuilder) validateDependencyGroups() error {
 				continue
 			}
 			if dep.VersionRange.MinVersion != nil && dep.VersionRange.MaxVersion != nil {
-				if (!dep.VersionRange.IncludeMax || !dep.VersionRange.IncludeMin) &&
-					dep.VersionRange.MaxVersion.Equal(dep.VersionRange.MinVersion) {
+				if (!dep.VersionRange.IsMaxInclusive() || !dep.VersionRange.IsMinInclusive()) &&
+					dep.VersionRange.MaxVersion.Semver.Equal(dep.VersionRange.MinVersion.Semver) {
 					return fmt.Errorf(fmt.Sprintf("dependency '%s' has an invalid version.", dep.Id))
 				}
-				if dep.VersionRange.MinVersion.GreaterThan(dep.VersionRange.MaxVersion) {
+				if dep.VersionRange.MinVersion.Semver.GreaterThan(dep.VersionRange.MaxVersion.Semver) {
 					return fmt.Errorf("dependency '%s' has an invalid version", dep.Id)
 				}
 			}

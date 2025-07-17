@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	nugetVersion "github.com/huhouhua/go-nuget/version"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +32,7 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 		mustWriteHTTPResponse(t, w, "testdata/medata.json")
 	})
 
-	versionrange1203, err := ParseVersionRange("[12.0.3, )")
+	versionrange1203, err := nugetVersion.ParseRange("[12.0.3, )")
 	require.NoError(t, err)
 
 	publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
@@ -257,7 +259,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 			id:      "gitlabapiclient",
 			version: "1.8.1-beta.5",
 			wantFunc: func(client *Client, _ error, meta *PackageSearchMetadataRegistration) {
-				versionrange1203, err := ParseVersionRange("[12.0.3, )")
+				versionrange1203, err := nugetVersion.ParseRange("[12.0.3, )")
 				require.NoError(t, err)
 
 				publishedTime, err := time.Parse(time.RFC3339, "2025-04-18T09:41:56.5124797Z")
@@ -374,7 +376,7 @@ func TestPackageSearchMetadataRegistration(t *testing.T) {
 		}
 		wantIdentity := &PackageIdentity{
 			Id:      input.SearchMetadata.PackageId,
-			Version: NewVersionFrom(1, 0, 0, "beta", ""),
+			Version: nugetVersion.NewVersionFrom(1, 0, 0, "beta", ""),
 		}
 		identity, err := input.Identity()
 		require.NoError(t, err)
@@ -677,7 +679,7 @@ func TestApplyMetadataRegistration(t *testing.T) {
 }
 
 func TestAddMetadataToPackages(t *testing.T) {
-	versionRange, err := ParseVersionRange("[1.5.0, )")
+	versionRange, err := nugetVersion.ParseRange("[1.5.0, )")
 	require.NoError(t, err)
 
 	emptyPkg := make([]*PackageSearchMetadataRegistration, 0)
@@ -982,7 +984,7 @@ func TestAddMetadataToPackages(t *testing.T) {
 				IncludePrerelease: true,
 				IncludeUnlisted:   true,
 			},
-			error: errors.New("invalid version: invalid semantic version"),
+			error: errors.New("'1.0.0%' is not a valid version string"),
 			wantPkgFunc: func(_ string) []*PackageSearchMetadataRegistration {
 				return emptyPkg
 			},

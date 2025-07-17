@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/version"
 
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +26,7 @@ func TestNewFrameworkName(t *testing.T) {
 			input: ".NET Framework, Version=v4.5",
 			want: &FrameworkName{
 				identifier: ".NET Framework",
-				version:    *nuget.NewVersionFrom(4, 5, 0, "", ""),
+				version:    *version.NewVersionFrom(4, 5, 0, "", ""),
 				profile:    "",
 			},
 		},
@@ -35,7 +35,7 @@ func TestNewFrameworkName(t *testing.T) {
 			input: ".NET Framework, Version=v4.5, Profile=Client",
 			want: &FrameworkName{
 				identifier: ".NET Framework",
-				version:    *nuget.NewVersionFrom(4, 5, 0, "", ""),
+				version:    *version.NewVersionFrom(4, 5, 0, "", ""),
 				profile:    "Client",
 			},
 		},
@@ -44,7 +44,7 @@ func TestNewFrameworkName(t *testing.T) {
 			input: ".NET Framework, Version=V4.5",
 			want: &FrameworkName{
 				identifier: ".NET Framework",
-				version:    *nuget.NewVersionFrom(4, 5, 0, "", ""),
+				version:    *version.NewVersionFrom(4, 5, 0, "", ""),
 				profile:    "",
 			},
 		},
@@ -66,7 +66,7 @@ func TestNewFrameworkName(t *testing.T) {
 		{
 			name:  "invalid version format",
 			input: ".NET Framework, Version=invalid",
-			error: fmt.Errorf("invalid version: %w", errors.New("Invalid Semantic Version")),
+			error: fmt.Errorf("invalid version: %w", errors.New("invalid semantic version")),
 		},
 		{
 			name:  "invalid key in component",

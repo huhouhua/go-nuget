@@ -7,6 +7,8 @@ package nuget
 import (
 	"net/http"
 	"net/url"
+
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
 type PackageSearchResource struct {
@@ -55,8 +57,8 @@ type VersionInfo struct {
 	DownloadCount uint64 `json:"downloads"`
 }
 
-func (v *VersionInfo) ParseVersion() (*Version, error) {
-	ver, err := ParseVersion(v.Version)
+func (v *VersionInfo) ParseVersion() (*nugetVersion.Version, error) {
+	ver, err := nugetVersion.Parse(v.Version)
 	if err != nil {
 		return nil, err
 	}
