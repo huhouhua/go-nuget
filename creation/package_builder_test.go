@@ -159,11 +159,11 @@ func TestCreatePackage(t *testing.T) {
 	unzip(t, nupkgPath, destDir)
 }
 
-func TestUnzip(t *testing.T) {
-	nupkgPath := "../_output/MyPackage.nupkg"
-	destDir := "../_output/test"
-	unzip(t, nupkgPath, destDir)
-}
+//func TestUnzip(t *testing.T) {
+//	nupkgPath := "../_output/MyPackage.nupkg"
+//	destDir := "../_output/test"
+//	unzip(t, nupkgPath, destDir)
+//}
 
 func unzip(t *testing.T, zipPath, destDir string) {
 	r, err := zip.OpenReader(zipPath)
