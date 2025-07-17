@@ -82,12 +82,12 @@ func ParseRangeWithRequired(value string, allowFloating bool) (*VersionRange, er
 
 // TryParseRange  Parses a VersionRange from its string representation.
 func TryParseRange(value string, allowFloating bool) (*VersionRange, bool) {
+	if v, ok := parsedVersionRangeMapping.getVersion(value, allowFloating); ok {
+		return &v, true
+	}
 	trimmedValue := strings.TrimSpace(value)
 	if strings.TrimSpace(trimmedValue) == "" {
 		return nil, false
-	}
-	if v, ok := parsedVersionRangeMapping.getVersion(trimmedValue, allowFloating); ok {
-		return &v, true
 	}
 	runes := []rune(trimmedValue)
 

@@ -60,27 +60,29 @@ func NewFloatRangeFrom(floatBehavior FloatBehavior) *FloatRange {
 	if floatBehavior != None {
 		pre = "0"
 	}
-	return NewFloatRange(floatBehavior, NewVersionFrom(0, 0, 0, pre, ""), "")
+	return NewFloatRange(floatBehavior, NewVersionFrom(0, 0, 0, pre, ""), nil)
 }
 
 // NewFloatRangeFromVersion Create a floating range.
 func NewFloatRangeFromVersion(floatBehavior FloatBehavior, version *Version) *FloatRange {
-	return NewFloatRange(floatBehavior, version, "")
+	return NewFloatRange(floatBehavior, version, nil)
 }
 
 // NewFloatRange Create a floating range.
-func NewFloatRange(floatBehavior FloatBehavior, minVersion *Version, releasePrefix string) *FloatRange {
+func NewFloatRange(floatBehavior FloatBehavior, minVersion *Version, releasePrefix *string) *FloatRange {
 	floatRange := &FloatRange{
-		FloatBehavior:         floatBehavior,
-		MinVersion:            minVersion,
-		OriginalReleasePrefix: releasePrefix,
+		FloatBehavior: floatBehavior,
+		MinVersion:    minVersion,
 	}
-	if strings.TrimSpace(releasePrefix) == "" && minVersion != nil &&
+	if releasePrefix != nil {
+		floatRange.OriginalReleasePrefix = *releasePrefix
+	}
+	if releasePrefix == nil && minVersion != nil &&
 		strings.TrimSpace(minVersion.Semver.Prerelease()) != "" {
 		//  use the actual label if one was not given
 		floatRange.OriginalReleasePrefix = minVersion.Semver.Prerelease()
 	}
-	if floatBehavior == AbsoluteLatest && strings.TrimSpace(releasePrefix) == "" {
+	if floatBehavior == AbsoluteLatest && releasePrefix == nil {
 		floatRange.OriginalReleasePrefix = ""
 	}
 	return floatRange
@@ -149,7 +151,7 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 			actualVersion = stablePart + "-" + releasePart
 		}
 		if version, err := Parse(actualVersion); err == nil {
-			floatRange = NewFloatRange(behavior, version, releasePrefix)
+			floatRange = NewFloatRange(behavior, version, stringToPointer(releasePrefix))
 		}
 	} else if lastStarPosition == len(versionString)-1 && !strings.Contains(versionString, "+") {
 		// A single * can only appear as the last char in the string.
@@ -186,7 +188,7 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 			}
 		}
 		if version, err := Parse(actualVersion); err == nil {
-			floatRange = NewFloatRange(behavior, version, releasePrefix)
+			floatRange = NewFloatRange(behavior, version, stringToPointer(releasePrefix))
 		}
 	} else {
 		// normal version parse
@@ -269,4 +271,8 @@ func (f *FloatRange) string(builder *strings.Builder) {
 	default:
 		break
 	}
+}
+
+func stringToPointer(s string) *string {
+	return &s
 }

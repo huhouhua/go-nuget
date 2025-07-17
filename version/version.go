@@ -190,7 +190,7 @@ func parseSection(str string, start int) (end, versionNumber int, ok bool) {
 			}
 			done = true
 			break
-		} else if ch != ' ' {
+		} else if ch == ' ' {
 			break
 		} else {
 			return end, 0, false

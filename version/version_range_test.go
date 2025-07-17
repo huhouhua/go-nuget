@@ -3,794 +3,1008 @@
 // license that can be found in the LICENSE file.
 package version
 
-//
-//import (
-//	"fmt"
-//	"github.com/huhouhua/go-nuget"
-//	"testing"
-//
-//	"github.com/Masterminds/semver/v3"
-//	"github.com/stretchr/testify/require"
-//)
-//
-//func TestParseVersionRange(t *testing.T) {
-//	tests := []struct {
-//		name    string
-//		input   string
-//		want    *VersionRange
-//		wantErr bool
-//	}{
-//		{
-//			name:  "exact version",
-//			input: "1.0.0",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.0.0"),
-//				MaxVersion: semver.MustParse("1.0.0"),
-//				IncludeMin: true,
-//				IncludeMax: true,
-//			},
-//		},
-//		{
-//			name:  "exact version with prerelease",
-//			input: "1.0.0-beta.1",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.0.0-beta.1"),
-//				MaxVersion: semver.MustParse("1.0.0-beta.1"),
-//				IncludeMin: true,
-//				IncludeMax: true,
-//			},
-//		},
-//		{
-//			name:  "exact version with build metadata",
-//			input: "1.0.0+build.1",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.0.0+build.1"),
-//				MaxVersion: semver.MustParse("1.0.0+build.1"),
-//				IncludeMin: true,
-//				IncludeMax: true,
-//			},
-//		},
-//		{
-//			name:  "inclusive range",
-//			input: "[1.0.0, 2.0.0]",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.0.0"),
-//				MaxVersion: semver.MustParse("2.0.0"),
-//				IncludeMin: true,
-//				IncludeMax: true,
-//			},
-//		},
-//		{
-//			name:  "exclusive range",
-//			input: "(1.0.0, 2.0.0)",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.0.0"),
-//				MaxVersion: semver.MustParse("2.0.0"),
-//				IncludeMin: false,
-//				IncludeMax: false,
-//			},
-//		},
-//		{
-//			name:  "mixed range",
-//			input: "(1.0.0, 2.0.0]",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.0.0"),
-//				MaxVersion: semver.MustParse("2.0.0"),
-//				IncludeMin: false,
-//				IncludeMax: true,
-//			},
-//		},
-//		{
-//			name:  "min only",
-//			input: "[1.0.0,)",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.0.0"),
-//				MaxVersion: nil,
-//				IncludeMin: true,
-//				IncludeMax: false,
-//			},
-//		},
-//		{
-//			name:  "max only",
-//			input: "(,2.0.0]",
-//			want: &VersionRange{
-//				MinVersion: nil,
-//				MaxVersion: semver.MustParse("2.0.0"),
-//				IncludeMin: false,
-//				IncludeMax: true,
-//			},
-//		},
-//		{
-//			name:  "wildcard",
-//			input: "*",
-//			want: &VersionRange{
-//				Float: nuget.Major,
-//			},
-//		},
-//		{
-//			name:  "tilde range",
-//			input: "~1.2.3",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.2.3"),
-//				MaxVersion: semver.MustParse("1.3.0"),
-//				IncludeMin: true,
-//				IncludeMax: false,
-//				Float:      nuget.Patch,
-//			},
-//		},
-//		{
-//			name:  "tilde range with prerelease",
-//			input: "~1.2.3-beta.1",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.2.3-beta.1"),
-//				MaxVersion: semver.MustParse("1.3.0"),
-//				IncludeMin: true,
-//				IncludeMax: false,
-//				Float:      nuget.Patch,
-//			},
-//		},
-//		{
-//			name:  "caret range",
-//			input: "^1.2.3",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.2.3"),
-//				MaxVersion: semver.MustParse("2.0.0"),
-//				IncludeMin: true,
-//				IncludeMax: false,
-//				Float:      nuget.Minor,
-//			},
-//		},
-//		{
-//			name:  "caret range with prerelease",
-//			input: "^1.2.3-beta.1",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("1.2.3-beta.1"),
-//				MaxVersion: semver.MustParse("2.0.0"),
-//				IncludeMin: true,
-//				IncludeMax: false,
-//				Float:      nuget.Minor,
-//			},
-//		},
-//		{
-//			name:  "caret range pre-1.0",
-//			input: "^0.2.3",
-//			want: &VersionRange{
-//				MinVersion: semver.MustParse("0.2.3"),
-//				MaxVersion: semver.MustParse("0.3.0"),
-//				IncludeMin: true,
-//				IncludeMax: false,
-//				Float:      nuget.Minor,
-//			},
-//		},
-//		{
-//			name:  "symbol range",
-//			input: "*-",
-//			want: &VersionRange{
-//				Float: nuget.Prerelease,
-//			},
-//		},
-//		{
-//			name:    "parse symbol range error",
-//			input:   "-*[1.0.0]",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "parse prefix symbol error",
-//			input:   "~1.0.0*",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "unsupported prefix symbol error",
-//			input:   "*1.0.0",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "invalid version",
-//			input:   "invalid",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "invalid range format",
-//			input:   "[1.0.0]",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "invalid range format with extra comma",
-//			input:   "[1.0.0,,2.0.0]",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "empty range",
-//			input:   "",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "parse min version error",
-//			input:   "[~1.0.0, 2.0.0]",
-//			wantErr: true,
-//		},
-//		{
-//			name:    "parse max version error",
-//			input:   "[1.0.0, ~2.0.0]",
-//			wantErr: true,
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			got, err := ParseVersionRange(tt.input)
-//			if tt.wantErr {
-//				require.Error(t, err)
-//				return
-//			}
-//			require.NoError(t, err)
-//			require.Equal(t, tt.want, got)
-//		})
-//	}
-//}
-//
-//func TestParseFloatingRange(t *testing.T) {
-//	_, actualErr := nuget.parseFloatingRange("*")
-//	expectedErr := fmt.Errorf("invalid floating range format: *")
-//	require.Equal(t, expectedErr, actualErr)
-//
-//	_, actualErr = nuget.parseFloatingRange("^*")
-//	expectedErr = fmt.Errorf("invalid version in ^ range: invalid semantic version")
-//	require.Equal(t, expectedErr, actualErr)
-//}
-//
-//func TestNewVersionRange(t *testing.T) {
-//	minVersion := semver.New(1, 0, 0, "", "")
-//	minVersionPre := semver.New(1, 0, 0, "beta", "")
-//
-//	maxVersion := semver.New(2, 0, 0, "", "")
-//	maxVersionPre := semver.New(2, 0, 0, "beta", "")
-//
-//	minMinorVersion := semver.New(1, 2, 3, "", "")
-//	maxMinorVersion := semver.New(1, 5, 1, "", "")
-//
-//	minMinorBetaVersion := semver.New(1, 2, 3, "beta", "")
-//	maxMinorBetaVersion := semver.New(1, 5, 1, "beta", "")
-//
-//	rangeVersion := NewVersionRange(minVersion, maxVersion, true, true)
-//	require.NotNil(t, rangeVersion)
-//
-//	require.False(t, rangeVersion.satisfiesFloat(maxVersion))
-//	require.Empty(t, rangeVersion.stringFloat())
-//
-//	rangeVersion.Float = nuget.Prerelease
-//	require.Equal(t, "*-", rangeVersion.stringFloat())
-//	require.False(t, rangeVersion.IsBetter(minVersion, minVersion))
-//	require.False(t, rangeVersion.IsBetter(minVersion, nil))
-//	require.False(t, rangeVersion.IsBetter(minVersion, maxVersionPre))
-//
-//	rangeVersion.Float = nuget.None
-//	require.False(t, rangeVersion.IsBetter(nil, minVersionPre))
-//
-//	rangeMinorVersion := NewVersionRange(maxMinorVersion, minMinorVersion, true, true)
-//	require.NotNil(t, rangeMinorVersion)
-//
-//	rangeMinorVersion.Float = nuget.Prerelease
-//	require.True(t, rangeMinorVersion.IsBetter(minMinorVersion, maxVersionPre))
-//
-//	rangeMinorBetaVersion := NewVersionRange(maxMinorBetaVersion, minMinorBetaVersion, true, true)
-//	require.NotNil(t, rangeMinorBetaVersion)
-//
-//	rangeMinorBetaVersion.Float = nuget.Prerelease
-//	require.False(t, rangeMinorBetaVersion.IsBetter(maxVersion, minMinorBetaVersion))
-//
-//	rangeMinorBetaVersion.Float = nuget.Patch
-//	actualRange := rangeMinorBetaVersion.ToNonSnapshotRange()
-//	wantRange := NewVersionRange(maxMinorBetaVersion, semver.New(1, 6, 0, "", ""), true, false)
-//	require.Equal(t, wantRange, actualRange)
-//
-//	betaRange := NewVersionRange(minMinorBetaVersion, maxMinorBetaVersion, true, false)
-//	betaRange.Float = nuget.Prerelease
-//	require.Equal(t, "Latest prerelease version >= 1.2.3-beta", betaRange.PrettyPrint())
-//
-//	betaRange.MinVersion = nil
-//	betaRange.MaxVersion = nil
-//	require.Equal(t, "Latest prerelease version", betaRange.PrettyPrint())
-//	betaRange.Float = nuget.Minor
-//	require.Equal(t, "Latest minor version", betaRange.PrettyPrint())
-//	betaRange.Float = nuget.Patch
-//	require.Equal(t, "Latest patch version", betaRange.PrettyPrint())
-//	betaRange.Float = nuget.None
-//	require.Equal(t, "Any version", betaRange.PrettyPrint())
-//}
-//
-//func TestVersionRange_Satisfies(t *testing.T) {
-//	tests := []struct {
-//		name         string
-//		rangeVersion string
-//		version      string
-//		want         bool
-//	}{
-//		{
-//			name:         "exact version match",
-//			rangeVersion: "1.0.0",
-//			version:      "1.0.0",
-//			want:         true,
-//		},
-//		{
-//			name:         "exact version with prerelease match",
-//			rangeVersion: "1.0.0-beta.1",
-//			version:      "1.0.0-beta.1",
-//			want:         true,
-//		},
-//		{
-//			name:         "exact version with build metadata match",
-//			rangeVersion: "1.0.0+build.1",
-//			version:      "1.0.0+build.2",
-//			want:         true,
-//		},
-//		{
-//			name:         "exact version mismatch",
-//			rangeVersion: "1.0.0",
-//			version:      "1.0.1",
-//			want:         false,
-//		},
-//		{
-//			name:         "inclusive range within",
-//			rangeVersion: "[1.0.0, 2.0.0]",
-//			version:      "1.5.0",
-//			want:         true,
-//		},
-//		{
-//			name:         "inclusive range at min",
-//			rangeVersion: "[1.0.0, 2.0.0]",
-//			version:      "1.0.0",
-//			want:         true,
-//		},
-//		{
-//			name:         "inclusive range at max",
-//			rangeVersion: "[1.0.0, 2.0.0]",
-//			version:      "2.0.0",
-//			want:         true,
-//		},
-//		{
-//			name:         "exclusive range within",
-//			rangeVersion: "(1.0.0, 2.0.0)",
-//			version:      "1.5.0",
-//			want:         true,
-//		},
-//		{
-//			name:         "exclusive range at min",
-//			rangeVersion: "(1.0.0, 2.0.0)",
-//			version:      "1.0.0",
-//			want:         false,
-//		},
-//		{
-//			name:         "exclusive range at max",
-//			rangeVersion: "(1.0.0, 2.0.0)",
-//			version:      "2.0.0",
-//			want:         false,
-//		},
-//		{
-//			name:         "wildcard any version",
-//			rangeVersion: "*",
-//			version:      "1.0.0",
-//			want:         true,
-//		},
-//		{
-//			name:         "wildcard with prerelease",
-//			rangeVersion: "*",
-//			version:      "1.0.0-beta.1",
-//			want:         true,
-//		},
-//		{
-//			name:         "tilde range within",
-//			rangeVersion: "~1.2.3",
-//			version:      "1.2.5",
-//			want:         true,
-//		},
-//		{
-//			name:         "tilde range at min",
-//			rangeVersion: "~1.2.3",
-//			version:      "1.2.3",
-//			want:         true,
-//		},
-//		{
-//			name:         "tilde range at max",
-//			rangeVersion: "~1.2.3",
-//			version:      "1.3.0",
-//			want:         false,
-//		},
-//		{
-//			name:         "tilde range with prerelease within",
-//			rangeVersion: "~1.2.3-beta.1",
-//			version:      "1.2.5",
-//			want:         true,
-//		},
-//		{
-//			name:         "caret range within",
-//			rangeVersion: "^1.2.3",
-//			version:      "1.5.0",
-//			want:         true,
-//		},
-//		{
-//			name:         "caret range at min",
-//			rangeVersion: "^1.2.3",
-//			version:      "1.2.3",
-//			want:         true,
-//		},
-//		{
-//			name:         "caret range at max",
-//			rangeVersion: "^1.2.3",
-//			version:      "2.0.0",
-//			want:         false,
-//		},
-//		{
-//			name:         "caret range pre-1.0 within",
-//			rangeVersion: "^0.2.3",
-//			version:      "0.2.5",
-//			want:         true,
-//		},
-//		{
-//			name:         "caret range pre-1.0 at max",
-//			rangeVersion: "^0.2.3",
-//			version:      "0.3.0",
-//			want:         false,
-//		},
-//		{
-//			name:         "caret range with prerelease within",
-//			rangeVersion: "^1.2.3-beta.1",
-//			version:      "1.5.0",
-//			want:         true,
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			vr, err := ParseVersionRange(tt.rangeVersion)
-//			require.NoError(t, err)
-//			v := semver.MustParse(tt.version)
-//			got := vr.Satisfies(v)
-//			require.Equal(t, tt.want, got)
-//		})
-//	}
-//}
-//
-//func TestVersionRange_String(t *testing.T) {
-//	tests := []struct {
-//		name  string
-//		input string
-//		want  string
-//	}{
-//		{
-//			name:  "exact version",
-//			input: "1.0.0",
-//			want:  "1.0.0",
-//		},
-//		{
-//			name:  "exact version with prerelease",
-//			input: "1.0.0-beta.1",
-//			want:  "1.0.0-beta.1",
-//		},
-//		{
-//			name:  "exact version with build metadata",
-//			input: "1.0.0+build.1",
-//			want:  "1.0.0+build.1",
-//		},
-//		{
-//			name:  "inclusive range",
-//			input: "[1.0.0,2.0.0]",
-//			want:  "[1.0.0,2.0.0]",
-//		},
-//		{
-//			name:  "exclusive range",
-//			input: "(1.0.0,2.0.0)",
-//			want:  "(1.0.0,2.0.0)",
-//		},
-//		{
-//			name:  "mixed range",
-//			input: "(1.0.0,2.0.0]",
-//			want:  "(1.0.0,2.0.0]",
-//		},
-//		{
-//			name:  "min only",
-//			input: "[1.0.0,)",
-//			want:  "[1.0.0,)",
-//		},
-//		{
-//			name:  "max only",
-//			input: "(,2.0.0]",
-//			want:  "(,2.0.0]",
-//		},
-//		{
-//			name:  "wildcard",
-//			input: "*",
-//			want:  "*",
-//		},
-//		{
-//			name:  "tilde range",
-//			input: "~1.2.3",
-//			want:  "~1.2.3",
-//		},
-//		{
-//			name:  "tilde range with prerelease",
-//			input: "~1.2.3-beta.1",
-//			want:  "~1.2.3-beta.1",
-//		},
-//		{
-//			name:  "caret range",
-//			input: "^1.2.3",
-//			want:  "^1.2.3",
-//		},
-//		{
-//			name:  "caret range with prerelease",
-//			input: "^1.2.3-beta.1",
-//			want:  "^1.2.3-beta.1",
-//		},
-//		{
-//			name:  "caret range pre-1.0",
-//			input: "^0.2.3",
-//			want:  "^0.2.3",
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			vr, err := ParseVersionRange(tt.input)
-//			require.NoError(t, err)
-//			got := vr.String()
-//			require.Equal(t, tt.want, got)
-//		})
-//	}
-//}
-//func TestVersionRange_DoesRangeSatisfy(t *testing.T) {
-//	tests := []struct {
-//		name     string
-//		range1   string
-//		range2   string
-//		want     bool
-//		wantErr1 bool
-//		wantErr2 bool
-//	}{
-//		{
-//			name:   "overlapping ranges",
-//			range1: "[1.0.0, 2.0.0]",
-//			range2: "[1.5.0, 2.5.0]",
-//			want:   true,
-//		},
-//		{
-//			name:   "non-overlapping ranges",
-//			range1: "[1.0.0, 2.0.0]",
-//			range2: "[2.1.0, 3.0.0]",
-//			want:   false,
-//		},
-//		{
-//			name:   "exact version in range",
-//			range1: "[1.0.0, 2.0.0]",
-//			range2: "1.5.0",
-//			want:   true,
-//		},
-//		{
-//			name:   "exact version not in range",
-//			range1: "[1.0.0, 2.0.0]",
-//			range2: "2.1.0",
-//			want:   false,
-//		},
-//		{
-//			name:   "wildcard range",
-//			range1: "*",
-//			range2: "[1.0.0, 2.0.0]",
-//			want:   true,
-//		},
-//		{
-//			name:   "tilde range with overlapping",
-//			range1: "~1.2.3",
-//			range2: "[1.2.0, 1.3.0]",
-//			want:   true,
-//		},
-//		{
-//			name:   "caret range with overlapping",
-//			range1: "^1.2.3",
-//			range2: "[1.0.0, 2.0.0]",
-//			want:   true,
-//		},
-//		{
-//			name:   "pre-1.0 caret range",
-//			range1: "^0.2.3",
-//			range2: "[0.2.0, 0.3.0]",
-//			want:   true,
-//		},
-//		{
-//			name:     "invalid range1",
-//			range1:   "invalid",
-//			range2:   "[1.0.0, 2.0.0]",
-//			wantErr1: true,
-//		},
-//		{
-//			name:     "invalid range2",
-//			range1:   "[1.0.0, 2.0.0]",
-//			range2:   "invalid",
-//			wantErr2: true,
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			vr1, err1 := ParseVersionRange(tt.range1)
-//			if tt.wantErr1 {
-//				require.Error(t, err1)
-//				return
-//			}
-//			require.NoError(t, err1)
-//
-//			vr2, err2 := ParseVersionRange(tt.range2)
-//			if tt.wantErr2 {
-//				require.Error(t, err2)
-//				return
-//			}
-//			require.NoError(t, err2)
-//
-//			got := vr1.DoesRangeSatisfy(vr2)
-//			require.Equal(t, tt.want, got)
-//		})
-//	}
-//}
-//
-//func TestVersionRange_FindBestMatch(t *testing.T) {
-//	tests := []struct {
-//		name     string
-//		range_   string
-//		versions []string
-//		want     string
-//	}{
-//		{
-//			name:     "exact version match",
-//			range_:   "1.0.0",
-//			versions: []string{"1.0.0", "1.0.1", "1.1.0"},
-//			want:     "1.0.0",
-//		},
-//		{
-//			name:     "latest patch version",
-//			range_:   "~1.0.0",
-//			versions: []string{"1.0.0", "1.0.1", "1.0.2", "1.1.0"},
-//			want:     "1.0.2",
-//		},
-//		{
-//			name:     "latest minor version",
-//			range_:   "^1.0.0",
-//			versions: []string{"1.0.0", "1.1.0", "1.2.0", "2.0.0"},
-//			want:     "1.2.0",
-//		},
-//		{
-//			name:     "prerelease version",
-//			range_:   "1.0.0-*",
-//			versions: []string{"1.0.0-alpha", "1.0.0-beta", "1.0.0"},
-//			want:     "1.0.0-beta",
-//		},
-//		{
-//			name:     "no matching versions",
-//			range_:   "2.0.0",
-//			versions: []string{"1.0.0", "1.1.0", "1.2.0"},
-//			want:     "",
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			vr, err := ParseVersionRange(tt.range_)
-//			require.NoError(t, err)
-//
-//			var versions []*semver.Version
-//			for _, v := range tt.versions {
-//				version, err := semver.NewVersion(v)
-//				require.NoError(t, err)
-//				versions = append(versions, version)
-//			}
-//
-//			got := vr.FindBestMatch(versions)
-//			if tt.want == "" {
-//				require.Nil(t, got)
-//			} else {
-//				require.NotNil(t, got)
-//				require.Equal(t, tt.want, got.String())
-//			}
-//		})
-//	}
-//}
-//
-//func TestVersionRange_ToNonSnapshotRange(t *testing.T) {
-//	tests := []struct {
-//		name   string
-//		range_ string
-//		want   string
-//	}{
-//		{
-//			name:   "exact version",
-//			range_: "1.0.0",
-//			want:   "1.0.0",
-//		},
-//		{
-//			name:   "prerelease with dash",
-//			range_: "1.0.0-beta-",
-//			want:   "1.0.0-beta",
-//		},
-//		{
-//			name:   "prerelease with zero",
-//			range_: "1.0.0-0",
-//			want:   "1.0.0",
-//		},
-//		{
-//			name:   "floating major",
-//			range_: "*",
-//			want:   "*",
-//		},
-//		{
-//			name:   "floating minor",
-//			range_: "^1.0.0",
-//			want:   "[1.0.0,2.0.0)",
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			vr, err := ParseVersionRange(tt.range_)
-//			require.NoError(t, err)
-//
-//			got := vr.ToNonSnapshotRange()
-//			require.Equal(t, tt.want, got.String())
-//		})
-//	}
-//}
-//func TestVersionRange_PrettyPrint(t *testing.T) {
-//	tests := []struct {
-//		name   string
-//		range_ string
-//		want   string
-//	}{
-//		{
-//			name:   "exact version",
-//			range_: "1.0.0",
-//			want:   "Version 1.0.0 exactly",
-//		},
-//		{
-//			name:   "latest version",
-//			range_: "*",
-//			want:   "Latest version",
-//		},
-//		{
-//			name:   "latest minor version",
-//			range_: "^1.0.0",
-//			want:   "Latest minor version >= 1.0.0",
-//		},
-//		{
-//			name:   "latest patch version",
-//			range_: "~1.0.0",
-//			want:   "Latest patch version >= 1.0.0",
-//		},
-//		{
-//			name:   "inclusive range",
-//			range_: "[1.0.0,2.0.0]",
-//			want:   ">= 1.0.0 and <= 2.0.0",
-//		},
-//		{
-//			name:   "exclusive range",
-//			range_: "(1.0.0,2.0.0)",
-//			want:   "> 1.0.0 and < 2.0.0",
-//		},
-//		{
-//			name:   "min only",
-//			range_: "[1.0.0,)",
-//			want:   ">= 1.0.0",
-//		},
-//		{
-//			name:   "max only",
-//			range_: "(,2.0.0]",
-//			want:   "<= 2.0.0",
-//		},
-//	}
-//
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			vr, err := ParseVersionRange(tt.range_)
-//			require.NoError(t, err)
-//
-//			got := vr.PrettyPrint()
-//			require.Equal(t, tt.want, got)
-//		})
-//	}
-//}
+import (
+	"github.com/stretchr/testify/require"
+	"strings"
+	"testing"
+)
+
+func TestVersionRange_PrettyPrint(t *testing.T) {
+	tests := []struct {
+		version  string
+		expected string
+	}{
+		{
+			version:  "1.0.0",
+			expected: "(>= 1.0.0)",
+		},
+		{
+			version:  "[1.0.0]",
+			expected: "(= 1.0.0)",
+		},
+		{
+			version:  "[1.0.0, ]",
+			expected: "(>= 1.0.0)",
+		},
+		{
+			version:  "[1.0.0, )",
+			expected: "(>= 1.0.0)",
+		},
+		{
+			version:  "(1.0.0, )",
+			expected: "(> 1.0.0)",
+		},
+		{
+			version:  "(1.0.0, ]",
+			expected: "(> 1.0.0)",
+		},
+		{
+			version:  "(1.0.0, 2.0.0)",
+			expected: "(> 1.0.0 && < 2.0.0)",
+		},
+		{
+			version:  "[1.0.0, 2.0.0]",
+			expected: "(>= 1.0.0 && <= 2.0.0)",
+		},
+		{
+			version:  "[1.0.0, 2.0.0)",
+			expected: "(>= 1.0.0 && < 2.0.0)",
+		},
+		{
+			version:  "(1.0.0, 2.0.0]",
+			expected: "(> 1.0.0 && <= 2.0.0)",
+		},
+		{
+			version:  "(, 2.0.0]",
+			expected: "(<= 2.0.0)",
+		},
+		{
+			version:  "(, 2.0.0)",
+			expected: "(< 2.0.0)",
+		},
+		{
+			version:  "[, 2.0.0)",
+			expected: "(< 2.0.0)",
+		},
+		{
+			version:  "[, 2.0.0]",
+			expected: "(<= 2.0.0)",
+		},
+		{
+			version:  "1.0.0-beta*",
+			expected: "(>= 1.0.0-beta)",
+		},
+		{
+			version:  "[1.0.0-beta*, 2.0.0)",
+			expected: "(>= 1.0.0-beta && < 2.0.0)",
+		},
+		{
+			version:  "[1.0.0-beta.1, 2.0.0-alpha.2]",
+			expected: "(>= 1.0.0-beta.1 && <= 2.0.0-alpha.2)",
+		},
+		{
+			version:  "[1.0.0+beta.1, 2.0.0+alpha.2]",
+			expected: "(>= 1.0.0 && <= 2.0.0)",
+		},
+		{
+			version:  "[1.0, 2.0]",
+			expected: "(>= 1.0.0 && <= 2.0.0)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			// Arrange
+			versionRange, err := ParseRange(tt.version)
+			require.NoError(t, err)
+
+			// Act
+			s, err := Format("P", *versionRange)
+			require.NoError(t, err)
+			s2, err := versionRange.PrettyPrint()
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expected, s)
+			require.Equal(t, tt.expected, s2)
+		})
+	}
+}
+
+func TestVersionRange_NormalizationRoundTrips(t *testing.T) {
+	tests := []struct {
+		version                    string
+		isOriginalStringNormalized bool
+	}{
+		{
+			version:                    "1.0.0",
+			isOriginalStringNormalized: false,
+		},
+		{
+			version:                    "1.*",
+			isOriginalStringNormalized: false,
+		},
+		{
+			version:                    "*",
+			isOriginalStringNormalized: false,
+		},
+		{
+			version:                    "[*, )",
+			isOriginalStringNormalized: true,
+		},
+		{
+			version:                    "[1.*, ]",
+			isOriginalStringNormalized: false,
+		},
+		{
+			version:                    "[1.*, 2.0.0)",
+			isOriginalStringNormalized: true,
+		},
+		{
+			version:                    "(, )",
+			isOriginalStringNormalized: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			// Arrange
+			originalParsedRange, err := ParseRange(tt.version)
+			require.NoError(t, err)
+
+			// Act
+			normalizedRangeRepresentation, err := originalParsedRange.ToNormalizedString()
+			require.NoError(t, err)
+			roundTrippedRange, err := ParseRange(normalizedRangeRepresentation)
+			require.NoError(t, err)
+			// Assert
+			orgStr, err := originalParsedRange.String()
+			require.NoError(t, err)
+			roundStr, err := roundTrippedRange.String()
+			require.NoError(t, err)
+			require.Equal(t, orgStr, roundStr)
+
+			roundNormalizedStr, err := roundTrippedRange.ToNormalizedString()
+			require.NoError(t, err)
+			require.Equal(t, normalizedRangeRepresentation, roundNormalizedStr)
+			if tt.isOriginalStringNormalized {
+				require.Equal(t, normalizedRangeRepresentation, tt.version)
+			} else {
+				require.NotEqual(t, normalizedRangeRepresentation, tt.version)
+			}
+		})
+	}
+}
+
+func TestVersionRange_PrettyPrintAllRange(t *testing.T) {
+	// Arrange
+	rangeAll := All
+
+	// Act
+	s, err := Format("P", *rangeAll)
+	require.NoError(t, err)
+	s2, err := rangeAll.PrettyPrint()
+	require.NoError(t, err)
+
+	require.Equal(t, "", s)
+	require.Equal(t, "", s2)
+}
+
+func TestVersionRange_MetadataIsIgnored_Satisfy(t *testing.T) {
+	// Arrange
+	noMetadata, err := ParseRange("[1.0.0, 2.0.0]")
+	require.NoError(t, err)
+	lowerMetadata, err := ParseRange("[1.0.0+A, 2.0.0]")
+	require.NoError(t, err)
+	upperMetadata, err := ParseRange("[1.0.0, 2.0.0+A]")
+	require.NoError(t, err)
+	bothMetadata, err := ParseRange("[1.0.0+A, 2.0.0+A]")
+	require.NoError(t, err)
+
+	versionNoMetadata, err := Parse("1.0.0")
+	require.NoError(t, err)
+	versionMetadata, err := Parse("1.0.0+B")
+	require.NoError(t, err)
+
+	// Act & Assert
+	require.True(t, noMetadata.Satisfies(versionNoMetadata))
+	require.True(t, noMetadata.Satisfies(versionMetadata))
+	require.True(t, lowerMetadata.Satisfies(versionNoMetadata))
+	require.True(t, lowerMetadata.Satisfies(versionMetadata))
+	require.True(t, upperMetadata.Satisfies(versionNoMetadata))
+	require.True(t, upperMetadata.Satisfies(versionMetadata))
+	require.True(t, bothMetadata.Satisfies(versionNoMetadata))
+	require.True(t, bothMetadata.Satisfies(versionMetadata))
+}
+
+func TestVersionRange_MetadataIsIgnored_String(t *testing.T) {
+	// Arrange
+	noMetadata, err := ParseRange("[1.0.0, 2.0.0]")
+	require.NoError(t, err)
+	lowerMetadata, err := ParseRange("[1.0.0+A, 2.0.0]")
+	require.NoError(t, err)
+	upperMetadata, err := ParseRange("[1.0.0, 2.0.0+A]")
+	require.NoError(t, err)
+	bothMetadata, err := ParseRange("[1.0.0+A, 2.0.0+A]")
+	require.NoError(t, err)
+
+	noMetadataStr, err := noMetadata.String()
+	require.NoError(t, err)
+	lowerMetadataStr, err := lowerMetadata.String()
+	require.NoError(t, err)
+	upperMetadataStr, err := upperMetadata.String()
+	require.NoError(t, err)
+	bothMetadataStr, err := bothMetadata.String()
+	require.NoError(t, err)
+
+	// Act & Assert
+	require.Equal(t, noMetadataStr, lowerMetadataStr)
+	require.Equal(t, lowerMetadataStr, upperMetadataStr)
+	require.Equal(t, upperMetadataStr, bothMetadataStr)
+	require.Equal(t, bothMetadataStr, noMetadataStr)
+}
+
+func TestVersionRange_AllSpecialCases_NormalizeSame(t *testing.T) {
+	normalizedStr, err := All.ToNormalizedString()
+	require.NoError(t, err)
+	require.Equal(t, "(, )", normalizedStr)
+
+}
+
+func TestVersionRange_Exact(t *testing.T) {
+	// Act
+	versionInfo, err := NewVersionRange(
+		NewVersionFrom(4, 3, 0, "", ""),
+		NewVersionFrom(4, 3, 0, "", ""),
+		true,
+		true,
+		nil,
+		"")
+	require.NoError(t, err)
+	// Assert
+	v, err := Parse("4.3.0")
+	require.NoError(t, err)
+	require.True(t, versionInfo.Satisfies(v))
+}
+
+func TestParseVersionRangeDoesNotSatisfy(t *testing.T) {
+	tests := []struct {
+		spec    string
+		version string
+	}{
+		{
+			spec:    "1.0.0",
+			version: "0.0.0",
+		},
+		{
+			spec:    "[1.0.0, 2.0.0]",
+			version: "2.0.1",
+		},
+		{
+			spec:    "[1.0.0, 2.0.0]",
+			version: "0.0.0",
+		},
+		{
+			spec:    "[1.0.0, 2.0.0]",
+			version: "3.0.0",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "1.0.0-alpha",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "1.0.0-alpha+meta",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "2.0.0-rc",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "2.0.0+meta",
+		},
+		{
+			spec:    "(1.0.0-beta+meta, 2.0.0-beta+meta)",
+			version: "2.0.0-beta+meta",
+		},
+		{
+			spec:    "(, 2.0.0-beta+meta)",
+			version: "2.0.0-beta+meta",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.spec, func(t *testing.T) {
+			// Act
+			versionInfo, err := ParseRange(tt.spec)
+			require.NoError(t, err)
+			middleVersion, err := Parse(tt.version)
+			require.NoError(t, err)
+
+			// Assert
+			require.False(t, versionInfo.Satisfies(middleVersion))
+		})
+	}
+}
+
+func TestParseVersionRangeSatisfies(t *testing.T) {
+	tests := []struct {
+		spec    string
+		version string
+	}{
+		{
+			spec:    "1.0.0",
+			version: "2.0.0",
+		},
+		{
+			spec:    "[1.0.0, 2.0.0]",
+			version: "2.0.0",
+		},
+		{
+			spec:    "(2.0.0,)",
+			version: "2.1.0",
+		},
+		{
+			spec:    "[2.0.0]",
+			version: "2.0.0",
+		},
+		{
+			spec:    "(,2.0.0]",
+			version: "2.0.0",
+		},
+		{
+			spec:    "(,2.0.0]",
+			version: "1.0.0",
+		},
+		{
+			spec:    "[2.0.0, )",
+			version: "2.0.0",
+		},
+		{
+			spec:    "1.0.0",
+			version: "1.0.0",
+		},
+		{
+			spec:    "[1.0.0]",
+			version: "1.0.0",
+		},
+		{
+			spec:    "[1.0.0, 1.0.0]",
+			version: "1.0.0",
+		},
+		{
+			spec:    "[1.0.0, 2.0.0]",
+			version: "1.0.0",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "1.0.0",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "1.0.0-beta+meta",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "2.0.0-beta",
+		},
+		{
+			spec:    "[1.0.0-beta+meta, 2.0.0-beta+meta]",
+			version: "1.0.0+meta",
+		},
+		{
+			spec:    "(1.0.0-beta+meta, 2.0.0-beta+meta)",
+			version: "1.0.0",
+		},
+		{
+			spec:    "(1.0.0-beta+meta, 2.0.0-beta+meta)",
+			version: "2.0.0-alpha+meta",
+		},
+		{
+			spec:    "(1.0.0-beta+meta, 2.0.0-beta+meta)",
+			version: "2.0.0-alpha",
+		},
+		{
+			spec:    "(, 2.0.0-beta+meta)",
+			version: "2.0.0-alpha",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.spec, func(t *testing.T) {
+			// Act
+			versionInfo, err := ParseRange(tt.spec)
+			require.NoError(t, err)
+			middleVersion, err := Parse(tt.version)
+			require.NoError(t, err)
+
+			// Assert
+			require.True(t, versionInfo.Satisfies(middleVersion))
+		})
+	}
+}
+
+func TestParseVersionRangeToString(t *testing.T) {
+	tests := []struct {
+		version  string
+		expected string
+	}{
+		{
+			version:  "1.2.0",
+			expected: "[1.2.0, )",
+		},
+		{
+			version:  "1.2.3-beta.2.4.55.X+900",
+			expected: "[1.2.3-beta.2.4.55.X, )",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			// Act
+			versionInfo, err := ParseRange(tt.version)
+			require.NoError(t, err)
+			versionStr, err := versionInfo.String()
+			require.NoError(t, err)
+
+			// Assert
+			require.Equal(t, tt.expected, versionStr)
+		})
+	}
+}
+
+func TestParseVersionRangeToStringShortHand(t *testing.T) {
+	tests := []struct {
+		version  string
+		expected string
+	}{
+		{
+			version:  "1.2.0",
+			expected: "1.2.0",
+		},
+		{
+			version:  "1.2.3",
+			expected: "1.2.3",
+		},
+		{
+			version:  "1.2.3-beta",
+			expected: "1.2.3-beta",
+		},
+		{
+			version:  "1.2.3-beta+900",
+			expected: "1.2.3-beta",
+		},
+		{
+			version:  "1.2.3-beta.2.4.55.X+900",
+			expected: "1.2.3-beta.2.4.55.X",
+		},
+		{
+			version:  "1.2.3-0+900",
+			expected: "1.2.3-0",
+		},
+		{
+			version:  "[1.2.0]",
+			expected: "[1.2.0]",
+		},
+		{
+			version:  "[1.2.3]",
+			expected: "[1.2.3]",
+		},
+		{
+			version:  "[1.2.3-beta]",
+			expected: "[1.2.3-beta]",
+		},
+		{
+			version:  "[1.2.3-beta+900]",
+			expected: "[1.2.3-beta]",
+		},
+		{
+			version:  "[1.2.3-beta.2.4.55.X+900]",
+			expected: "[1.2.3-beta.2.4.55.X]",
+		},
+		{
+			version:  "[1.2.3-0+90]",
+			expected: "[1.2.3-0]",
+		},
+		{
+			version:  "(, 1.2.0]",
+			expected: "(, 1.2.0]",
+		},
+		{
+			version:  "(, 1.2.3]",
+			expected: "(, 1.2.3]",
+		},
+		{
+			version:  "(, 1.2.3-beta]",
+			expected: "(, 1.2.3-beta]",
+		},
+		{
+			version:  "(, 1.2.3-beta+900]",
+			expected: "(, 1.2.3-beta]",
+		},
+		{
+			version:  "(, 1.2.3-beta.2.4.55.X+900]",
+			expected: "(, 1.2.3-beta.2.4.55.X]",
+		},
+		{
+			version:  "(, 1.2.3-0+900]",
+			expected: "(, 1.2.3-0]",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			// Act
+			versionInfo, err := ParseRange(tt.version)
+			require.NoError(t, err)
+			// Assert
+			actual, err := Format("S", *versionInfo)
+			require.Equal(t, tt.expected, actual)
+		})
+	}
+}
+
+func TestStringFormatNullProvider(t *testing.T) {
+	tests := []struct {
+		versionRange string
+	}{
+		{
+			versionRange: "1.2.0",
+		},
+		{
+			versionRange: "1.2.3",
+		},
+		{
+			versionRange: "1.2.3-beta",
+		},
+		{
+			versionRange: "1.2.3-beta+900",
+		},
+		{
+			versionRange: "1.2.3-beta.2.4.55.X+900",
+		},
+		{
+			versionRange: "1.2.3-0+900",
+		},
+		{
+			versionRange: "[1.2.0]",
+		},
+		{
+			versionRange: "[1.2.3]",
+		},
+		{
+			versionRange: "[1.2.3-beta]",
+		},
+		{
+			versionRange: "[1.2.3-beta+900]",
+		},
+		{
+			versionRange: "[1.2.3-beta.2.4.55.X+900]",
+		},
+		{
+			versionRange: "[1.2.3-0+900]",
+		},
+		{
+			versionRange: "(, 1.2.0)",
+		},
+		{
+			versionRange: "(, 1.2.3)",
+		},
+		{
+			versionRange: "(, 1.2.3-beta)",
+		},
+		{
+			versionRange: "(, 1.2.3-beta+900)",
+		},
+		{
+			versionRange: "(, 1.2.3-beta.2.4.55.X+900)",
+		},
+		{
+			versionRange: "(, 1.2.3-0+900)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.versionRange, func(t *testing.T) {
+			// Arrange
+			versionInfo, err := ParseRange(tt.versionRange)
+			require.NoError(t, err)
+
+			actual, err := Format("", *versionInfo)
+			require.NoError(t, err)
+
+			expected, err := versionInfo.String()
+			require.NoError(t, err)
+
+			// Assert
+			require.Equal(t, expected, actual)
+		})
+	}
+}
+
+func TestParseVersionRangeSimpleVersionNoBrackets(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("1.2")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", maxVersionStr)
+	require.True(t, versionInfo.IsMinInclusive())
+	require.Nil(t, versionInfo.MaxVersion)
+	require.False(t, versionInfo.IsMaxInclusive())
+}
+
+func TestParseVersionRangeSimpleVersionNoBracketsExtraSpaces(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("  1  .   2  ")
+	require.NoError(t, err)
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.True(t, versionInfo.IsMinInclusive())
+	require.Nil(t, versionInfo.MaxVersion)
+	require.False(t, versionInfo.IsMaxInclusive())
+}
+
+func TestParseVersionRangeMaxOnlyInclusive(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("(,1.2]")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+
+	// Assert
+	require.Nil(t, versionInfo.MinVersion)
+	require.False(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "1.2.0", maxVersionStr)
+	require.True(t, versionInfo.IsMaxInclusive())
+}
+func TestParseVersionRangeMaxOnlyExclusive(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("(,1.2)")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+
+	// Assert
+	require.Nil(t, versionInfo.MinVersion)
+	require.False(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "1.2.0", maxVersionStr)
+	require.False(t, versionInfo.IsMaxInclusive())
+}
+func TestParseVersionRangeExactVersion(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("[1.2]")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", maxVersionStr)
+	require.True(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.True(t, versionInfo.IsMaxInclusive())
+}
+
+func TestParseVersionRangeMinOnlyExclusive(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("(1.2,)")
+	require.NoError(t, err)
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.False(t, versionInfo.IsMinInclusive())
+	require.Nil(t, versionInfo.MaxVersion)
+	require.False(t, versionInfo.IsMaxInclusive())
+}
+func TestParseVersionRangeExclusiveExclusive(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("(1.2,2.3)")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.False(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "2.3.0", maxVersionStr)
+	require.False(t, versionInfo.IsMaxInclusive())
+}
+func TestParseVersionRangeExclusiveInclusive(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("(1.2,2.3]")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.False(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "2.3.0", maxVersionStr)
+	require.True(t, versionInfo.IsMaxInclusive())
+}
+func TestParseVersionRangeInclusiveExclusive(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("[1.2,2.3)")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.True(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "2.3.0", maxVersionStr)
+	require.False(t, versionInfo.IsMaxInclusive())
+}
+func TestParseVersionRangeInclusiveInclusive(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("[1.2,2.3]")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.True(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "2.3.0", maxVersionStr)
+	require.True(t, versionInfo.IsMaxInclusive())
+}
+func TestParseVersionRangeInclusiveInclusiveExtraSpaces(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("   [  1 .2   , 2  .3   ]  ")
+	require.NoError(t, err)
+	maxVersionStr := versionInfo.MaxVersion.Semver.String()
+	minVersionStr := versionInfo.MinVersion.Semver.String()
+
+	// Assert
+	require.Equal(t, "1.2.0", minVersionStr)
+	require.True(t, versionInfo.IsMinInclusive())
+	require.Equal(t, "2.3.0", maxVersionStr)
+	require.True(t, versionInfo.IsMaxInclusive())
+}
+
+func TestParsedVersionRangeHasOriginalString(t *testing.T) {
+	tests := []struct {
+		versionRange string
+	}{
+		{
+			versionRange: "*",
+		},
+		{
+			versionRange: "1.*",
+		},
+		{
+			versionRange: "1.0.0",
+		},
+		{
+			versionRange: " 1.0.0",
+		},
+		{
+			versionRange: "[1.0.0]",
+		},
+		{
+			versionRange: "[1.0.0] ",
+		},
+		{
+			versionRange: "[1.0.0, 2.0.0)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.versionRange, func(t *testing.T) {
+			// Act
+			versionInfo, err := ParseRange(tt.versionRange)
+			require.NoError(t, err)
+
+			// Assert
+			require.Equal(t, tt.versionRange, versionInfo.OriginalString)
+		})
+	}
+}
+
+func TestParseVersionToNormalizedVersion(t *testing.T) {
+	// Act
+	versionInfo, err := ParseRange("(1.0,1.2]")
+	require.NoError(t, err)
+	versionStr, err := versionInfo.String()
+	require.NoError(t, err)
+
+	// Assert
+	require.Equal(t, "(1.0.0, 1.2.0]", versionStr)
+
+}
+
+func TestParseVersionParsesTokensVersionsCorrectly(t *testing.T) {
+	tests := []struct {
+		version      string
+		minVersion   string
+		minInclusive bool
+		maxVersion   string
+		maxInclusive bool
+	}{
+		{
+			version:      "(1.2.3.4, 3.2)",
+			minVersion:   "1.2.3.4",
+			minInclusive: false,
+			maxVersion:   "3.2",
+			maxInclusive: false,
+		},
+		{
+			version:      "(1.2.3.4, 3.2]",
+			minVersion:   "1.2.3.4",
+			minInclusive: false,
+			maxVersion:   "3.2",
+			maxInclusive: true,
+		},
+		{
+			version:      "[1.2, 3.2.5)",
+			minVersion:   "1.2",
+			minInclusive: true,
+			maxVersion:   "3.2.5",
+			maxInclusive: false,
+		},
+		{
+			version:      "[2.3.7, 3.2.4.5]",
+			minVersion:   "2.3.7",
+			minInclusive: true,
+			maxVersion:   "3.2.4.5",
+			maxInclusive: true,
+		},
+		{
+			version:      "(, 3.2.4.5]",
+			minVersion:   "",
+			minInclusive: false,
+			maxVersion:   "3.2.4.5",
+			maxInclusive: true,
+		},
+		{
+			version:      "(1.6, ]",
+			minVersion:   "1.6",
+			minInclusive: false,
+			maxVersion:   "",
+			maxInclusive: true,
+		},
+		{
+			version:      "[2.7]",
+			minVersion:   "2.7",
+			minInclusive: true,
+			maxVersion:   "2.7",
+			maxInclusive: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			// Arrange
+			var (
+				minVersion *Version
+				maxVersion *Version
+				err        error
+			)
+			if strings.TrimSpace(tt.minVersion) != "" {
+				minVersion, err = Parse(tt.minVersion)
+				require.NoError(t, err)
+			}
+			if strings.TrimSpace(tt.maxVersion) != "" {
+				maxVersion, err = Parse(tt.maxVersion)
+				require.NoError(t, err)
+			}
+			versionRange, err := NewVersionRange(minVersion, maxVersion, tt.minInclusive, tt.maxInclusive, nil, "")
+
+			// Act
+			actual, err := ParseRange(tt.version)
+			require.NoError(t, err)
+
+			// Assert
+			require.Equal(t, versionRange.IsMinInclusive(), actual.IsMinInclusive())
+			require.Equal(t, versionRange.IsMaxInclusive(), actual.IsMaxInclusive())
+			if versionRange.MinVersion != nil && actual.MinVersion != nil {
+				if versionRange.MinVersion.Revision != actual.MinVersion.Revision ||
+					versionRange.MinVersion.OriginalVersion != actual.MinVersion.OriginalVersion ||
+					!versionRange.MinVersion.Semver.Equal(actual.MinVersion.Semver) {
+					t.Errorf("min version Expected %+v, got %+v", versionRange.MinVersion, actual.MinVersion)
+				}
+			} else if versionRange.MinVersion != actual.MinVersion {
+				t.Errorf("min version Expected %+v, got %+v", versionRange.MinVersion, actual.MinVersion)
+			}
+
+			if versionRange.MaxVersion != nil && actual.MaxVersion != nil {
+				if versionRange.MaxVersion.Revision != actual.MaxVersion.Revision ||
+					versionRange.MaxVersion.OriginalVersion != actual.MaxVersion.OriginalVersion ||
+					!versionRange.MaxVersion.Semver.Equal(actual.MaxVersion.Semver) {
+					t.Errorf("max version Expected %+v, got %+v", versionRange.MaxVersion, actual.MaxVersion)
+				}
+			} else if versionRange.MaxVersion != actual.MaxVersion {
+				t.Errorf("max version Expected %+v, got %+v", versionRange.MaxVersion, actual.MaxVersion)
+			}
+		})
+	}
+}
+func TestVersionRange_Equals(t *testing.T) {
+	tests := []struct {
+		versionString1 string
+		versionString2 string
+		expected       bool
+	}{
+		{
+			versionString1: "1.0.0",
+			versionString2: "1.0.*",
+			expected:       false,
+		},
+		{
+			versionString1: "[1.0.0,)",
+			versionString2: "[1.0.*, )",
+			expected:       false,
+		},
+		{
+			versionString1: "1.1.*",
+			versionString2: "1.0.*",
+			expected:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.versionString1, func(t *testing.T) {
+			// Act
+			versionRange1, err := ParseRange(tt.versionString1)
+			require.NoError(t, err)
+			versionRange2, err := ParseRange(tt.versionString2)
+			require.NoError(t, err)
+
+			v1, err := versionRange1.String()
+			require.NoError(t, err)
+			v2, err := versionRange2.String()
+			require.NoError(t, err)
+
+			// Assert
+			require.Equal(t, tt.expected, strings.EqualFold(v1, v2))
+		})
+	}
+}
+func TestVersionRange_ToStringRevPrefix(t *testing.T) {
+	// Act
+	versionRange, err := ParseRange("1.1.1.*-*")
+	require.NoError(t, err)
+	normalized, err := versionRange.ToNormalizedString()
+	require.NoError(t, err)
+
+	// Assert
+	require.Equal(t, "[1.1.1.*-*, )", normalized)
+}
+func TestVersionRange_ToStringPatchPrefix(t *testing.T) {
+	// Act
+	versionRange, err := ParseRange("1.1.*-*")
+	require.NoError(t, err)
+	normalized, err := versionRange.ToNormalizedString()
+	require.NoError(t, err)
+
+	// Assert
+	require.Equal(t, "[1.1.*-*, )", normalized)
+}
+func TestVersionRange_ToStringMinorPrefix(t *testing.T) {
+	// Act
+	versionRange, err := ParseRange("1.*-*")
+	require.NoError(t, err)
+	normalized, err := versionRange.ToNormalizedString()
+	require.NoError(t, err)
+
+	// Assert
+	require.Equal(t, "[1.*-*, )", normalized)
+}
+func TestVersionRange_ToStringAbsoluteLatest(t *testing.T) {
+	// Act
+	versionRange, err := ParseRange("*-*")
+	require.NoError(t, err)
+	normalized, err := versionRange.ToNormalizedString()
+	require.NoError(t, err)
+
+	// Assert
+	require.Equal(t, "[*-*, )", normalized)
+	require.Equal(t, "0.0.0-0", versionRange.MinVersion.Semver.String())
+	require.Equal(t, "0.0.0-0", versionRange.Float.MinVersion.Semver.String())
+	require.Equal(t, AbsoluteLatest, versionRange.Float.FloatBehavior)
+}
+func TestVersionRange_ToStringPrereleaseMajor(t *testing.T) {
+	// Act
+	versionRange, err := ParseRange("*-rc.*")
+	require.NoError(t, err)
+	normalized, err := versionRange.ToNormalizedString()
+	require.NoError(t, err)
+
+	// Assert
+	require.Equal(t, "[*-rc.*, )", normalized)
+	require.Equal(t, "0.0.0-rc.0", versionRange.MinVersion.Semver.String())
+	require.Equal(t, "0.0.0-rc.0", versionRange.Float.MinVersion.Semver.String())
+	require.Equal(t, PrereleaseMajor, versionRange.Float.FloatBehavior)
+}
