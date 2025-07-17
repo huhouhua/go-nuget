@@ -12,7 +12,7 @@ SHELL := /bin/bash
 GO := go
 ROOT_DIR=.
 
-ROOT_PACKAGE=github.com/huhouhua
+ROOT_PACKAGE=github.com/huhouhua/go-nuget
 
 ifeq ($(origin OUTPUT_DIR),undefined)
 OUTPUT_DIR := $(ROOT_DIR)/_output
@@ -40,7 +40,7 @@ lint: tools.verify.golangci-lint
 .PHONY: test
 test: tools.verify.go-junit-report
 	@echo "===========> Run unit test"
-	@set -o pipefail;$(GO) test ./ -race -cover -coverprofile=$(OUTPUT_DIR)/coverage.out \
+	@set -o pipefail;$(GO) test -tags=test $(shell go list ./... | grep -v '^$(ROOT_PACKAGE)/e2e' | grep -v '^$(ROOT_PACKAGE)/examples') -race -cover -coverprofile=$(OUTPUT_DIR)/coverage.out \
 		-timeout=10m -shuffle=on -short \
 	@$(GO) tool cover -html=$(OUTPUT_DIR)/coverage.out -o $(OUTPUT_DIR)/coverage.html
 

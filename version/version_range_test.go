@@ -4,9 +4,10 @@
 package version
 
 import (
-	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestVersionRange_PrettyPrint(t *testing.T) {

@@ -20,12 +20,6 @@ type VersionRange struct {
 	OriginalString string
 }
 
-// NewVersionRangeFromMinVersion Creates a range that is greater than or equal to the minVersion with the given float
-// behavior.
-func NewVersionRangeFromMinVersion(minVersion *Version, floatRange *FloatRange) (*VersionRange, error) {
-	return NewVersionRange(minVersion, nil, true, false, floatRange, "")
-}
-
 // NewVersionRange Creates a VersionRange with the given min and max.
 func NewVersionRange(
 	minVersion, maxVersion *Version,

@@ -54,15 +54,6 @@ type FloatRange struct {
 	OriginalReleasePrefix string
 }
 
-// NewFloatRangeFrom Create a floating range.
-func NewFloatRangeFrom(floatBehavior FloatBehavior) *FloatRange {
-	pre := ""
-	if floatBehavior != None {
-		pre = "0"
-	}
-	return NewFloatRange(floatBehavior, NewVersionFrom(0, 0, 0, pre, ""), nil)
-}
-
 // NewFloatRangeFromVersion Create a floating range.
 func NewFloatRangeFromVersion(floatBehavior FloatBehavior, version *Version) *FloatRange {
 	return NewFloatRange(floatBehavior, version, nil)
@@ -110,7 +101,7 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 	var floatRange *FloatRange
 	firstStarPosition := strings.Index(versionString, "*")
 	lastStarPosition := strings.LastIndex(versionString, "*")
-	var releasePrefix string
+	var releasePrefix *string
 	if len(versionString) == 1 && firstStarPosition == 0 {
 		floatRange = NewFloatRangeFromVersion(Major, NewVersionFrom(0, 0, 0, "", ""))
 	} else if strings.EqualFold(versionString, "*-*") {
@@ -142,16 +133,16 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 			}
 
 			releaseVersion := versionString[dashPosition+1:]
-			releasePrefix = releaseVersion[:len(releaseVersion)-1]
-			releasePart := releasePrefix
-			if len(releasePrefix) == 0 || strings.HasSuffix(releasePrefix, ".") {
+			releasePrefix = stringPtr(releaseVersion[:len(releaseVersion)-1])
+			releasePart := stringValue(releasePrefix)
+			if len(stringValue(releasePrefix)) == 0 || strings.HasSuffix(stringValue(releasePrefix), ".") {
 				// 1.0.0-* scenario, an empty label is not a valid version.
 				releasePart += "0"
 			}
 			actualVersion = stablePart + "-" + releasePart
 		}
 		if version, err := Parse(actualVersion); err == nil {
-			floatRange = NewFloatRange(behavior, version, stringToPointer(releasePrefix))
+			floatRange = NewFloatRange(behavior, version, releasePrefix)
 		}
 	} else if lastStarPosition == len(versionString)-1 && !strings.Contains(versionString, "+") {
 		// A single * can only appear as the last char in the string.
@@ -175,10 +166,10 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 
 			// check for a prefix
 			if strings.Index(versionString, "-") == strings.LastIndex(versionString, "-") {
-				releasePrefix = actualVersion[strings.LastIndex(versionString, "-")+1:]
+				releasePrefix = stringPtr(actualVersion[strings.LastIndex(versionString, "-")+1:])
 
 				// For numeric labels 0 is the lowest. For alpha-numeric - is the lowest.
-				if len(releasePrefix) == 0 || strings.HasSuffix(actualVersion, ".") {
+				if len(stringValue(releasePrefix)) == 0 || strings.HasSuffix(actualVersion, ".") {
 					// 1.0.0-* scenario, an empty label is not a valid version.
 					actualVersion += "0"
 				} else if strings.HasSuffix(actualVersion, "-") {
@@ -188,7 +179,7 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 			}
 		}
 		if version, err := Parse(actualVersion); err == nil {
-			floatRange = NewFloatRange(behavior, version, stringToPointer(releasePrefix))
+			floatRange = NewFloatRange(behavior, version, releasePrefix)
 		}
 	} else {
 		// normal version parse
@@ -225,9 +216,10 @@ func (f *FloatRange) String() string {
 func (f *FloatRange) string(builder *strings.Builder) {
 	switch f.FloatBehavior {
 	case None:
-		builder.WriteString(f.MinVersion.Semver.String())
+		appendNormalized(builder, f.MinVersion)
 	case Prerelease:
-		builder.WriteString(fmt.Sprintf("%s-%s", f.MinVersion.Semver.String(), f.OriginalReleasePrefix))
+		appendVersion(builder, f.MinVersion)
+		builder.WriteString(fmt.Sprintf("-%s*", f.OriginalReleasePrefix))
 	case Revision:
 		builder.WriteString(
 			fmt.Sprintf(
@@ -273,6 +265,12 @@ func (f *FloatRange) string(builder *strings.Builder) {
 	}
 }
 
-func stringToPointer(s string) *string {
+func stringPtr(s string) *string {
 	return &s
+}
+func stringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
