@@ -71,7 +71,6 @@ func TestVersionRangeFloatParsing_PrereleaseWithNumericOnlyLabelVerifyMinVersion
 			require.Equal(t, tt.expected, versionRange.MinVersion.Semver.String())
 		})
 	}
-
 }
 
 func TestVersionRangeFloatParsing_PrereleaseWithNumericOnlyLabelVerifySatisfies(t *testing.T) {

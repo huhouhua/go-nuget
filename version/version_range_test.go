@@ -246,7 +246,6 @@ func TestVersionRange_AllSpecialCases_NormalizeSame(t *testing.T) {
 	normalizedStr, err := All.ToNormalizedString()
 	require.NoError(t, err)
 	require.Equal(t, "(, )", normalizedStr)
-
 }
 
 func TestVersionRange_Exact(t *testing.T) {
@@ -532,8 +531,11 @@ func TestParseVersionRangeToStringShortHand(t *testing.T) {
 			// Act
 			versionInfo, err := ParseRange(tt.version)
 			require.NoError(t, err)
-			// Assert
+
 			actual, err := Format("S", *versionInfo)
+			require.NoError(t, err)
+
+			// Assert
 			require.Equal(t, tt.expected, actual)
 		})
 	}
@@ -805,7 +807,6 @@ func TestParseVersionToNormalizedVersion(t *testing.T) {
 
 	// Assert
 	require.Equal(t, "(1.0.0, 1.2.0]", versionStr)
-
 }
 
 func TestParseVersionParsesTokensVersionsCorrectly(t *testing.T) {
@@ -883,6 +884,7 @@ func TestParseVersionParsesTokensVersionsCorrectly(t *testing.T) {
 				require.NoError(t, err)
 			}
 			versionRange, err := NewVersionRange(minVersion, maxVersion, tt.minInclusive, tt.maxInclusive, nil, "")
+			require.NoError(t, err)
 
 			// Act
 			actual, err := ParseRange(tt.version)

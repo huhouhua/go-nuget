@@ -67,7 +67,6 @@ func TestVersionRange_MetadataIsIgnored_FormatRemovesMetadata_PrettyPrint(t *tes
 	// Arrange
 	bothMetadata, err := ParseRange("[1.0.0+A, )")
 	require.NoError(t, err)
-
 	prettyStr, err := bothMetadata.PrettyPrint()
 	require.NoError(t, err)
 
@@ -362,7 +361,6 @@ func TestParse_Illogical_VersionRange_Throws(t *testing.T) {
 			require.Equal(t, fmt.Errorf("'%s' is not a valid version string", tt.versionRange), err)
 		})
 	}
-
 }
 
 func TestParseVersionRangeIntegerRanges(t *testing.T) {
