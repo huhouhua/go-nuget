@@ -25,6 +25,8 @@ github.com/huhouhua/go-nuget v0.0.2 h1:v+rJQDYpo3Pmd94yJ12WkJRxMygmYpLvwC98ZrvtS
 github.com/huhouhua/go-nuget v0.0.2/go.mod h1:6M32TZ1iAa0GP/KfnhP20iZvBs0+qwbcSZSWZl66WzA=
 github.com/huhouhua/go-nuget v0.0.4 h1:g/V/CB/IPxm3vOjBUnADhiHlLWzUknQQjRHtFjBj+dQ=
 github.com/huhouhua/go-nuget v0.0.4/go.mod h1:xUzem6u4ymoKTRJwIKtV8uRqP0qfJr4KwUVpxsuLwZo=
+github.com/huhouhua/go-nuget v0.0.5-0.20250717212912-01351b4506b8 h1:LF4UgcmM4BAq0rOeRMNp1IDGVF4WtL35x35umNLY8B8=
+github.com/huhouhua/go-nuget v0.0.5-0.20250717212912-01351b4506b8/go.mod h1:xUzem6u4ymoKTRJwIKtV8uRqP0qfJr4KwUVpxsuLwZo=
 golang.org/x/time v0.11.0 h1:/bpjEDfN9tkoN/ryeYHnv5hcMlc8ncjMcM4XBk5NWV0=
 golang.org/x/time v0.11.0/go.mod h1:CDIdPxbZBQxdj6cxyCIdrNogrJKMJ7pr37NYpMcMDSg=
 golang.org/x/time v0.12.0 h1:ScB/8o8olJvc+CQPWrK3fPZNfh7qgwCrY0zJmoEQLSE=
