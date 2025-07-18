@@ -14,7 +14,6 @@ all: tools tidy verify-copyright format lint cover
 SHELL := /bin/bash
 GO := go
 ROOT_DIR=.
-
 ROOT_PACKAGE=github.com/huhouhua/go-nuget
 
 ifeq ($(origin OUTPUT_DIR),undefined)
@@ -83,6 +82,11 @@ add-copyright: tools.verify.licctl
 .PHONY: tools
 tools:
 	@$(MAKE) tools.install
+
+## check-updates: Check outdated dependencies of the go projects.
+.PHONY: check-updates
+check-updates: tools.verify.go-mod-outdated
+	@$(GO) list -u -m -json all | go-mod-outdated -update -direct
 
 ## tidy: Clean up go.mod and go.sum by removing unused dependencies and adding missing ones
 .PHONY: tidy

@@ -7,9 +7,10 @@
 #
 
 BLOCKER_TOOLS ?= golines go-junit-report golangci-lint licctl goimports
+CRITICAL_TOOLS ?= go-mod-outdated
 TRIVIAL_TOOLS ?=
 
-TOOLS ?=$(BLOCKER_TOOLS) $(TRIVIAL_TOOLS)
+TOOLS ?=$(BLOCKER_TOOLS) $(CRITICAL_TOOLS) $(TRIVIAL_TOOLS)
 
 .PHONY: tools.install
 tools.install: $(addprefix tools.install., $(TOOLS))
@@ -32,6 +33,10 @@ install.golangci-lint:
 .PHONY: install.go-junit-report
 install.go-junit-report:
 	@$(GO) install github.com/jstemmer/go-junit-report@latest
+
+.PHONY: install.go-mod-outdated
+install.go-mod-outdated:
+	@$(GO) install github.com/psampaz/go-mod-outdated@latest
 
 .PHONY: install.golines
 install.golines:
