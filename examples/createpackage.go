@@ -10,12 +10,13 @@ import (
 
 	"github.com/huhouhua/go-nuget"
 	"github.com/huhouhua/go-nuget/creation"
+	version "github.com/huhouhua/go-nuget/version"
 )
 
 func createPackageExample() {
 	builder := creation.NewPackageBuilder(false, false, logger)
 	builder.Id = "MyPackage"
-	builder.Version = nuget.NewVersionFrom(1, 0, 0, "beta", "")
+	builder.Version = version.NewVersionFrom(1, 0, 0, "beta", "")
 	builder.Description = "My package created from the API."
 	builder.Authors = append(builder.Authors, "Sample author")
 	netstandard14, err := creation.Parse("netstandard1.4")
@@ -23,7 +24,7 @@ func createPackageExample() {
 		log.Fatalf("Failed to parse nuget framework: %v", err)
 		return
 	}
-	versionRange, err := nuget.ParseVersionRange("10.0.1")
+	versionRange, err := version.ParseRange("10.0.1")
 	if err != nil {
 		log.Fatalf("Failed to parse version range: %v", err)
 		return
