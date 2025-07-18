@@ -6,6 +6,11 @@
 # Makefile helper functions for tools
 #
 
+BLOCKER_TOOLS ?= golines go-junit-report golangci-lint licctl goimports
+TRIVIAL_TOOLS ?=
+
+TOOLS ?=$(BLOCKER_TOOLS) $(TRIVIAL_TOOLS)
+
 .PHONY: tools.install
 tools.install: $(addprefix tools.install., $(TOOLS))
 

@@ -8,6 +8,9 @@
 .PHONY: all
 all: tools tidy verify-copyright format lint cover
 
+# ==============================================================================
+# Build options
+
 SHELL := /bin/bash
 GO := go
 ROOT_DIR=.
@@ -28,7 +31,13 @@ ifeq ($(origin COVERAGE),undefined)
 COVERAGE := 60
 endif
 
-include scripts/tools.mk
+# ==============================================================================
+# Includes
+
+include scripts/Makefile.tools.mk
+
+# ==============================================================================
+# Targets
 
 ## lint: Check syntax and styling of go sources.
 .PHONY: lint
