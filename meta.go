@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/huhouhua/go-nuget/internal/meta"
+
 	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
@@ -37,13 +39,13 @@ type PackageSearchMetadataRegistration struct {
 
 // SearchMetadata Package metadata only containing select fields relevant to search results processing and presenting.
 type SearchMetadata struct {
-	identity *PackageIdentity `json:"-"`
+	identity *meta.PackageIdentity `json:"-"`
 
 	PackageId string `json:"id"`
 
 	Version string `json:"version"`
 
-	DependencySets []*PackageDependencyGroup `json:"dependencyGroups"`
+	DependencySets []*meta.PackageDependencyGroup `json:"dependencyGroups"`
 
 	Description string `json:"description"`
 
@@ -98,9 +100,9 @@ type PackageVulnerabilityMetadata struct {
 	Severity    int    `json:"severity"`
 }
 
-func (p *SearchMetadata) Identity() (*PackageIdentity, error) {
+func (p *SearchMetadata) Identity() (*meta.PackageIdentity, error) {
 	if p.identity == nil {
-		if identity, err := NewPackageIdentity(p.PackageId, p.Version); err != nil {
+		if identity, err := meta.NewPackageIdentity(p.PackageId, p.Version); err != nil {
 			return nil, err
 		} else {
 			p.identity = identity

@@ -2,16 +2,17 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package creation
+package framework
 
 import (
 	"fmt"
 	"net/url"
 	"strings"
 
-	nugetVersion "github.com/huhouhua/go-nuget/version"
+	"github.com/huhouhua/go-nuget/internal/consts"
+	"github.com/huhouhua/go-nuget/internal/util"
 
-	"github.com/huhouhua/go-nuget"
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
 // Parse Creates a NuGetFramework from a folder name using the given provider.
@@ -46,8 +47,8 @@ func ParseFrameworkName(frameworkName string, provider FrameworkNameProvider) (*
 	if err != nil {
 		return nil, err
 	}
-	if version.Semver.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, frameworkStr) {
-		return NewFrameworkWithPlatform(frameworkStr, version, "", nuget.EmptyVersion), nil
+	if version.Semver.Major() >= 5 && strings.EqualFold(consts.NetCoreApp, frameworkStr) {
+		return NewFrameworkWithPlatform(frameworkStr, version, "", consts.EmptyVersion), nil
 	}
 	return NewFrameworkWithProfile(frameworkStr, version, profile), nil
 }
@@ -60,16 +61,16 @@ func parseFrameworkNameParts(
 	if framework == "" {
 		framework = parts[0]
 	}
-	version = nuget.EmptyVersion
+	version = consts.EmptyVersion
 	var versionPart, profilePart string
-	versionParts := nuget.Filter(parts, func(s string) bool {
+	versionParts := util.Filter(parts, func(s string) bool {
 		partLower := strings.ToLower(s)
 		return strings.HasPrefix(partLower, "version=")
 	})
 	if len(versionParts) == 1 {
 		versionPart = versionParts[0]
 	}
-	profileParts := nuget.Filter(parts, func(s string) bool {
+	profileParts := util.Filter(parts, func(s string) bool {
 		partLower := strings.ToLower(s)
 		return strings.HasPrefix(partLower, "profile=")
 	})
@@ -89,7 +90,7 @@ func parseFrameworkNameParts(
 	if strings.TrimSpace(profilePart) != "" {
 		profile = strings.Split(profilePart, "=")[1]
 	}
-	if strings.EqualFold(nuget.Portable, framework) && strings.TrimSpace(profile) != "" &&
+	if strings.EqualFold(consts.Portable, framework) && strings.TrimSpace(profile) != "" &&
 		strings.Contains(profile, "-") {
 		return "", "", nil, fmt.Errorf(
 			"invalid portable frameworks '%s'. A hyphen may not be in any of the portable framework names",
@@ -142,9 +143,9 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 	}
 	profileShort := profile
 	if nv.Semver.Major() >= 5 &&
-		(strings.EqualFold(nuget.Net, framework) || strings.EqualFold(nuget.NetCoreApp, framework)) {
+		(strings.EqualFold(consts.Net, framework) || strings.EqualFold(consts.NetCoreApp, framework)) {
 		// net should be treated as netcoreapp in 5.0 and later
-		framework = nuget.NetCoreApp
+		framework = consts.NetCoreApp
 		if strings.TrimSpace(profileShort) != "" {
 			// Find a platform version if it exists and yank it out
 			platformChars := profileShort
@@ -164,7 +165,7 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 			if v, err := provider.GetPlatformVersion(platformVersionString); err == nil {
 				platformVersion = v
 			} else {
-				platformVersion = nuget.EmptyVersion
+				platformVersion = consts.EmptyVersion
 			}
 			if strings.TrimSpace(platformVersionString) == "" || platformVersion != nil {
 				result = NewFrameworkWithPlatform(framework, nv, platform, platformVersion)
@@ -173,14 +174,14 @@ func ParseFolder(folderName string, provider FrameworkNameProvider) (*Framework,
 				return result, nil
 			}
 		} else {
-			result = NewFrameworkWithPlatform(framework, nv, "", nuget.EmptyVersion)
+			result = NewFrameworkWithPlatform(framework, nv, "", consts.EmptyVersion)
 		}
 	} else {
 		pro := ""
 		if pro = provider.GetProfile(profileShort); strings.TrimSpace(pro) == "" {
 			pro = profileShort
 		}
-		if strings.EqualFold(nuget.Portable, framework) {
+		if strings.EqualFold(consts.Portable, framework) {
 			if clientFrameworks, err := provider.GetPortableFrameworks(profileShort); err != nil {
 				return result, nil
 			} else {

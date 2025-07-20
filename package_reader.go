@@ -11,10 +11,13 @@ import (
 	"io"
 	"strings"
 	"sync"
+
+	"github.com/huhouhua/go-nuget/internal/consts"
+	"github.com/huhouhua/go-nuget/internal/meta"
 )
 
 type PackageArchiveReader struct {
-	nuspec     *Nuspec
+	nuspec     *meta.Nuspec
 	buf        *bytes.Buffer
 	archive    *zip.Reader
 	nuspecFile io.ReadCloser
@@ -52,7 +55,7 @@ func (p *PackageArchiveReader) parse() error {
 	return nil
 }
 
-func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
+func (p *PackageArchiveReader) Nuspec() (*meta.Nuspec, error) {
 	if p.nuspec != nil {
 		return p.nuspec, nil
 	}
@@ -62,7 +65,7 @@ func (p *PackageArchiveReader) Nuspec() (*Nuspec, error) {
 			_ = p.nuspecFile.Close()
 		}()
 		// Reader the XML content into the Nuspec struct
-		p.nuspec, err = FromReader(p.nuspecFile)
+		p.nuspec, err = meta.FromReader(p.nuspecFile)
 	})
 
 	return p.nuspec, err
@@ -85,7 +88,7 @@ func (p *PackageArchiveReader) GetFilesFromDir(folder string) []*zip.File {
 
 func (p *PackageArchiveReader) findNuspecFile() (io.ReadCloser, error) {
 	for _, file := range p.archive.File {
-		if strings.HasSuffix(file.Name, NuspecExtension) {
+		if strings.HasSuffix(file.Name, consts.NuspecExtension) {
 			if nuspecFile, err := file.Open(); err != nil {
 				return nil, err
 			} else {

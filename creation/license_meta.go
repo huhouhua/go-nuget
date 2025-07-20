@@ -9,28 +9,48 @@ import (
 	"net/url"
 
 	"github.com/huhouhua/go-nuget/version"
+)
 
-	"github.com/huhouhua/go-nuget"
+type LicenseType string
+
+func (s LicenseType) String() string {
+	return string(s)
+}
+
+const (
+	File LicenseType = "file"
+
+	Expression LicenseType = "expression"
+)
+
+// LicenseExpressionType Represents the expression type of a LicenseExpression.
+// License type means that it's a License. Operator means that it's a LicenseOperator
+type LicenseExpressionType int
+
+const (
+	License LicenseExpressionType = iota
+
+	Operator LicenseExpressionType = iota
 )
 
 var (
 	LicenseFileDeprecationURL  = url.URL{Scheme: "https", Host: "aka.ms", Path: "/deprecateLicenseUrl"}
-	LicenseServiceLinkTemplate = "https://licenses.nuget.org/%s"
+	LicenseServiceLinkTemplate = "https://licenses.org/%s"
 	LicenseEmptyVersion        = version.NewVersionFrom(1, 0, 0, "", "")
 )
 
-// LicenseExpression Represents a parsed NuGetLicenseExpression.
-// This is an abstract class so based on the Type, it can be either a NuGetLicense or a LicenseOperator.
+// LicenseExpression Represents a parsed LicenseExpression.
+// This is an abstract class so based on the Type, it can be either a License or a LicenseOperator.
 type LicenseExpression interface {
-	// GetLicenseExpressionType The type of the NuGetLicenseExpression.
-	// License type means that it's a NuGetLicense. Operator means that it's a LicenseOperator
+	// GetLicenseExpressionType The type of the LicenseExpression.
+	// License type means that it's a License. Operator means that it's a LicenseOperator
 	GetLicenseExpressionType()
 }
 
 type LicenseMetadata struct {
 
 	// The LicenseType, never null
-	licenseType nuget.LicenseType
+	licenseType LicenseType
 
 	// license The license, never null, could be empty.
 	license string
@@ -39,7 +59,7 @@ type LicenseMetadata struct {
 	version *version.Version
 }
 
-func NewLicense(licenseType nuget.LicenseType, license string, version *version.Version) *LicenseMetadata {
+func NewLicense(licenseType LicenseType, license string, version *version.Version) *LicenseMetadata {
 	return &LicenseMetadata{
 		licenseType: licenseType,
 		license:     license,
@@ -47,7 +67,7 @@ func NewLicense(licenseType nuget.LicenseType, license string, version *version.
 	}
 }
 
-func (l *LicenseMetadata) GetLicenseType() nuget.LicenseType {
+func (l *LicenseMetadata) GetLicenseType() LicenseType {
 	return l.licenseType
 }
 
@@ -60,9 +80,9 @@ func (l *LicenseMetadata) GetVersion() *version.Version {
 
 func (l *LicenseMetadata) GetLicenseURL() (*url.URL, error) {
 	switch l.licenseType {
-	case nuget.File:
+	case File:
 		return &LicenseFileDeprecationURL, nil
-	case nuget.Expression:
+	case Expression:
 		if u, err := url.Parse(fmt.Sprintf(LicenseServiceLinkTemplate, l.license)); err != nil {
 			return nil, err
 		} else {

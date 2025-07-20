@@ -10,7 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/internal/consts"
+	"github.com/huhouhua/go-nuget/internal/framework"
+	"github.com/huhouhua/go-nuget/internal/meta"
+	"github.com/huhouhua/go-nuget/internal/util"
 	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
@@ -150,7 +153,7 @@ func (p *PackageBuilder) ToXML() ([]xml.Token, error) {
 func (p *PackageBuilder) dependencyGroupsToTokens() ([]xml.Token, error) {
 	return getXElementFromGroupableItemSets(p.DependencyGroups,
 		func(set *PackageDependencyGroup) bool {
-			isHasDependency := nuget.Some(set.Packages, func(dependency *nuget.Dependency) bool {
+			isHasDependency := util.Some(set.Packages, func(dependency *meta.Dependency) bool {
 				return len(dependency.Exclude) > 0 || len(dependency.Include) > 0
 			})
 			return set.TargetFramework.IsSpecificFramework() || isHasDependency
@@ -159,7 +162,7 @@ func (p *PackageBuilder) dependencyGroupsToTokens() ([]xml.Token, error) {
 				return set.TargetFramework.GetFrameworkString()
 			}
 			return "", nil
-		}, func(set *PackageDependencyGroup) []*nuget.Dependency {
+		}, func(set *PackageDependencyGroup) []*meta.Dependency {
 			return set.Packages
 		}, getXElementFromPackageDependency, "dependencies", "targetFramework")
 }
@@ -288,7 +291,7 @@ func getXElementFromGroupableItemSets[TSet any, TItem any](
 	tokens = append(tokens, xml.EndElement{Name: xml.Name{Local: parentName}})
 	return tokens, nil
 }
-func getXElementFromPackageDependency(dependency *nuget.Dependency) ([]xml.Token, error) {
+func getXElementFromPackageDependency(dependency *meta.Dependency) ([]xml.Token, error) {
 	if dependency == nil {
 		return nil, nil
 	}
@@ -310,7 +313,7 @@ func getXElementFromPackageDependency(dependency *nuget.Dependency) ([]xml.Token
 	}
 	return NewElement("dependency", "", attrs...), nil
 }
-func getXElementFromFrameworkAssemblies(references []*FrameworkAssemblyReference) ([]xml.Token, error) {
+func getXElementFromFrameworkAssemblies(references []*framework.FrameworkAssemblyReference) ([]xml.Token, error) {
 	if references == nil || len(references) == 0 {
 		return nil, nil
 	}
@@ -389,7 +392,7 @@ func getXMLElementFromLicenseMetadata(meta *LicenseMetadata) []xml.Token {
 	}
 	return NewElement("license", meta.GetLicense(), attrs...)
 }
-func getXElementFromManifestRepository(repository *nuget.RepositoryMetadata) []xml.Token {
+func getXElementFromManifestRepository(repository *meta.RepositoryMetadata) []xml.Token {
 	if repository == nil {
 		return nil
 	}
@@ -428,7 +431,7 @@ func getXElementFromManifestPackageType(packageType *PackageType) []xml.Token {
 	if strings.TrimSpace(packageType.Name) != "" {
 		attrs = append(attrs, NewXMLAttr("name", packageType.Name))
 	}
-	if !packageType.Version.Semver.Equal(nuget.EmptyVersion.Semver) {
+	if !packageType.Version.Semver.Equal(consts.EmptyVersion.Semver) {
 		attrs = append(attrs, NewXMLAttr("version", packageType.Version.OriginalVersion))
 	}
 	return NewElement("packageType", "", attrs...)

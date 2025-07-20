@@ -14,7 +14,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/internal/consts"
+	"github.com/huhouhua/go-nuget/internal/framework"
+	"github.com/huhouhua/go-nuget/internal/util"
 )
 
 func (p *PackageBuilder) validate() []error {
@@ -29,7 +31,7 @@ func (p *PackageBuilder) validate() []error {
 	errs = append(errs, p.validateDependencyGroups())
 	errs = append(errs, p.validateManifest())
 
-	return nuget.Filter(errs, func(err error) bool {
+	return util.Filter(errs, func(err error) bool {
 		return err != nil
 	})
 }
@@ -45,7 +47,7 @@ func (p *PackageBuilder) validateManifest() error {
 	return errors.New(strings.Join(results, "\n"))
 }
 func (p *PackageBuilder) validateFrameworkAssemblies() error {
-	frameworks := make([]*Framework, 0)
+	frameworks := make([]*framework.Framework, 0)
 	for _, group := range p.FrameworkReferences {
 		frameworks = append(frameworks, group.SupportedFrameworks...)
 	}
@@ -63,7 +65,7 @@ func (p *PackageBuilder) validateFrameworkAssemblies() error {
 }
 
 func (p *PackageBuilder) ValidateReferenceAssemblies() error {
-	frameworks := make([]*Framework, 0)
+	frameworks := make([]*framework.Framework, 0)
 	for _, group := range p.PackageAssemblyReferences {
 		frameworks = append(frameworks, group.TargetFramework)
 	}
@@ -116,13 +118,13 @@ func (p *PackageBuilder) validateFilesUnique() error {
 }
 
 func (p *PackageBuilder) validateLicenseFile() error {
-	if p.isHasSymbolsInPackageType() || p.LicenseMetadata == nil || p.LicenseMetadata.GetLicenseType() != nuget.File {
+	if p.isHasSymbolsInPackageType() || p.LicenseMetadata == nil || p.LicenseMetadata.GetLicenseType() != File {
 		return nil
 	}
 	ext := path.Ext(p.LicenseMetadata.GetLicense())
 	if strings.TrimSpace(ext) != "" &&
 		!strings.EqualFold(ext, ".txt") &&
-		!strings.EqualFold(ext, nuget.ReadmeExtension) {
+		!strings.EqualFold(ext, consts.ReadmeExtension) {
 		return fmt.Errorf(
 			"the license file '%s' has an invalid extension. Valid options are .txt, .md or none",
 			p.LicenseMetadata.GetLicense(),
@@ -187,11 +189,11 @@ func (p *PackageBuilder) validateReadmeFile() error {
 		return nil
 	}
 	ext := path.Ext(p.Readme)
-	if strings.TrimSpace(ext) != "" && !strings.EqualFold(ext, nuget.ReadmeExtension) {
+	if strings.TrimSpace(ext) != "" && !strings.EqualFold(ext, consts.ReadmeExtension) {
 		return fmt.Errorf("the readme file '%s' has an invalid extension. It must end in .md", p.Readme)
 	}
 	readmePathStripped := stripLeadingDirectorySeparators(p.Readme)
-	readmeFileList := nuget.Filter(p.Files, func(file PackageFile) bool {
+	readmeFileList := util.Filter(p.Files, func(file PackageFile) bool {
 		return strings.EqualFold(readmePathStripped, stripLeadingDirectorySeparators(file.GetPath()))
 	})
 	if len(readmeFileList) == 0 {
@@ -213,7 +215,7 @@ func (p *PackageBuilder) validateReadmeFile() error {
 }
 
 func (p *PackageBuilder) validateDependencies() error {
-	targetFramework := make([]*Framework, 0)
+	targetFramework := make([]*framework.Framework, 0)
 	for _, group := range p.DependencyGroups {
 		for _, dep := range group.Packages {
 			if err := ValidatePackageId(dep.Id); err != nil {
@@ -276,7 +278,7 @@ func (p *PackageBuilder) validateArgs() []string {
 	if p.Authors == nil || len(p.Authors) == 0 {
 		errs = append(errs, "authors is required.")
 	}
-	isHasEmpty := nuget.Some(p.Authors, func(s string) bool {
+	isHasEmpty := util.Some(p.Authors, func(s string) bool {
 		return strings.TrimSpace(s) == ""
 	})
 
@@ -317,16 +319,16 @@ func (p *PackageBuilder) validateArgs() []string {
 }
 
 func (p *PackageBuilder) isHasSymbolsInPackageType() bool {
-	return nuget.Some(p.PackageTypes, func(packageType *PackageType) bool {
+	return util.Some(p.PackageTypes, func(packageType *PackageType) bool {
 		return packageType.Equals(SymbolsPackage)
 	})
 }
 
-func validatorPlatformVersion(frameworks []*Framework) error {
+func validatorPlatformVersion(frameworks []*framework.Framework) error {
 	platformVersions := make([]string, 0)
 	for _, framework := range frameworks {
 		if framework != nil && strings.TrimSpace(framework.Platform) != "" &&
-			framework.PlatformVersion.Semver.Equal(nuget.EmptyVersion.Semver) {
+			framework.PlatformVersion.Semver.Equal(consts.EmptyVersion.Semver) {
 			if name, err := framework.GetShortFolderName(); err != nil {
 				return err
 			} else {

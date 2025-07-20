@@ -16,6 +16,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/huhouhua/go-nuget/internal/consts"
+	"github.com/huhouhua/go-nuget/internal/util"
 )
 
 // PackageUpdateResource Contains logics to push or delete packages in Http server or file system
@@ -35,11 +38,10 @@ func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOpt
 	if err != nil {
 		return nil, err
 	}
-	sourceURL, err := getServiceEndpointUrl(baseURL.String(), "", false)
+	sourceURL, err := util.GetServiceEndpointUrl(baseURL.String(), "", false)
 	if err != nil {
 		return nil, err
 	}
-	//nolint:goconst
 	if sourceURL.Scheme == "file" {
 		return nil, fmt.Errorf("no support file system delete")
 	}
@@ -66,9 +68,9 @@ func (p *PackageUpdateResource) PushWithStream(
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
 	tempDir := os.TempDir()
-	extension := PackageExtension
+	extension := consts.PackageExtension
 	if opt.IsSnupkg {
-		extension = SnupkgExtension
+		extension = consts.SnupkgExtension
 	}
 	millis := time.Now().UnixNano() / int64(time.Millisecond)
 	fileName := fmt.Sprintf("%s%s", "package", extension)
@@ -107,7 +109,7 @@ func (p *PackageUpdateResource) Push(
 	}
 	symbolURL := &url.URL{}
 	if opt.SymbolSource != "" {
-		if symbolURL, err = createSourceURL(opt.SymbolSource); err != nil {
+		if symbolURL, err = util.CreateSourceURL(opt.SymbolSource); err != nil {
 			return nil, err
 		}
 	}
@@ -116,7 +118,7 @@ func (p *PackageUpdateResource) Push(
 		defer close(resultChan)
 		var resp *http.Response
 		var err error
-		if !strings.HasSuffix(packagePath, SnupkgExtension) {
+		if !strings.HasSuffix(packagePath, consts.SnupkgExtension) {
 			resp, err = p.pushPackagePath(opt, packagePath, packageURL, symbolURL, options...)
 		} else if strings.TrimSpace(opt.SymbolSource) != "" {
 			// symbolSource is only set when:
@@ -144,7 +146,7 @@ func (p *PackageUpdateResource) Push(
 // getResourceURL returns the resource URL for the given service type.
 func (p *PackageUpdateResource) getResourceURL(value ServiceType) (*url.URL, error) {
 	baseURL := p.client.getResourceURL(value)
-	sourceURL, err := createSourceURL(baseURL.String())
+	sourceURL, err := util.CreateSourceURL(baseURL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +160,7 @@ func (p *PackageUpdateResource) pushPackagePath(
 	sourceURL, symbolURL *url.URL,
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
-	paths, err := resolvePackageFromPath(path, false)
+	paths, err := util.ResolvePackageFromPath(path, false)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +179,7 @@ func (p *PackageUpdateResource) pushPackagePath(
 		if strings.TrimSpace(opt.SymbolSource) == "" {
 			continue
 		}
-		symbolPackagePath := GetSymbolsPath(nupkgToPush, opt.IsSnupkg)
+		symbolPackagePath := util.GetSymbolsPath(nupkgToPush, opt.IsSnupkg)
 		if _, err = os.Stat(symbolPackagePath); os.IsNotExist(err) {
 			continue
 		}
@@ -210,9 +212,9 @@ func (p *PackageUpdateResource) pushWithSymbol(
 	options ...RequestOptionFunc,
 ) (*http.Response, error) {
 	// Get the symbol package for this package
-	symbolPackagePath := GetSymbolsPath(path, opt.IsSnupkg)
+	symbolPackagePath := util.GetSymbolsPath(path, opt.IsSnupkg)
 
-	paths, err := resolvePackageFromPath(symbolPackagePath, opt.IsSnupkg)
+	paths, err := util.ResolvePackageFromPath(symbolPackagePath, opt.IsSnupkg)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +255,7 @@ func (p *PackageUpdateResource) createVerificationApiKey(
 		return "", err
 	}
 	u := fmt.Sprintf(TempApiKeyServiceEndpoint, nuspec.Metadata.ID, nuspec.Metadata.Version)
-	endpointURL, err := getServiceEndpointUrl(DefaultGalleryServerURL, u, false)
+	endpointURL, err := util.GetServiceEndpointUrl(DefaultGalleryServerURL, u, false)
 	if err != nil {
 		return "", err
 	}
@@ -279,7 +281,7 @@ func (p *PackageUpdateResource) push(
 	if err != nil {
 		return nil, err
 	}
-	endpointURL, err := getServiceEndpointUrl(sourceURL.String(), "", false)
+	endpointURL, err := util.GetServiceEndpointUrl(sourceURL.String(), "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +298,7 @@ func (p *PackageUpdateResource) push(
 	if err != nil {
 		return nil, err
 	}
-	if isSourceNuGetSymbolServer(sourceURL) {
+	if util.IsSourceNuGetSymbolServer(sourceURL) {
 		if key, err := p.createVerificationApiKey(pathToPackage, options...); err != nil {
 			return nil, err
 		} else {

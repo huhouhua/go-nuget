@@ -7,3 +7,5 @@ ignore:
   - "testdata"
   - "examples"
   - "creation"
+  - "internal/framework"
+  - "internal/consts"

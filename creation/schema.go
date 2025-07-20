@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/internal/util"
 )
 
 var (
@@ -57,7 +57,7 @@ func (s SchemaVersionTypes) GetSchemaNamespace(version int) (string, error) {
 }
 
 func (s SchemaVersionTypes) IsKnownSchema(namespace string) bool {
-	return nuget.Some(s, func(s string) bool {
+	return util.Some(s, func(s string) bool {
 		return strings.EqualFold(s, namespace)
 	})
 }

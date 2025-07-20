@@ -27,6 +27,8 @@ import (
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/time/rate"
+
+	"github.com/huhouhua/go-nuget/internal/util"
 )
 
 const (
@@ -298,7 +300,7 @@ func (c *Client) NewRequest(
 
 	// Set the encoded path data
 	u.RawPath = c.baseURL.Path + path
-	u.Path = pathCombine(c.baseURL.Path, unescaped)
+	u.Path = util.PathCombine(c.baseURL.Path, unescaped)
 
 	// Create a request specific headers map.
 	reqHeaders := make(http.Header)
@@ -373,7 +375,7 @@ func (c *Client) UploadRequest(
 
 	// Set the encoded path data
 	u.RawPath = c.baseURL.Path + path
-	u.Path = pathCombine(c.baseURL.Path, unescaped)
+	u.Path = util.PathCombine(c.baseURL.Path, unescaped)
 
 	// Create a request specific headers map.
 	reqHeaders := make(http.Header)

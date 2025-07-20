@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	meta1 "github.com/huhouhua/go-nuget/internal/meta"
+
 	nugetVersion "github.com/huhouhua/go-nuget/version"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -53,10 +55,10 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 			SearchMetadata: &SearchMetadata{
 				PackageId: "GitLabApiClient",
 				Version:   "1.8.1-beta.5",
-				DependencySets: []*PackageDependencyGroup{
+				DependencySets: []*meta1.PackageDependencyGroup{
 					{
 						TargetFramework: "net48",
-						Packages: []*Dependency{
+						Packages: []*meta1.Dependency{
 							{
 								Id:              "Newtonsoft.Json",
 								VersionRangeRaw: "[12.0.3, )",
@@ -66,7 +68,7 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 					},
 					{
 						TargetFramework: "netcoreapp3.1",
-						Packages: []*Dependency{
+						Packages: []*meta1.Dependency{
 							{
 								Id:              "Newtonsoft.Json",
 								VersionRangeRaw: "[12.0.3, )",
@@ -76,7 +78,7 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 					},
 					{
 						TargetFramework: "net5.0",
-						Packages: []*Dependency{
+						Packages: []*meta1.Dependency{
 							{
 								Id:              "Newtonsoft.Json",
 								VersionRangeRaw: "[12.0.3, )",
@@ -86,7 +88,7 @@ func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 					},
 					{
 						TargetFramework: "netstandard2.0",
-						Packages: []*Dependency{
+						Packages: []*meta1.Dependency{
 							{
 								Id:              "Newtonsoft.Json",
 								VersionRangeRaw: "[12.0.3, )",
@@ -279,10 +281,10 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 					SearchMetadata: &SearchMetadata{
 						PackageId: "GitLabApiClient",
 						Version:   "1.8.1-beta.5",
-						DependencySets: []*PackageDependencyGroup{
+						DependencySets: []*meta1.PackageDependencyGroup{
 							{
 								TargetFramework: "net48",
-								Packages: []*Dependency{
+								Packages: []*meta1.Dependency{
 									{
 										Id:              "Newtonsoft.Json",
 										VersionRangeRaw: "[12.0.3, )",
@@ -292,7 +294,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 							},
 							{
 								TargetFramework: "netcoreapp3.1",
-								Packages: []*Dependency{
+								Packages: []*meta1.Dependency{
 									{
 										Id:              "Newtonsoft.Json",
 										VersionRangeRaw: "[12.0.3, )",
@@ -302,7 +304,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 							},
 							{
 								TargetFramework: "net5.0",
-								Packages: []*Dependency{
+								Packages: []*meta1.Dependency{
 									{
 										Id:              "Newtonsoft.Json",
 										VersionRangeRaw: "[12.0.3, )",
@@ -312,7 +314,7 @@ func TestPackageMetadataResource_GetMetadata(t *testing.T) {
 							},
 							{
 								TargetFramework: "netstandard2.0",
-								Packages: []*Dependency{
+								Packages: []*meta1.Dependency{
 									{
 										Id:              "Newtonsoft.Json",
 										VersionRangeRaw: "[12.0.3, )",
@@ -374,7 +376,7 @@ func TestPackageSearchMetadataRegistration(t *testing.T) {
 			},
 			Owners: "Kevin Berger,test2,test3",
 		}
-		wantIdentity := &PackageIdentity{
+		wantIdentity := &meta1.PackageIdentity{
 			Id:      input.SearchMetadata.PackageId,
 			Version: nugetVersion.NewVersionFrom(1, 0, 0, "beta", ""),
 		}
@@ -800,10 +802,10 @@ func TestAddMetadataToPackages(t *testing.T) {
 								PackageId: "TestPackage",
 								Version:   "1.5.0",
 								IsListed:  true,
-								DependencySets: []*PackageDependencyGroup{
+								DependencySets: []*meta1.PackageDependencyGroup{
 									{
 										TargetFramework: "net48",
-										Packages: []*Dependency{
+										Packages: []*meta1.Dependency{
 											{
 												Id:              "Newtonsoft.Json",
 												VersionRangeRaw: "[1.5.0, )",
@@ -892,10 +894,10 @@ func TestAddMetadataToPackages(t *testing.T) {
 								PackageId: "TestPackage",
 								Version:   "1.5.0",
 								IsListed:  true,
-								DependencySets: []*PackageDependencyGroup{
+								DependencySets: []*meta1.PackageDependencyGroup{
 									{
 										TargetFramework: "net48",
-										Packages: []*Dependency{
+										Packages: []*meta1.Dependency{
 											{
 												Id:              "Newtonsoft.Json",
 												VersionRangeRaw: "[1.5.0, )",
@@ -920,10 +922,10 @@ func TestAddMetadataToPackages(t *testing.T) {
 						SearchMetadata: &SearchMetadata{
 							PackageId: "TestPackage",
 							Version:   "1.5.0",
-							DependencySets: []*PackageDependencyGroup{
+							DependencySets: []*meta1.PackageDependencyGroup{
 								{
 									TargetFramework: "net48",
-									Packages: []*Dependency{
+									Packages: []*meta1.Dependency{
 										{
 											Id:              "Newtonsoft.Json",
 											VersionRangeRaw: "[1.5.0, )",
@@ -962,10 +964,10 @@ func TestAddMetadataToPackages(t *testing.T) {
 								PackageId: "TestPackage",
 								Version:   "1.5.0",
 								IsListed:  true,
-								DependencySets: []*PackageDependencyGroup{
+								DependencySets: []*meta1.PackageDependencyGroup{
 									{
 										TargetFramework: "net48",
-										Packages: []*Dependency{
+										Packages: []*meta1.Dependency{
 											{
 												Id:              "Newtonsoft.Json",
 												VersionRangeRaw: "[1.5.0, )",

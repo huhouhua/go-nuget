@@ -8,18 +8,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/internal/framework"
+	"github.com/huhouhua/go-nuget/internal/meta"
 )
 
 // FrameworkReferenceGroup A group of FrameworkReference with the same target framework.
 type FrameworkReferenceGroup struct {
-	TargetFramework     *Framework
+	TargetFramework     *framework.Framework
 	FrameworkReferences []*FrameworkReference
 }
 
 type PackageDependencyGroup struct {
-	TargetFramework *Framework          `json:"targetFramework"`
-	Packages        []*nuget.Dependency `json:"dependencies"`
+	TargetFramework *framework.Framework `json:"targetFramework"`
+	Packages        []*meta.Dependency   `json:"dependencies"`
 }
 
 type FrameworkReference struct {
@@ -28,7 +29,7 @@ type FrameworkReference struct {
 
 type PackageReferenceSet struct {
 	References      []string
-	TargetFramework *Framework
+	TargetFramework *framework.Framework
 }
 
 func (p *PackageReferenceSet) Validate() []string {

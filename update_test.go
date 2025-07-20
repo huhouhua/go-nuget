@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/huhouhua/go-nuget/internal/util"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/require"
 )
@@ -359,7 +361,7 @@ func TestPushPackagePath(t *testing.T) {
 			require.NoError(t, err)
 			symbolUrl := &url.URL{}
 			if tt.opt != nil && tt.opt.SymbolSource != "" {
-				symbolUrl, err = createSourceURL(tt.opt.SymbolSource)
+				symbolUrl, err = util.CreateSourceURL(tt.opt.SymbolSource)
 				require.NoError(t, err)
 				require.NotNil(t, symbolUrl)
 			}
@@ -418,7 +420,7 @@ func TestPushWithSymbol(t *testing.T) {
 
 			symbolUrl := &url.URL{}
 			if tt.opt != nil && tt.opt.SymbolSource != "" {
-				symbolUrl, err = createSourceURL(tt.opt.SymbolSource)
+				symbolUrl, err = util.CreateSourceURL(tt.opt.SymbolSource)
 				require.NoError(t, err)
 				require.NotNil(t, symbolUrl)
 			}
