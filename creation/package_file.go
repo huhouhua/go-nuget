@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/huhouhua/go-nuget/internal/framework"
 )
 
 type PackageFile interface {
@@ -22,7 +24,7 @@ type PackageFile interface {
 
 	// GetNuGetFramework object representing this package file's target framework. Use this instead of
 	// TargetFramework.
-	GetNuGetFramework() *Framework
+	GetNuGetFramework() *framework.Framework
 
 	GetLastWriteTime() time.Time
 
@@ -31,7 +33,7 @@ type PackageFile interface {
 
 type PhysicalPackageFile struct {
 	PackageFile
-	nugetFramework *Framework
+	nugetFramework *framework.Framework
 	streamFactory  func() *os.File
 
 	effectivePath string
@@ -60,13 +62,13 @@ func (p *PhysicalPackageFile) SetPath(targetPath string) {
 		return
 	}
 	p.targetPath = targetPath
-	p.nugetFramework = ParseNuGetFrameworkFromFilePath(p.targetPath, &p.effectivePath)
+	p.nugetFramework = framework.ParseNuGetFrameworkFromFilePath(p.targetPath, &p.effectivePath)
 }
 
 func (p *PhysicalPackageFile) GetEffectivePath() string {
 	return p.effectivePath
 }
-func (p *PhysicalPackageFile) GetNuGetFramework() *Framework {
+func (p *PhysicalPackageFile) GetNuGetFramework() *framework.Framework {
 	return p.nugetFramework
 }
 func (p *PhysicalPackageFile) GetStream() (*os.File, error) {

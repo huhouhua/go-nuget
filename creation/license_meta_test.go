@@ -12,35 +12,33 @@ import (
 	"github.com/huhouhua/go-nuget/version"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/huhouhua/go-nuget"
 )
 
 func TestNewLicense(t *testing.T) {
 	wantVersion := version.NewVersionFrom(1, 0, 0, "", "")
 	t.Run("with File", func(t *testing.T) {
-		license := NewLicense(nuget.File, "/docs/LICENSE", wantVersion)
+		license := NewLicense(File, "/docs/LICENSE", wantVersion)
 		require.Equal(t, "/docs/LICENSE", license.GetLicense())
-		require.Equal(t, nuget.File, license.GetLicenseType())
+		require.Equal(t, File, license.GetLicenseType())
 		require.Equal(t, wantVersion, license.GetVersion())
 		actual, err := license.GetLicenseURL()
 		require.NoError(t, err)
 		require.Equal(t, &LicenseFileDeprecationURL, actual)
 	})
 	t.Run("with Expression", func(t *testing.T) {
-		license := NewLicense(nuget.Expression, "MIT", wantVersion)
+		license := NewLicense(Expression, "MIT", wantVersion)
 		require.Equal(t, "MIT", license.GetLicense())
-		require.Equal(t, nuget.Expression, license.GetLicenseType())
+		require.Equal(t, Expression, license.GetLicenseType())
 		require.Equal(t, wantVersion, license.GetVersion())
 		actual, err := license.GetLicenseURL()
 		require.NoError(t, err)
-		expected := &url.URL{Scheme: "https", Host: "licenses.nuget.org", Path: "/MIT"}
+		expected := &url.URL{Scheme: "https", Host: "licenses.org", Path: "/MIT"}
 		require.Equal(t, expected, actual)
 	})
 	t.Run("no supported", func(t *testing.T) {
 		license := NewLicense("unsupported", "Apache", wantVersion)
 		require.Equal(t, "Apache", license.GetLicense())
-		require.Equal(t, nuget.LicenseType("unsupported"), license.GetLicenseType())
+		require.Equal(t, LicenseType("unsupported"), license.GetLicenseType())
 		require.Equal(t, wantVersion, license.GetVersion())
 		actual, err := license.GetLicenseURL()
 		require.Nil(t, actual)

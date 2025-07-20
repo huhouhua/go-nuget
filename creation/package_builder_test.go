@@ -13,11 +13,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/huhouhua/go-nuget/internal/framework"
+	"github.com/huhouhua/go-nuget/internal/meta"
+
 	nugetVersion "github.com/huhouhua/go-nuget/version"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/huhouhua/go-nuget"
 )
 
 func TestCreatePackage(t *testing.T) {
@@ -44,7 +45,7 @@ func TestCreatePackage(t *testing.T) {
 	builder.IconURL = iconURL
 	builder.Icon = "images/test-nuget.png"
 	builder.Readme = "docs/README.md"
-	builder.Repository = &nuget.RepositoryMetadata{
+	builder.Repository = &meta.RepositoryMetadata{
 		Type:   "git",
 		URL:    "https://github.com/huhouhua/go-nuget",
 		Branch: "main",
@@ -56,19 +57,19 @@ func TestCreatePackage(t *testing.T) {
 	builder.EmitRequireLicenseAcceptance = true
 	builder.DevelopmentDependency = true
 	builder.Serviceable = true
-	netstandard14, err := Parse("netstandard1.4")
+	netstandard14, err := framework.Parse("netstandard1.4")
 	require.NoError(t, err)
 
 	builder.TargetFrameworks = append(builder.TargetFrameworks, netstandard14)
 	// Framework references
-	builder.FrameworkReferences = append(builder.FrameworkReferences, &FrameworkAssemblyReference{
+	builder.FrameworkReferences = append(builder.FrameworkReferences, &framework.FrameworkAssemblyReference{
 		AssemblyName:        "System.Xml",
 		SupportedFrameworks: builder.TargetFrameworks,
 	})
 	// License metadata
-	builder.LicenseMetadata = NewLicense(nuget.Expression, "MIT", nugetVersion.NewVersionFrom(1, 0, 0, "", ""))
+	builder.LicenseMetadata = NewLicense(Expression, "MIT", nugetVersion.NewVersionFrom(1, 0, 0, "", ""))
 
-	net80, err := Parse("net8.0")
+	net80, err := framework.Parse("net8.0")
 	require.NoError(t, err)
 
 	// Package assembly references
@@ -88,7 +89,7 @@ func TestCreatePackage(t *testing.T) {
 		TargetFramework: netstandard14,
 		References:      []string{"System.Xml.Linq.dll", "System.Xml.Linq.dll", "System.Xml.Linq.dll"},
 	})
-	net50, err := Parse("net5.0")
+	net50, err := framework.Parse("net5.0")
 	require.NoError(t, err)
 
 	// Framework reference groups
@@ -116,7 +117,7 @@ func TestCreatePackage(t *testing.T) {
 	require.NoError(t, err)
 	builder.DependencyGroups = append(builder.DependencyGroups, &PackageDependencyGroup{
 		TargetFramework: netstandard14,
-		Packages: []*nuget.Dependency{
+		Packages: []*meta.Dependency{
 			{
 				Id:           "Newtonsoft.Json",
 				VersionRange: versionRange,

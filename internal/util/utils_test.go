@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package nuget
+package util
 
 import (
 	"os"
@@ -471,7 +471,7 @@ func TestFixSourceURL(t *testing.T) {
 }
 
 func TestPathCombine(t *testing.T) {
-	actual := pathCombine()
+	actual := PathCombine()
 	expected := ""
 	require.Equal(t, expected, actual)
 }
@@ -757,4 +757,42 @@ func TestSplitWithFilter(t *testing.T) {
 			}
 		})
 	}
+}
+
+func createFile(t *testing.T, path, data string) {
+	err := os.MkdirAll(filepath.Dir(path), 0755)
+	require.NoError(t, err)
+
+	err = os.WriteFile(path, []byte(data), 0644)
+	require.NoError(t, err)
+}
+
+// Helper to make absolute path in test cases
+func mustAbs(path string) string {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		panic(err)
+	}
+	return abs
+}
+
+func createEmptyDir(t *testing.T, path string) {
+	err := os.MkdirAll(path, 0755)
+	require.NoError(t, err)
+}
+
+// Helper function to create a temporary directory and files for testing
+func createTestDirectory(t *testing.T, dirName string, files []string) string {
+	dirPath := filepath.Join(t.TempDir(), dirName)
+	createEmptyDir(t, dirPath)
+
+	// Create the files in the directory
+	for _, file := range files {
+		filePath := filepath.Join(dirPath, file)
+		f, err := os.Create(filePath)
+		require.NoErrorf(t, err, "Failed to create file in test directory: %v", err)
+		_ = f.Close()
+	}
+
+	return dirPath
 }

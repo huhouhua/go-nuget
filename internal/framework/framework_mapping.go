@@ -2,14 +2,13 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package creation
+package framework
 
 import (
 	"sync"
 
+	"github.com/huhouhua/go-nuget/internal/consts"
 	"github.com/huhouhua/go-nuget/version"
-
-	"github.com/huhouhua/go-nuget"
 )
 
 var (
@@ -79,51 +78,51 @@ func (d *DefaultFrameworkMappings) GetIdentifierSynonymsMap() []*KeyValuePair[st
 		// .NET
 		{
 			Key:   "NETFramework",
-			Value: nuget.Net,
+			Value: consts.Net,
 		},
 		{
 			Key:   ".NET",
-			Value: nuget.Net,
+			Value: consts.Net,
 		},
 		// .NET Core
 		{
 			Key:   "NETCore",
-			Value: nuget.NetCore,
+			Value: consts.NetCore,
 		},
 		// Portable
 		{
 			Key:   "NETPortable",
-			Value: nuget.Portable,
+			Value: consts.Portable,
 		},
 		// ASP
 		{
 			Key:   "asp.net",
-			Value: nuget.AspNet,
+			Value: consts.AspNet,
 		},
 		{
 			Key:   "asp.netcore",
-			Value: nuget.AspNetCore,
+			Value: consts.AspNetCore,
 		},
 		// Mono/Xamarin
 		{
 			Key:   "Xamarin.PlayStationThree",
-			Value: nuget.XamarinPlayStation3,
+			Value: consts.XamarinPlayStation3,
 		},
 		{
 			Key:   "XamarinPlayStationThree",
-			Value: nuget.XamarinPlayStation3,
+			Value: consts.XamarinPlayStation3,
 		},
 		{
 			Key:   "Xamarin.PlayStationFour",
-			Value: nuget.XamarinPlayStation4,
+			Value: consts.XamarinPlayStation4,
 		},
 		{
 			Key:   "XamarinPlayStationFour",
-			Value: nuget.XamarinPlayStation4,
+			Value: consts.XamarinPlayStation4,
 		},
 		{
 			Key:   "XamarinPlayStationVita",
-			Value: nuget.XamarinPlayStationVita,
+			Value: consts.XamarinPlayStationVita,
 		},
 	}
 }
@@ -131,135 +130,135 @@ func (d *DefaultFrameworkMappings) GetIdentifierSynonymsMap() []*KeyValuePair[st
 func (d *DefaultFrameworkMappings) GetIdentifierShortNameMap() []*KeyValuePair[string, string] {
 	return []*KeyValuePair[string, string]{
 		{
-			Key:   nuget.NetCoreApp,
+			Key:   consts.NetCoreApp,
 			Value: "netcoreapp",
 		},
 		{
-			Key:   nuget.NetStandardApp,
+			Key:   consts.NetStandardApp,
 			Value: "netstandardapp",
 		},
 		{
-			Key:   nuget.NetStandard,
+			Key:   consts.NetStandard,
 			Value: "netstandard",
 		},
 		{
-			Key:   nuget.NetPlatform,
+			Key:   consts.NetPlatform,
 			Value: "dotnet",
 		},
 		{
-			Key:   nuget.Net,
+			Key:   consts.Net,
 			Value: "net",
 		},
 		{
-			Key:   nuget.NetMicro,
+			Key:   consts.NetMicro,
 			Value: "netmf",
 		},
 		{
-			Key:   nuget.Silverlight,
+			Key:   consts.Silverlight,
 			Value: "sl",
 		},
 		{
-			Key:   nuget.Portable,
+			Key:   consts.Portable,
 			Value: "portable",
 		},
 		{
-			Key:   nuget.WindowsPhone,
+			Key:   consts.WindowsPhone,
 			Value: "wp",
 		},
 		{
-			Key:   nuget.WindowsPhoneApp,
+			Key:   consts.WindowsPhoneApp,
 			Value: "wpa",
 		},
 		{
-			Key:   nuget.Windows,
+			Key:   consts.Windows,
 			Value: "win",
 		},
 		{
-			Key:   nuget.AspNet,
+			Key:   consts.AspNet,
 			Value: "aspnet",
 		},
 		{
-			Key:   nuget.AspNetCore,
+			Key:   consts.AspNetCore,
 			Value: "aspnetcore",
 		},
 		{
-			Key:   nuget.FrameworkNative,
+			Key:   consts.FrameworkNative,
 			Value: "native",
 		},
 		{
-			Key:   nuget.MonoAndroid,
+			Key:   consts.MonoAndroid,
 			Value: "monoandroid",
 		},
 		{
-			Key:   nuget.MonoTouch,
+			Key:   consts.MonoTouch,
 			Value: "monotouch",
 		},
 		{
-			Key:   nuget.MonoMac,
+			Key:   consts.MonoMac,
 			Value: "monomac",
 		},
 		{
-			Key:   nuget.XamarinIOs,
+			Key:   consts.XamarinIOs,
 			Value: "xamarinios",
 		},
 		{
-			Key:   nuget.XamarinMac,
+			Key:   consts.XamarinMac,
 			Value: "xamarinmac",
 		},
 		{
-			Key:   nuget.XamarinPlayStation3,
+			Key:   consts.XamarinPlayStation3,
 			Value: "xamarinpsthree",
 		},
 		{
-			Key:   nuget.XamarinPlayStation4,
+			Key:   consts.XamarinPlayStation4,
 			Value: "xamarinpsfour",
 		},
 		{
-			Key:   nuget.XamarinPlayStationVita,
+			Key:   consts.XamarinPlayStationVita,
 			Value: "xamarinpsvita",
 		},
 		{
-			Key:   nuget.XamarinWatchOS,
+			Key:   consts.XamarinWatchOS,
 			Value: "xamarinwatchos",
 		},
 		{
-			Key:   nuget.XamarinTVOS,
+			Key:   consts.XamarinTVOS,
 			Value: "xamarintvos",
 		},
 		{
-			Key:   nuget.XamarinXbox360,
+			Key:   consts.XamarinXbox360,
 			Value: "xamarinxboxthreesixty",
 		},
 		{
-			Key:   nuget.XamarinXboxOne,
+			Key:   consts.XamarinXboxOne,
 			Value: "xamarinxboxone",
 		},
 		{
-			Key:   nuget.Dnx,
+			Key:   consts.Dnx,
 			Value: "dnx",
 		},
 		{
-			Key:   nuget.DnxCore,
+			Key:   consts.DnxCore,
 			Value: "dnxcore",
 		},
 		{
-			Key:   nuget.NetCore,
+			Key:   consts.NetCore,
 			Value: "netcore",
 		},
 		{
-			Key:   nuget.WinRT,
+			Key:   consts.WinRT,
 			Value: "winrt",
 		},
 		{
-			Key:   nuget.UAP,
+			Key:   consts.UAP,
 			Value: "uap",
 		},
 		{
-			Key:   nuget.Tizen,
+			Key:   consts.Tizen,
 			Value: "tizen",
 		},
 		{
-			Key:   nuget.NanoFramework,
+			Key:   consts.NanoFramework,
 			Value: "netnano",
 		},
 	}
@@ -268,35 +267,35 @@ func (d *DefaultFrameworkMappings) GetIdentifierShortNameMap() []*KeyValuePair[s
 func (d *DefaultFrameworkMappings) GetProfileShortNamesMap() []*FrameworkSpecificMapping {
 	return []*FrameworkSpecificMapping{
 		{
-			FrameworkIdentifier: nuget.Net,
+			FrameworkIdentifier: consts.Net,
 			Mapping: &KeyValuePair[string, string]{
 				Key:   "Client",
 				Value: "Client",
 			},
 		},
 		{
-			FrameworkIdentifier: nuget.Net,
+			FrameworkIdentifier: consts.Net,
 			Mapping: &KeyValuePair[string, string]{
 				Key:   "CF",
 				Value: "CompactFramework",
 			},
 		},
 		{
-			FrameworkIdentifier: nuget.Net,
+			FrameworkIdentifier: consts.Net,
 			Mapping: &KeyValuePair[string, string]{
 				Key:   "Full",
 				Value: "",
 			},
 		},
 		{
-			FrameworkIdentifier: nuget.Silverlight,
+			FrameworkIdentifier: consts.Silverlight,
 			Mapping: &KeyValuePair[string, string]{
 				Key:   "WP",
 				Value: "WindowsPhone",
 			},
 		},
 		{
-			FrameworkIdentifier: nuget.Silverlight,
+			FrameworkIdentifier: consts.Silverlight,
 			Mapping: &KeyValuePair[string, string]{
 				Key:   "WP71",
 				Value: "WindowsPhone71",
@@ -309,80 +308,80 @@ func (d *DefaultFrameworkMappings) GetEquivalentFrameworkMap() []*KeyValuePair[*
 	return []*KeyValuePair[*Framework, *Framework]{
 		{
 			// UAP 0.0 <-> UAP 10.0
-			Key:   NewFrameworkWithVersion(nuget.UAP, nuget.EmptyVersion),
+			Key:   NewFrameworkWithVersion(consts.UAP, consts.EmptyVersion),
 			Value: UAP10,
 		},
 
 		{
 			// win <-> win8
-			Key:   NewFrameworkWithVersion(nuget.Windows, nuget.EmptyVersion),
+			Key:   NewFrameworkWithVersion(consts.Windows, consts.EmptyVersion),
 			Value: Win8,
 		},
 
 		{
 			// win8 <-> netcore45
-			Key:   NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(0, 5, 0, "", "")),
+			Key:   NewFrameworkWithVersion(consts.NetCore, version.NewVersionFrom(0, 5, 0, "", "")),
 			Value: Win8,
 		},
 
 		{
 			// netcore45 <-> winrt45
-			Key:   NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(4, 5, 0, "", "")),
-			Value: NewFrameworkWithVersion(nuget.WinRT, version.NewVersionFrom(4, 5, 0, "", "")),
+			Key:   NewFrameworkWithVersion(consts.NetCore, version.NewVersionFrom(4, 5, 0, "", "")),
+			Value: NewFrameworkWithVersion(consts.WinRT, version.NewVersionFrom(4, 5, 0, "", "")),
 		},
 
 		{
 			// netcore <-> netcore45
-			Key:   NewFrameworkWithVersion(nuget.NetCore, nuget.EmptyVersion),
-			Value: NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(4, 5, 0, "", "")),
+			Key:   NewFrameworkWithVersion(consts.NetCore, consts.EmptyVersion),
+			Value: NewFrameworkWithVersion(consts.NetCore, version.NewVersionFrom(4, 5, 0, "", "")),
 		},
 
 		{
 			// winrt <-> winrt45
-			Key:   NewFrameworkWithVersion(nuget.WinRT, nuget.EmptyVersion),
-			Value: NewFrameworkWithVersion(nuget.WinRT, version.NewVersionFrom(4, 5, 0, "", "")),
+			Key:   NewFrameworkWithVersion(consts.WinRT, consts.EmptyVersion),
+			Value: NewFrameworkWithVersion(consts.WinRT, version.NewVersionFrom(4, 5, 0, "", "")),
 		},
 
 		{
 			// win81 <-> netcore451
 			Key:   Win81,
-			Value: NewFrameworkWithVersion(nuget.NetCore, version.NewVersionFrom(4, 5, 1, "", "")),
+			Value: NewFrameworkWithVersion(consts.NetCore, version.NewVersionFrom(4, 5, 1, "", "")),
 		},
 
 		{
 			// wp <-> wp7
-			Key:   NewFrameworkWithVersion(nuget.WindowsPhone, nuget.EmptyVersion),
+			Key:   NewFrameworkWithVersion(consts.WindowsPhone, consts.EmptyVersion),
 			Value: WP7,
 		},
 
 		{
 			// wp7 <-> f:sl3-wp
 			Key:   WP7,
-			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(3, 0, 0, "", ""), "WindowsPhone"),
+			Value: NewFrameworkWithProfile(consts.Silverlight, version.NewVersionFrom(3, 0, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wp71 <-> f:sl4-wp71
-			Key:   NewFrameworkWithVersion(nuget.WindowsPhone, version.NewVersionFrom(7, 1, 0, "", "")),
-			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(4, 0, 0, "", ""), "WindowsPhone"),
+			Key:   NewFrameworkWithVersion(consts.WindowsPhone, version.NewVersionFrom(7, 1, 0, "", "")),
+			Value: NewFrameworkWithProfile(consts.Silverlight, version.NewVersionFrom(4, 0, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wp8 <-> f:sl8-wp
 			Key:   WP8,
-			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(8, 0, 0, "", ""), "WindowsPhone"),
+			Value: NewFrameworkWithProfile(consts.Silverlight, version.NewVersionFrom(8, 0, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wp81 <-> f:sl81-wp
 			Key:   WP81,
-			Value: NewFrameworkWithProfile(nuget.Silverlight, version.NewVersionFrom(8, 1, 0, "", ""), "WindowsPhone"),
+			Value: NewFrameworkWithProfile(consts.Silverlight, version.NewVersionFrom(8, 1, 0, "", ""), "WindowsPhone"),
 		},
 		{
 			// wpa <-> wpa81
-			Key:   NewFrameworkWithVersion(nuget.WindowsPhoneApp, nuget.EmptyVersion),
+			Key:   NewFrameworkWithVersion(consts.WindowsPhoneApp, consts.EmptyVersion),
 			Value: WPA81,
 		},
 		{
 			// tizen <-> tizen3
-			Key:   NewFrameworkWithVersion(nuget.Tizen, nuget.EmptyVersion),
+			Key:   NewFrameworkWithVersion(consts.Tizen, consts.EmptyVersion),
 			Value: Tizen3,
 		},
 		{
@@ -531,9 +530,7 @@ func (d *DefaultPortableFrameworkMappings) GetProfileFrameworkMap() []*KeyValueP
 
 func createProfileFrameworks(profile int, framework ...*Framework) *KeyValuePair[int, []*Framework] {
 	frameworkPtrs := make([]*Framework, len(framework))
-	for i := range framework {
-		frameworkPtrs[i] = framework[i]
-	}
+	frameworkPtrs = append(frameworkPtrs, framework...)
 	return &KeyValuePair[int, []*Framework]{
 		Key:   profile,
 		Value: frameworkPtrs,
@@ -541,12 +538,12 @@ func createProfileFrameworks(profile int, framework ...*Framework) *KeyValuePair
 }
 
 func (d *DefaultPortableFrameworkMappings) GetProfileOptionalFrameworkMap() []*KeyValuePair[int, []*Framework] {
-	monoandroid := NewFrameworkWithVersion(nuget.MonoAndroid, version.NewVersionFrom(0, 0, 0, "", ""))
-	monotouch := NewFrameworkWithVersion(nuget.MonoTouch, version.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinIOs := NewFrameworkWithVersion(nuget.XamarinIOs, version.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinMac := NewFrameworkWithVersion(nuget.XamarinMac, version.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinTVOS := NewFrameworkWithVersion(nuget.XamarinTVOS, version.NewVersionFrom(0, 0, 0, "", ""))
-	xamarinWatchOS := NewFrameworkWithVersion(nuget.XamarinWatchOS, version.NewVersionFrom(0, 0, 0, "", ""))
+	monoandroid := NewFrameworkWithVersion(consts.MonoAndroid, version.NewVersionFrom(0, 0, 0, "", ""))
+	monotouch := NewFrameworkWithVersion(consts.MonoTouch, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinIOs := NewFrameworkWithVersion(consts.XamarinIOs, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinMac := NewFrameworkWithVersion(consts.XamarinMac, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinTVOS := NewFrameworkWithVersion(consts.XamarinTVOS, version.NewVersionFrom(0, 0, 0, "", ""))
+	xamarinWatchOS := NewFrameworkWithVersion(consts.XamarinWatchOS, version.NewVersionFrom(0, 0, 0, "", ""))
 	monoFrameworks := []*Framework{monoandroid, monotouch, xamarinIOs, xamarinMac, xamarinTVOS, xamarinWatchOS}
 
 	profileOptionalFrameworks := make([]*KeyValuePair[int, []*Framework], 0)

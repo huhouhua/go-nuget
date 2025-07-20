@@ -18,10 +18,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/internal/consts"
+	"github.com/huhouhua/go-nuget/internal/meta"
+	"github.com/huhouhua/go-nuget/internal/util"
 )
 
 const (
+	PackageEmptyFileName                                       = "_._"
 	DefaultVersion                                             = 1
 	SemverVersion                                              = 3
 	XdtTransformationVersion                                   = 6
@@ -84,7 +87,7 @@ func randomString(n int) string {
 }
 func createPart(zipWriter *zip.Writer, filePath string,
 	sourceStream io.Reader, lastWriteTime time.Time, warningMessage *strings.Builder) error {
-	if strings.HasSuffix(strings.ToLower(filePath), nuget.NuspecExtension) {
+	if strings.HasSuffix(strings.ToLower(filePath), consts.NuspecExtension) {
 		return nil
 	}
 	// Split on '/', '\\', and OS-specific separator (assuming Unix-like system here)
@@ -158,7 +161,7 @@ func resolveSearchPattern(
 	basePath, searchPath, targetPath string,
 	includeEmptyDirectories bool,
 ) ([]*PhysicalPackageFile, error) {
-	searchResults, normalizedBasePath, err := nuget.PerformWildcardSearch(basePath, searchPath, includeEmptyDirectories)
+	searchResults, normalizedBasePath, err := util.PerformWildcardSearch(basePath, searchPath, includeEmptyDirectories)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +172,7 @@ func resolveSearchPattern(
 			targetPath: resolvePackagePath(normalizedBasePath, searchPath, result.Path, targetPath),
 		}
 		if !result.IsFile {
-			file.targetPath = path.Join(file.targetPath, nuget.PackageEmptyFileName)
+			file.targetPath = path.Join(file.targetPath, PackageEmptyFileName)
 		}
 		files = append(files, file)
 	}
@@ -204,35 +207,35 @@ func isKnownFolder(targetPath string) bool {
 	if strings.TrimSpace(targetPath) == "" {
 		return false
 	}
-	parts := nuget.SplitWithFilter(targetPath, []rune{'\\', '/'})
+	parts := util.SplitWithFilter(targetPath, []rune{'\\', '/'})
 	if len(parts) > 1 {
 		topLevelDirectory := parts[0]
-		return nuget.Some(nuget.Known, func(folder nuget.Folder) bool {
+		return util.Some(consts.Known, func(folder consts.Folder) bool {
 			return strings.EqualFold(string(folder), topLevelDirectory)
 		})
 	}
 	return false
 }
 func contains(slice []string, item string) bool {
-	return nuget.Some(slice, func(s string) bool {
+	return util.Some(slice, func(s string) bool {
 		return strings.Contains(s, item)
 	})
 }
 func hasContentFilesV2(files []PackageFile) bool {
-	return nuget.Some(files, func(file PackageFile) bool {
+	return util.Some(files, func(file PackageFile) bool {
 		prefix := fmt.Sprintf("contentFiles%v", os.PathSeparator)
 		return strings.HasPrefix(file.GetPath(), prefix)
 	})
 }
 func hasIncludeExclude(dependencyGroups []*PackageDependencyGroup) bool {
-	return nuget.Some(dependencyGroups, func(group *PackageDependencyGroup) bool {
-		return nuget.Some(group.Packages, func(dependency *nuget.Dependency) bool {
+	return util.Some(dependencyGroups, func(group *PackageDependencyGroup) bool {
+		return util.Some(group.Packages, func(dependency *meta.Dependency) bool {
 			return dependency.Include != nil || dependency.Exclude != nil
 		})
 	})
 }
 func hasXdtTransformFile(files []PackageFile) bool {
-	return nuget.Some(files, func(file PackageFile) bool {
+	return util.Some(files, func(file PackageFile) bool {
 		prefix := fmt.Sprintf("content%v", os.PathSeparator)
 		return strings.HasPrefix(file.GetPath(), prefix) &&
 			(strings.HasSuffix(file.GetPath(), ".install.xdt") ||
@@ -241,7 +244,7 @@ func hasXdtTransformFile(files []PackageFile) bool {
 }
 func requiresV4TargetFrameworkSchema(files []PackageFile) bool {
 	// check if any file under Content or Tools has TargetFramework defined
-	hasContentOrTool := nuget.Some(files, func(file PackageFile) bool {
+	hasContentOrTool := util.Some(files, func(file PackageFile) bool {
 		framework := file.GetNuGetFramework()
 		contentPrefix := fmt.Sprintf("content%v", os.PathSeparator)
 		toolsPrefix := fmt.Sprintf("tools%v", os.PathSeparator)
@@ -252,11 +255,11 @@ func requiresV4TargetFrameworkSchema(files []PackageFile) bool {
 		return true
 	}
 	// now check if the Lib folder has any empty framework folder
-	return nuget.Some(files, func(file PackageFile) bool {
+	return util.Some(files, func(file PackageFile) bool {
 		framework := file.GetNuGetFramework()
 		libPrefix := fmt.Sprintf("lib%v", os.PathSeparator)
 		return framework != nil && strings.HasPrefix(file.GetPath(), libPrefix) &&
-			file.GetEffectivePath() == nuget.PackageEmptyFileName
+			file.GetEffectivePath() == PackageEmptyFileName
 	})
 }
 

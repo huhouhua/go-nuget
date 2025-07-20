@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package creation
+package framework
 
 import (
 	"fmt"
@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	nugetVersion "github.com/huhouhua/go-nuget/version"
+	"github.com/huhouhua/go-nuget/internal/util"
 
-	"github.com/huhouhua/go-nuget"
+	nugetVersion "github.com/huhouhua/go-nuget/version"
 
 	"github.com/Masterminds/semver/v3"
 )
@@ -178,7 +178,7 @@ func (f *FrameworkNameProvider) GetPortableFrameworksWithInclude(
 	if profileNumber, ok := TryGetPortableProfileNumber(profile); !ok {
 		return f.GetPortableFrameworks(profile)
 	} else {
-		if frameworks := f.getPortableFrameworksWithInclude(profileNumber, includeOptional); frameworks != nil && len(frameworks) > 0 {
+		if frameworks := f.getPortableFrameworksWithInclude(profileNumber, includeOptional); len(frameworks) > 0 {
 			return frameworks, nil
 		}
 	}
@@ -187,15 +187,11 @@ func (f *FrameworkNameProvider) GetPortableFrameworksWithInclude(
 func (f *FrameworkNameProvider) getPortableFrameworksWithInclude(profile int, includeOptional bool) []*Framework {
 	var nuGetFrameworkSet1 []*Framework
 	if nuGetFrameworkSet2, ok := f.portableFrameworkMap[profile]; ok {
-		for _, nuGetFramework := range nuGetFrameworkSet2 {
-			nuGetFrameworkSet1 = append(nuGetFrameworkSet1, nuGetFramework)
-		}
+		nuGetFrameworkSet1 = append(nuGetFrameworkSet1, nuGetFrameworkSet2...)
 	}
 	if includeOptional {
 		if nuGetFrameworkSet3, ok := f.portableOptionalFrameworkMap[profile]; ok {
-			for _, nuGetFramework := range nuGetFrameworkSet3 {
-				nuGetFrameworkSet1 = append(nuGetFrameworkSet1, nuGetFramework)
-			}
+			nuGetFrameworkSet1 = append(nuGetFrameworkSet1, nuGetFrameworkSet3...)
 		}
 	}
 	return nuGetFrameworkSet1
@@ -254,7 +250,7 @@ func (f *FrameworkNameProvider) GetPortableProfile(supportedFrameworks []*Framew
 				}
 				var isHasNoFound bool
 				for _, fw := range reduced {
-					ok := nuget.Some(permutationMap, func(framework *Framework) bool {
+					ok := util.Some(permutationMap, func(framework *Framework) bool {
 						return framework.Equals(fw)
 					})
 					if !ok {
@@ -360,28 +356,26 @@ func (f *FrameworkNameProvider) removeDuplicateFramework(supportedFrameworks []*
 	result := make([]*Framework, 0)
 	existingFrameworks := make([]*Framework, 0)
 
-	for _, framework := range supportedFrameworks {
-		ok := nuget.Some(existingFrameworks, func(fw *Framework) bool {
-			return fw.Equals(framework)
+	for _, supportedFramework := range supportedFrameworks {
+		ok := util.Some(existingFrameworks, func(fw *Framework) bool {
+			return fw.Equals(supportedFramework)
 		})
 		if !ok {
-			result = append(result, framework)
+			result = append(result, supportedFramework)
 			// Add in the existing framework (included here) and all equivalent frameworks
-			for _, eq := range f.getAllEquivalentFrameworks(framework) {
-				existingFrameworks = append(existingFrameworks, eq)
-			}
+			existingFrameworks = append(existingFrameworks, f.getAllEquivalentFrameworks(supportedFramework)...)
 		}
 	}
 	return result
 }
 
 // getAllEquivalentFrameworks Get all equivalent frameworks including the given framework
-func (f *FrameworkNameProvider) getAllEquivalentFrameworks(framework *Framework) []*Framework {
+func (f *FrameworkNameProvider) getAllEquivalentFrameworks(fw *Framework) []*Framework {
 	// Loop through the frameworks, all frameworks that are not in results yet
 	// will be added to toProcess to get the equivalent frameworks
-	toProcess := []*Framework{framework}
+	toProcess := []*Framework{fw}
 	results := make([]*Framework, 0)
-	results = append(results, framework)
+	results = append(results, fw)
 	for len(toProcess) > 0 {
 		current := toProcess[len(toProcess)-1]
 		toProcess = toProcess[:len(toProcess)-1]
@@ -389,7 +383,7 @@ func (f *FrameworkNameProvider) getAllEquivalentFrameworks(framework *Framework)
 		for _, keyValue := range f.equivalentFrameworkMap {
 			if keyValue.Key.Equals(current) {
 				for _, eq := range keyValue.Value {
-					seen := nuget.Some(results, func(fw *Framework) bool {
+					seen := util.Some(results, func(fw *Framework) bool {
 						return fw.Equals(eq)
 					})
 					if !seen {
@@ -400,7 +394,6 @@ func (f *FrameworkNameProvider) getAllEquivalentFrameworks(framework *Framework)
 				break
 			}
 		}
-
 	}
 	return results
 }
@@ -459,7 +452,7 @@ func (p *FrameworkNameProvider) addEquivalentFrameworks(mappings []*KeyValuePair
 			next := remaining[n]
 			remaining = remaining[:n]
 
-			ok := nuget.Some(seen, func(framework *Framework) bool {
+			ok := util.Some(seen, func(framework *Framework) bool {
 				return framework.Equals(next)
 			})
 			if ok {
@@ -483,9 +476,7 @@ func (p *FrameworkNameProvider) addEquivalentFrameworks(mappings []*KeyValuePair
 				})
 			} else {
 				// explore all equivalent
-				for _, value := range eqSet {
-					remaining = append(remaining, value)
-				}
+				remaining = append(remaining, eqSet...)
 			}
 		}
 
@@ -537,14 +528,10 @@ func (p *FrameworkNameProvider) addPortableProfileMappings(mappings []*KeyValueP
 		return
 	}
 	for _, pair := range mappings {
-
-		if _, ok := p.portableFrameworkMap[pair.Key]; !ok {
+		if _, exists := p.portableFrameworkMap[pair.Key]; !exists {
 			p.portableFrameworkMap[pair.Key] = []*Framework{}
 		}
-		frameworks, _ := p.portableFrameworkMap[pair.Key]
-		for _, fw := range pair.Value {
-			frameworks = append(frameworks, fw)
-		}
+		p.portableFrameworkMap[pair.Key] = append(p.portableFrameworkMap[pair.Key], pair.Value...)
 	}
 }
 
@@ -554,13 +541,10 @@ func (p *FrameworkNameProvider) addPortableOptionalFrameworks(mappings []*KeyVal
 		return
 	}
 	for _, pair := range mappings {
-		if _, ok := p.portableOptionalFrameworkMap[pair.Key]; !ok {
+		if _, exists := p.portableOptionalFrameworkMap[pair.Key]; !exists {
 			p.portableOptionalFrameworkMap[pair.Key] = []*Framework{}
 		}
-		frameworks, _ := p.portableOptionalFrameworkMap[pair.Key]
-		for _, fw := range pair.Value {
-			frameworks = append(frameworks, fw)
-		}
+		p.portableOptionalFrameworkMap[pair.Key] = append(p.portableOptionalFrameworkMap[pair.Key], pair.Value...)
 	}
 }
 
@@ -569,7 +553,7 @@ func (p *FrameworkNameProvider) addShortNameRewriteMappings(mappings []*KeyValue
 		return
 	}
 	for _, mapping := range mappings {
-		hasContains := nuget.Some(p.shortNameRewrites, func(k *KeyValuePair[*Framework, *Framework]) bool {
+		hasContains := util.Some(p.shortNameRewrites, func(k *KeyValuePair[*Framework, *Framework]) bool {
 			return k.Key.Equals(mapping.Key)
 		})
 		if !hasContains {
@@ -583,7 +567,7 @@ func (p *FrameworkNameProvider) addFullNameRewriteMappings(mappings []*KeyValueP
 		return
 	}
 	for _, mapping := range mappings {
-		hasContains := nuget.Some(p.fullNameRewrites, func(k *KeyValuePair[*Framework, *Framework]) bool {
+		hasContains := util.Some(p.fullNameRewrites, func(k *KeyValuePair[*Framework, *Framework]) bool {
 			return k.Key.Equals(mapping.Key)
 		})
 		if !hasContains {

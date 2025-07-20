@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/huhouhua/go-nuget/internal/meta"
+
 	nugetVersion "github.com/huhouhua/go-nuget/version"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -144,15 +146,15 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 	versionRange500, err := nugetVersion.ParseRange("5.0.0")
 	require.NoError(t, err)
 
-	want := &PackageDependencyInfo{
-		PackageIdentity: &PackageIdentity{
+	want := &meta.PackageDependencyInfo{
+		PackageIdentity: &meta.PackageIdentity{
 			Id:      "TestDependency",
 			Version: nugetVersion.NewVersionFrom(1, 0, 0, "", ""),
 		},
-		DependencyGroups: []*PackageDependencyGroup{
+		DependencyGroups: []*meta.PackageDependencyGroup{
 			{
 				TargetFramework: ".NETFramework4.8",
-				Packages: []*Dependency{
+				Packages: []*meta.Dependency{
 					{
 						Id:           "Newtonsoft.Json",
 						VersionRaw:   "12.0.3",
@@ -171,7 +173,7 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 			},
 			{
 				TargetFramework: ".NETStandard2.0",
-				Packages: []*Dependency{
+				Packages: []*meta.Dependency{
 					{
 						Id:           "Newtonsoft.Json",
 						VersionRaw:   "12.0.3",
@@ -183,7 +185,7 @@ func TestPackageResource_GetDependencyInfo(t *testing.T) {
 				},
 			},
 		},
-		FrameworkReferenceGroups: []*FrameworkSpecificGroup{
+		FrameworkReferenceGroups: []*meta.FrameworkSpecificGroup{
 			{
 				Items:           []string{"System.Net.Http"},
 				HasEmptyFolder:  false,
@@ -246,7 +248,7 @@ func TestPackageResource_GetDependencyInfo_ErrorScenarios(t *testing.T) {
 					t.Cleanup(func() {
 						_ = file.Close()
 					})
-					var nuspec Nuspec
+					var nuspec meta.Nuspec
 					err = xml.NewDecoder(file).Decode(&nuspec)
 					require.NoError(t, err)
 

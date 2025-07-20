@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/huhouhua/go-nuget/internal/meta"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,20 +34,20 @@ func TestReaderNupkg(t *testing.T) {
 	require.NoErrorf(t, err, "Failed Get nuspec file content: %v", err)
 	spec, _ := reader.Nuspec()
 
-	want := &Nuspec{
+	want := &meta.Nuspec{
 		Xmlns: "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd",
 		XMLName: xml.Name{
 			Space: "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd",
 			Local: "package",
 		},
-		Metadata: &Metadata{
-			PackageInfo: PackageInfo{
+		Metadata: &meta.Metadata{
+			PackageInfo: meta.PackageInfo{
 				ID:                       "MyTestLibrary",
 				Version:                  "1.0.0",
 				Authors:                  "Kevin Berger",
 				Owners:                   "Kevin Berger",
 				RequireLicenseAcceptance: false,
-				License: &LicenseMetadata{
+				License: &meta.LicenseMetadata{
 					Type:  "expression",
 					Value: "MIT",
 				},
@@ -57,18 +59,18 @@ func TestReaderNupkg(t *testing.T) {
 				Copyright:    "Copyright © 2025 Kevin Berger",
 				Tags:         "utility helper tools awesome",
 				Language:     "en-US",
-				Repository: &RepositoryMetadata{
+				Repository: &meta.RepositoryMetadata{
 					Type:   "git",
 					URL:    "https://github.com/huhouhua/go-nuget.git",
 					Branch: "main",
 					Commit: "abc123",
 				},
 			},
-			Dependencies: &Dependencies{
-				Groups: []*DependenciesGroup{
+			Dependencies: &meta.Dependencies{
+				Groups: []*meta.DependenciesGroup{
 					{
 						TargetFramework: ".NETFramework4.8",
-						Dependencies: []*Dependency{
+						Dependencies: []*meta.Dependency{
 							{
 								Id:         "Newtonsoft.Json",
 								VersionRaw: "12.0.3",
@@ -82,7 +84,7 @@ func TestReaderNupkg(t *testing.T) {
 					},
 					{
 						TargetFramework: ".NETCoreApp3.1",
-						Dependencies: []*Dependency{
+						Dependencies: []*meta.Dependency{
 							{
 								Id:         "Newtonsoft.Json",
 								VersionRaw: "12.0.3",
@@ -92,7 +94,7 @@ func TestReaderNupkg(t *testing.T) {
 					},
 					{
 						TargetFramework: "net5.0",
-						Dependencies: []*Dependency{
+						Dependencies: []*meta.Dependency{
 							{
 								Id:         "Newtonsoft.Json",
 								VersionRaw: "12.0.3",
@@ -102,7 +104,7 @@ func TestReaderNupkg(t *testing.T) {
 					},
 					{
 						TargetFramework: ".NETStandard2.0",
-						Dependencies: []*Dependency{
+						Dependencies: []*meta.Dependency{
 							{
 								Id:         "Newtonsoft.Json",
 								VersionRaw: "12.0.3",
@@ -111,7 +113,7 @@ func TestReaderNupkg(t *testing.T) {
 						},
 					},
 				},
-				Dependency: []*Dependency{
+				Dependency: []*meta.Dependency{
 					{
 						Id:         "Castle.Core.AsyncInterceptor",
 						VersionRaw: "2.1.0",
@@ -124,8 +126,8 @@ func TestReaderNupkg(t *testing.T) {
 					},
 				},
 			},
-			FrameworkAssemblies: &FrameworkAssemblies{
-				FrameworkAssembly: []*FrameworkAssembly{
+			FrameworkAssemblies: &meta.FrameworkAssemblies{
+				FrameworkAssembly: []*meta.FrameworkAssembly{
 					{
 						AssemblyName: []string{
 							"System.Net.Http",
@@ -134,11 +136,11 @@ func TestReaderNupkg(t *testing.T) {
 					},
 				},
 			},
-			References: &References{
-				Groups: []*ReferenceGroup{
+			References: &meta.References{
+				Groups: []*meta.ReferenceGroup{
 					{
 						TargetFramework: ".NETStandard2.0",
-						References: []*Reference{
+						References: []*meta.Reference{
 							{
 								File: "MyTestLibrary.dll",
 							},
@@ -169,15 +171,15 @@ func TestReaderFullPackage(t *testing.T) {
 	require.NoErrorf(t, err, "Failed Get nuspec file content: %v", err)
 	spec, _ := reader.Nuspec()
 
-	want := &Nuspec{
+	want := &meta.Nuspec{
 		Xmlns: "http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd",
 		XMLName: xml.Name{
 			Space: "http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd",
 			Local: "package",
 		},
-		Metadata: &Metadata{
+		Metadata: &meta.Metadata{
 			MinClientVersion: "1.0.0",
-			PackageInfo: PackageInfo{
+			PackageInfo: meta.PackageInfo{
 				ID:                       "MyPackage",
 				Version:                  "1.0.0-beta",
 				Title:                    "My Full Sample Package",
@@ -185,7 +187,7 @@ func TestReaderFullPackage(t *testing.T) {
 				Owners:                   "Sample author,Sample author2",
 				DevelopmentDependency:    true,
 				RequireLicenseAcceptance: false,
-				License: &LicenseMetadata{
+				License: &meta.LicenseMetadata{
 					Type:  "expression",
 					Value: "MIT",
 				},
@@ -201,26 +203,26 @@ func TestReaderFullPackage(t *testing.T) {
 				Tags:         "utility sample",
 				Language:     "en-US",
 				Serviceable:  true,
-				PackageTypes: &PackageTypes{
-					PackageTypes: []*PackageType{
+				PackageTypes: &meta.PackageTypes{
+					PackageTypes: []*meta.PackageType{
 						{
 							Name:    "DotnetTool",
 							Version: "1.0.0",
 						},
 					},
 				},
-				Repository: &RepositoryMetadata{
+				Repository: &meta.RepositoryMetadata{
 					Type:   "git",
 					URL:    "https://github.com/huhouhua/go-nuget",
 					Branch: "main",
 					Commit: "4a5eec0ec02cbc120f8fa85b3c37327c5c451640",
 				},
 			},
-			Dependencies: &Dependencies{
-				Groups: []*DependenciesGroup{
+			Dependencies: &meta.Dependencies{
+				Groups: []*meta.DependenciesGroup{
 					{
 						TargetFramework: ".NETStandard1.4",
-						Dependencies: []*Dependency{
+						Dependencies: []*meta.Dependency{
 							{
 								Id:         "Newtonsoft.Json",
 								VersionRaw: "10.0.1",
@@ -229,11 +231,11 @@ func TestReaderFullPackage(t *testing.T) {
 					},
 				},
 			},
-			References: &References{
-				Groups: []*ReferenceGroup{
+			References: &meta.References{
+				Groups: []*meta.ReferenceGroup{
 					{
 						TargetFramework: "net8.0",
-						References: []*Reference{
+						References: []*meta.Reference{
 							{
 								File: "System.Text.Json.dll",
 							},
@@ -244,7 +246,7 @@ func TestReaderFullPackage(t *testing.T) {
 					},
 					{
 						TargetFramework: ".NETStandard1.4",
-						References: []*Reference{
+						References: []*meta.Reference{
 							{
 								File: "System.Xml.Linq.dll",
 							},
@@ -261,11 +263,11 @@ func TestReaderFullPackage(t *testing.T) {
 					},
 				},
 			},
-			FrameworkReferences: &FrameworkReferences{
-				Groups: []*FrameworkReferenceGroup{
+			FrameworkReferences: &meta.FrameworkReferences{
+				Groups: []*meta.FrameworkReferenceGroup{
 					{
 						TargetFramework: "net5.0",
-						FrameworkReferences: []*FrameworkReference{
+						FrameworkReferences: []*meta.FrameworkReference{
 							{
 								Name: "Microsoft.NETCore.App",
 							},
@@ -273,8 +275,8 @@ func TestReaderFullPackage(t *testing.T) {
 					},
 				},
 			},
-			FrameworkAssemblies: &FrameworkAssemblies{
-				FrameworkAssembly: []*FrameworkAssembly{
+			FrameworkAssemblies: &meta.FrameworkAssemblies{
+				FrameworkAssembly: []*meta.FrameworkAssembly{
 					{
 						AssemblyName: []string{
 							"System.Xml",
@@ -283,8 +285,8 @@ func TestReaderFullPackage(t *testing.T) {
 					},
 				},
 			},
-			ContentFile: &ContentFile{
-				Files: []*ContentFileItem{
+			ContentFile: &meta.ContentFile{
+				Files: []*meta.ContentFileItem{
 					{
 						Include:      "contentFiles/any/any/config.json",
 						BuildAction:  "None",

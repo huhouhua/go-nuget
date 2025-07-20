@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package creation
+package framework
 
 import (
 	"fmt"
@@ -12,11 +12,11 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/huhouhua/go-nuget/internal/consts"
+
 	"github.com/huhouhua/go-nuget/version"
 
 	"github.com/Masterminds/semver/v3"
-
-	"github.com/huhouhua/go-nuget"
 )
 
 var (
@@ -53,13 +53,13 @@ type Framework struct {
 }
 
 func NewFramework(framework string) *Framework {
-	return NewFrameworkWithVersion(framework, nuget.EmptyVersion)
+	return NewFrameworkWithVersion(framework, consts.EmptyVersion)
 }
 func NewFrameworkWithVersion(framework string, version *version.Version) *Framework {
 	return NewFrameworkWithProfile(framework, version, "")
 }
 func NewFrameworkWithProfile(framework string, version *version.Version, profile string) *Framework {
-	return newFrameworkFrom(framework, version, profile, "", nuget.EmptyVersion)
+	return newFrameworkFrom(framework, version, profile, "", consts.EmptyVersion)
 }
 
 func NewFrameworkWithPlatform(
@@ -84,14 +84,14 @@ func newFrameworkFrom(
 		Profile:   profile,
 	}
 	nf.isNet5Era = nf.Version.Semver.Major() >= 5 &&
-		strings.EqualFold(strings.ToLower(framework), strings.ToLower(nuget.NetCoreApp))
+		strings.EqualFold(strings.ToLower(framework), strings.ToLower(consts.NetCoreApp))
 
 	if nf.isNet5Era {
 		nf.Platform = platform
 		nf.PlatformVersion = platformVersion
 	} else {
 		nf.Platform = ""
-		nf.PlatformVersion = nuget.EmptyVersion
+		nf.PlatformVersion = consts.EmptyVersion
 	}
 	return nf
 }
@@ -124,12 +124,12 @@ func (f *Framework) AllFrameworkVersions() bool {
 
 // IsPCL Portable class library check
 func (f *Framework) IsPCL() bool {
-	return strings.EqualFold(f.Framework, nuget.Portable) && f.Version.Semver.Major() < 5
+	return strings.EqualFold(f.Framework, consts.Portable) && f.Version.Semver.Major() < 5
 }
 
 // GetFrameworkString which is relevant for building packages. This isn't needed for net5.0+ frameworks.
 func (f *Framework) GetFrameworkString() (string, error) {
-	isNet5Era := f.Version.Semver.Major() >= 5 && strings.EqualFold(nuget.NetCoreApp, f.Framework)
+	isNet5Era := f.Version.Semver.Major() >= 5 && strings.EqualFold(consts.NetCoreApp, f.Framework)
 	if isNet5Era {
 		return f.GetShortFolderName()
 	}
@@ -149,7 +149,7 @@ func (f *Framework) GetFrameworkString() (string, error) {
 // getFrameworkIdentifier Helper that is .NET 5 Era aware to replace identifier when appropriate
 func (f *Framework) getFrameworkIdentifier() string {
 	if f.isNet5Era {
-		return nuget.Net
+		return consts.Net
 	}
 	return f.Framework
 }
@@ -221,16 +221,15 @@ func (f *Framework) getShortFolderName(mappings FrameworkNameProvider) (string, 
 		if strings.TrimSpace(framework.Platform) != "" {
 			sb.WriteString("-")
 			sb.WriteString(strings.ToLower(framework.Platform))
-			if framework.PlatformVersion.Semver.Equal(nuget.EmptyVersion.Semver) {
+			if framework.PlatformVersion.Semver.Equal(consts.EmptyVersion.Semver) {
 				sb.WriteString(mappings.GetVersionString(framework.Framework, framework.PlatformVersion.Semver))
 			}
 		}
 	} else {
 		// add the profile
-		if shortProfile := mappings.GetShortProfile(framework.Profile); strings.TrimSpace(shortProfile) == "" {
+		shortProfile := mappings.GetShortProfile(framework.Profile)
+		if strings.TrimSpace(shortProfile) != "" {
 			// if we have a profile, but can't get a mapping, just use the profile as is
-			shortProfile = framework.Profile
-		} else {
 			sb.WriteString("-")
 			sb.WriteString(shortProfile)
 		}
@@ -260,7 +259,6 @@ func (f *Framework) getDotNetFrameworkName(mappings FrameworkNameProvider) strin
 	} else {
 		return fmt.Sprintf("%s,Version=v0.0", framework.Framework)
 	}
-
 }
 
 func (f *Framework) String() (string, error) {
@@ -309,12 +307,12 @@ type FrameworkAssemblyReference struct {
 }
 
 func ParseNuGetFrameworkFromFilePath(filePath string, effectivePath *string) *Framework {
-	for _, knownFolder := range nuget.Known {
+	for _, knownFolder := range consts.Known {
 		folderPrefix := fmt.Sprintf("%s%s", knownFolder, string(os.PathSeparator))
 		if len(filePath) > len(folderPrefix) &&
 			strings.HasPrefix(strings.ToLower(filePath), strings.ToLower(folderPrefix)) {
 			frameworkPart := filePath[len(folderPrefix):]
-			name, err := ParseNuGetFrameworkFolderName(frameworkPart, knownFolder == nuget.Lib, effectivePath)
+			name, err := ParseNuGetFrameworkFolderName(frameworkPart, knownFolder == consts.Lib, effectivePath)
 			if err != nil {
 				// if the parsing fails, we treat it as if this file
 				// doesn't have target framework.

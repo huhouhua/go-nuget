@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/huhouhua/go-nuget/internal/meta"
+
 	nugetVersion "github.com/huhouhua/go-nuget/version"
 )
 
@@ -55,7 +57,7 @@ func (f *FindPackageResource) ListAllVersions(
 func (f *FindPackageResource) GetDependencyInfo(
 	id, version string,
 	options ...RequestOptionFunc,
-) (*PackageDependencyInfo, *http.Response, error) {
+) (*meta.PackageDependencyInfo, *http.Response, error) {
 	packageId, err := parseID(id)
 	if err != nil {
 		return nil, nil, err
@@ -68,16 +70,16 @@ func (f *FindPackageResource) GetDependencyInfo(
 	if err != nil {
 		return nil, nil, err
 	}
-	var nuspec Nuspec
+	var nuspec meta.Nuspec
 	resp, err := f.client.Do(req, &nuspec, DecoderTypeXML)
 	if err != nil {
 		return nil, resp, err
 	}
-	dependencyInfo := &PackageDependencyInfo{
-		DependencyGroups:         make([]*PackageDependencyGroup, 0),
-		FrameworkReferenceGroups: make([]*FrameworkSpecificGroup, 0),
+	dependencyInfo := &meta.PackageDependencyInfo{
+		DependencyGroups:         make([]*meta.PackageDependencyGroup, 0),
+		FrameworkReferenceGroups: make([]*meta.FrameworkSpecificGroup, 0),
 	}
-	if err = ConfigureDependencyInfo(dependencyInfo, nuspec); err != nil {
+	if err = meta.ConfigureDependencyInfo(dependencyInfo, nuspec); err != nil {
 		return nil, resp, err
 	}
 	return dependencyInfo, resp, nil

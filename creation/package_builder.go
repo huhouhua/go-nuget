@@ -18,9 +18,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/huhouhua/go-nuget/version"
+	"github.com/huhouhua/go-nuget/internal/consts"
+	"github.com/huhouhua/go-nuget/internal/framework"
+	"github.com/huhouhua/go-nuget/internal/meta"
+	"github.com/huhouhua/go-nuget/internal/util"
 
-	"github.com/huhouhua/go-nuget"
+	"github.com/huhouhua/go-nuget/version"
 )
 
 // MaxPackageIdLength Max allowed length for package Id.
@@ -94,7 +97,7 @@ type PackageBuilder struct {
 
 	Version *version.Version
 
-	Repository *nuget.RepositoryMetadata
+	Repository *meta.RepositoryMetadata
 
 	LicenseMetadata *LicenseMetadata
 
@@ -144,11 +147,11 @@ type PackageBuilder struct {
 
 	Files []PackageFile
 
-	FrameworkReferences []*FrameworkAssemblyReference
+	FrameworkReferences []*framework.FrameworkAssemblyReference
 
 	FrameworkReferenceGroups []*FrameworkReferenceGroup
 
-	TargetFrameworks []*Framework
+	TargetFrameworks []*framework.Framework
 
 	// ContentFiles section from the manifest for content v2
 	ContentFiles []*ManifestContentFiles
@@ -167,7 +170,7 @@ func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.
 		logger:                    logger,
 		Files:                     make([]PackageFile, 0),
 		DependencyGroups:          make([]*PackageDependencyGroup, 0),
-		FrameworkReferences:       make([]*FrameworkAssemblyReference, 0),
+		FrameworkReferences:       make([]*framework.FrameworkAssemblyReference, 0),
 		FrameworkReferenceGroups:  make([]*FrameworkReferenceGroup, 0),
 		ContentFiles:              make([]*ManifestContentFiles, 0),
 		PackageAssemblyReferences: make([]*PackageReferenceSet, 0),
@@ -175,7 +178,7 @@ func NewPackageBuilder(includeEmptyDirectories, deterministic bool, logger *log.
 		Authors:                   make([]string, 0),
 		Owners:                    make([]string, 0),
 		Tags:                      make([]string, 0),
-		TargetFrameworks:          make([]*Framework, 0),
+		TargetFrameworks:          make([]*framework.Framework, 0),
 		Properties:                make(map[string]string),
 	}
 }
@@ -185,7 +188,7 @@ func (p *PackageBuilder) Save(w io.Writer) error {
 	if err := ValidatePackageId(p.Id); err != nil {
 		return err
 	}
-	isHasDependencyGroups := nuget.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
+	isHasDependencyGroups := util.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
 		return group.Packages == nil || len(group.Packages) == 0
 	})
 
@@ -243,12 +246,12 @@ func (p *PackageBuilder) AddFiles(basePath, source, destination, exclude string)
 	}
 	if p.includeEmptyDirectories {
 		// we only allow empty directories which are under known root folders.
-		searchFiles = nuget.Filter(searchFiles, func(file *PhysicalPackageFile) bool {
-			return path.Base(file.targetPath) != nuget.PackageEmptyFileName && isKnownFolder(file.targetPath)
+		searchFiles = util.Filter(searchFiles, func(file *PhysicalPackageFile) bool {
+			return path.Base(file.targetPath) != PackageEmptyFileName && isKnownFolder(file.targetPath)
 		})
 	}
 	p.excludeFiles(searchFiles, basePath, exclude)
-	if !strings.Contains(source, "*") && !nuget.IsDirectoryPath(source) && len(searchFiles) == 0 &&
+	if !strings.Contains(source, "*") && !util.IsDirectoryPath(source) && len(searchFiles) == 0 &&
 		strings.TrimSpace(exclude) == "" {
 		return fmt.Errorf("%s file not found", source)
 	}
@@ -261,17 +264,17 @@ func (p *PackageBuilder) excludeFiles(searchFiles []*PhysicalPackageFile, basePa
 	if strings.TrimSpace(exclude) == "" {
 		return
 	}
-	exclusions := nuget.SplitWithFilter(exclude, []rune{';'})
+	exclusions := util.SplitWithFilter(exclude, []rune{';'})
 	for _, exclusion := range exclusions {
-		wildCard := nuget.NormalizeWildcardForExcludedFiles(basePath, exclusion)
-		nuget.GetFilteredPackageFiles(&searchFiles, func(file *PhysicalPackageFile) string {
+		wildCard := util.NormalizeWildcardForExcludedFiles(basePath, exclusion)
+		util.GetFilteredPackageFiles(&searchFiles, func(file *PhysicalPackageFile) string {
 			return file.sourcePath
 		}, []string{wildCard})
 	}
 }
 
 func (p *PackageBuilder) writeManifest(zipWriter *zip.Writer, minimumManifestVersion int, psmdcpPath string) error {
-	manifestPath := fmt.Sprintf("%s%s", p.Id, nuget.NuspecExtension)
+	manifestPath := fmt.Sprintf("%s%s", p.Id, consts.NuspecExtension)
 	if err := p.writeOpcManifestRelationship(zipWriter, manifestPath, psmdcpPath); err != nil {
 		return err
 	}
@@ -460,7 +463,7 @@ func (p *PackageBuilder) writeFiles(
 
 func (p *PackageBuilder) GetVersion() int {
 	if p.PackageAssemblyReferences != nil {
-		referencesHasTargetFramework := nuget.Some(p.PackageAssemblyReferences, func(set *PackageReferenceSet) bool {
+		referencesHasTargetFramework := util.Some(p.PackageAssemblyReferences, func(set *PackageReferenceSet) bool {
 			return set.TargetFramework != nil && set.TargetFramework.IsSpecificFramework()
 		})
 		if referencesHasTargetFramework {
@@ -468,7 +471,7 @@ func (p *PackageBuilder) GetVersion() int {
 		}
 	}
 	if p.DependencyGroups != nil {
-		dependencyHasTargetFramework := nuget.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
+		dependencyHasTargetFramework := util.Some(p.DependencyGroups, func(group *PackageDependencyGroup) bool {
 			return group.TargetFramework != nil && group.TargetFramework.IsSpecificFramework()
 		})
 		if dependencyHasTargetFramework {

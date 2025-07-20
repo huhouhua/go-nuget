@@ -88,41 +88,11 @@ func mustWriteHTTPResponse(t *testing.T, w io.Writer, fixturePath string) {
 	}
 }
 
-// Helper to make absolute path in test cases
-func mustAbs(path string) string {
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		panic(err)
-	}
-	return abs
-}
-
-// Helper function to create a temporary directory and files for testing
-func createTestDirectory(t *testing.T, dirName string, files []string) string {
-	dirPath := filepath.Join(t.TempDir(), dirName)
-	createEmptyDir(t, dirPath)
-
-	// Create the files in the directory
-	for _, file := range files {
-		filePath := filepath.Join(dirPath, file)
-		f, err := os.Create(filePath)
-		require.NoErrorf(t, err, "Failed to create file in test directory: %v", err)
-		_ = f.Close()
-	}
-
-	return dirPath
-}
-
 func createFile(t *testing.T, path, data string) {
 	err := os.MkdirAll(filepath.Dir(path), 0755)
 	require.NoError(t, err)
 
 	err = os.WriteFile(path, []byte(data), 0644)
-	require.NoError(t, err)
-}
-
-func createEmptyDir(t *testing.T, path string) {
-	err := os.MkdirAll(path, 0755)
 	require.NoError(t, err)
 }
 

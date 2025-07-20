@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package nuget
+package util
 
 import (
 	"errors"
@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/huhouhua/go-nuget/internal/consts"
 )
 
 // SearchPathResult stores the result of a search, including the file path and whether it is a file
@@ -111,7 +113,7 @@ func NormalizeWildcardForExcludedFiles(basePath, wildcard string) string {
 		return wildcard
 	}
 	basePath = normalizeBasePath(basePath, &wildcard)
-	return pathCombine(basePath, wildcard)
+	return PathCombine(basePath, wildcard)
 }
 
 // WildcardToRegex converts a wildcard string to a regular expression.
@@ -174,7 +176,7 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 
 	// Check if the search path is a directory, modify it to include '**/*'
 	if IsDirectoryPath(searchPath) {
-		searchPath = pathCombine(searchPath, "**", "*")
+		searchPath = PathCombine(searchPath, "**", "*")
 		flag1 = true
 	}
 
@@ -184,7 +186,7 @@ func PerformWildcardSearch(basePath, searchPath string, includeEmptyDirs bool) (
 	if err != nil {
 		return nil, "", err
 	}
-	searchPattern := pathCombine(basePath, searchPath)
+	searchPattern := PathCombine(basePath, searchPath)
 
 	// Convert wildcard search pattern to regex
 	searchRegex := WildcardToRegex(searchPattern, os.PathSeparator)
@@ -248,7 +250,7 @@ func getPathToEnumerateFrom(basePath, searchPath string) (string, error) {
 			return "", errors.New("filepath.Dir(searchPath) returned null")
 		}
 
-		pathToEnumerateFrom = pathCombine(basePath, dirName)
+		pathToEnumerateFrom = PathCombine(basePath, dirName)
 	} else {
 		// Find the last directory separator before the wildcard
 		lastIndex := strings.LastIndex(searchPath[:startIndex], string(filepath.Separator))
@@ -258,7 +260,7 @@ func getPathToEnumerateFrom(basePath, searchPath string) (string, error) {
 		} else {
 			// Get the part of the path before the wildcard
 			pathPart := searchPath[:lastIndex]
-			pathToEnumerateFrom = pathCombine(basePath, pathPart)
+			pathToEnumerateFrom = PathCombine(basePath, pathPart)
 		}
 	}
 	return pathToEnumerateFrom, nil
@@ -272,7 +274,7 @@ func normalizeBasePath(basePath string, searchPath *string) string {
 		basePath = str
 	}
 	for strings.HasPrefix(*searchPath, path2) {
-		basePath = pathCombine(basePath, path2)
+		basePath = PathCombine(basePath, path2)
 		*searchPath = (*searchPath)[len(path2):]
 	}
 	absBasePath, err := filepath.Abs(basePath)
@@ -283,9 +285,9 @@ func normalizeBasePath(basePath string, searchPath *string) string {
 	return absBasePath
 }
 
-// resolvePackageFromPath Resolves a package path into a list of paths.
+// ResolvePackageFromPath Resolves a package path into a list of paths.
 // If the path contains wildcards then the path is expanded to all matching entries.
-func resolvePackageFromPath(packagePath string, isSnupkg bool) ([]string, error) {
+func ResolvePackageFromPath(packagePath string, isSnupkg bool) ([]string, error) {
 	packagePath = EnsurePackageExtension(packagePath, isSnupkg)
 	dir, err := os.Getwd()
 	if err != nil {
@@ -306,7 +308,7 @@ func resolvePackageFromPath(packagePath string, isSnupkg bool) ([]string, error)
 func EnsurePackageExtension(packagePath string, isSnupkg bool) string {
 	// If packagePath doesn't contain '*' and already ends with .nupkg or .snupkg, return the path as is
 	if !strings.Contains(packagePath, "*") &&
-		(strings.HasSuffix(packagePath, PackageExtension) || strings.HasSuffix(packagePath, SnupkgExtension)) {
+		(strings.HasSuffix(packagePath, consts.PackageExtension) || strings.HasSuffix(packagePath, consts.SnupkgExtension)) {
 		return packagePath
 	}
 
@@ -320,9 +322,9 @@ func EnsurePackageExtension(packagePath string, isSnupkg bool) string {
 	}
 	// Add the appropriate extension based on isSnupkg
 	if isSnupkg {
-		packagePath = fmt.Sprintf("%s%s", packagePath, SnupkgExtension)
+		packagePath = fmt.Sprintf("%s%s", packagePath, consts.SnupkgExtension)
 	} else {
-		packagePath = fmt.Sprintf("%s%s", packagePath, PackageExtension)
+		packagePath = fmt.Sprintf("%s%s", packagePath, consts.PackageExtension)
 	}
 
 	return packagePath
@@ -357,8 +359,8 @@ func IsEmptyDirectory(directory string) bool {
 	return len(entries) == 0
 }
 
-// createSourceURL Same as "new Uri" except that it can handle UNIX style paths that start with '/'
-func createSourceURL(source string) (*url.URL, error) {
+// CreateSourceURL Same as "new Uri" except that it can handle UNIX style paths that start with '/'
+func CreateSourceURL(source string) (*url.URL, error) {
 	source = fixSourceURL(source)
 	return url.Parse(source)
 }
@@ -370,12 +372,12 @@ func fixSourceURL(source string) string {
 	return source
 }
 
-func isSourceNuGetSymbolServer(source *url.URL) bool {
-	return strings.EqualFold(source.Host, NuGetSymbolHostName)
+func IsSourceNuGetSymbolServer(source *url.URL) bool {
+	return strings.EqualFold(source.Host, consts.NuGetSymbolHostName)
 }
 
-// pathCombine combines an array of strings into a path.
-func pathCombine(paths ...string) string {
+// PathCombine combines an array of strings into a path.
+func PathCombine(paths ...string) string {
 	if len(paths) == 0 {
 		return ""
 	}
@@ -420,24 +422,24 @@ func getFileNameWithoutExtension(path string) string {
 func GetSymbolsPath(packagePath string, isSnupkg bool) string {
 	symbolPath := getFileNameWithoutExtension(packagePath)
 	if isSnupkg {
-		symbolPath = fmt.Sprintf("%s%s", symbolPath, SnupkgExtension)
+		symbolPath = fmt.Sprintf("%s%s", symbolPath, consts.SnupkgExtension)
 	} else {
-		symbolPath = fmt.Sprintf("%s%s", symbolPath, SymbolsExtension)
+		symbolPath = fmt.Sprintf("%s%s", symbolPath, consts.SymbolsExtension)
 	}
 	packageDir := filepath.Dir(packagePath)
 
-	return pathCombine(packageDir, symbolPath)
+	return PathCombine(packageDir, symbolPath)
 }
 
-// getServiceEndpointUrl Calculates the URL to the package to.
-func getServiceEndpointUrl(source, path string, noServiceEndpoint bool) (*url.URL, error) {
+// GetServiceEndpointUrl Calculates the URL to the package to.
+func GetServiceEndpointUrl(source, path string, noServiceEndpoint bool) (*url.URL, error) {
 	baseUri, err := ensureTrailingSlash(source)
 	if err != nil {
 		return nil, err
 	}
 	requestUri := ""
 	if strings.TrimSpace(strings.TrimPrefix(baseUri.Path, "/")) == "" && !noServiceEndpoint {
-		requestUri = fmt.Sprintf("%s%s/%s", strings.TrimRight(baseUri.String(), "/"), ServiceEndpoint, path)
+		requestUri = fmt.Sprintf("%s%s/%s", strings.TrimRight(baseUri.String(), "/"), consts.ServiceEndpoint, path)
 	} else {
 		requestUri = fmt.Sprintf("%s%s", baseUri.String(), path)
 	}
@@ -449,7 +451,7 @@ func ensureTrailingSlash(value string) (*url.URL, error) {
 	if !strings.HasSuffix(value, "/") {
 		value = fmt.Sprintf("%s%s", value, "/")
 	}
-	return createSourceURL(value)
+	return CreateSourceURL(value)
 }
 
 // SplitWithFilter splits the input string by any of the specified separator runes and returns a slice of non-empty
