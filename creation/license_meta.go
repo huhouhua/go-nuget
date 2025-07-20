@@ -35,7 +35,7 @@ const (
 
 var (
 	LicenseFileDeprecationURL  = url.URL{Scheme: "https", Host: "aka.ms", Path: "/deprecateLicenseUrl"}
-	LicenseServiceLinkTemplate = "https://licenses.nuget.org/%s"
+	LicenseServiceLinkTemplate = "https://licenses.org/%s"
 	LicenseEmptyVersion        = version.NewVersionFrom(1, 0, 0, "", "")
 )
 

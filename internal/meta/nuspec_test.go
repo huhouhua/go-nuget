@@ -18,7 +18,7 @@ func TestFromFile(t *testing.T) {
 	_, err := FromFile("non_existent_file.nuspec")
 	require.Error(t, err, "expected error when file does not exist")
 
-	nuspec, err := FromFile("testdata/myTestLibrary.nuspec")
+	nuspec, err := FromFile("../../testdata/myTestLibrary.nuspec")
 	require.NoError(t, err)
 	require.NotNil(t, nuspec)
 }
@@ -27,7 +27,7 @@ func TestFromReader(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "read error") {
 		t.Fatal("expected read error")
 	}
-	nuspecFile, err := os.Open("testdata/myTestLibrary.nuspec")
+	nuspecFile, err := os.Open("../../testdata/myTestLibrary.nuspec")
 	require.NoError(t, err)
 
 	nuspec, err := FromReader(nuspecFile)
@@ -66,7 +66,7 @@ func TestFromBytes(t *testing.T) {
 		}
 	})
 	t.Run("read return success", func(t *testing.T) {
-		nuspecFile, err := os.Open("testdata/myTestLibrary.nuspec")
+		nuspecFile, err := os.Open("../../testdata/myTestLibrary.nuspec")
 		require.NoError(t, err)
 
 		nuspecBytes, err := io.ReadAll(nuspecFile)
@@ -79,7 +79,7 @@ func TestFromBytes(t *testing.T) {
 }
 
 func TestToBytes(t *testing.T) {
-	nuspec, err := FromFile("testdata/myTestLibrary.nuspec")
+	nuspec, err := FromFile("../../testdata/myTestLibrary.nuspec")
 	require.NoError(t, err)
 	require.NotNil(t, nuspec)
 
