@@ -1,6 +1,6 @@
 module github.com/huhouhua/go-nuget
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.1
 
@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/time v0.12.0
+	golang.org/x/time v0.13.0
 )
 
 require (
