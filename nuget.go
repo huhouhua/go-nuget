@@ -83,6 +83,8 @@ type Client struct {
 
 	FindPackageResource *FindPackageResource
 
+	DependencyResource *DependencyInfoResource
+
 	MetadataResource *PackageMetadataResource
 
 	SearchResource *PackageSearchResource
@@ -132,7 +134,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	}
 
 	// Set the source URL.
-	c.setSourceURL(defaultSourceURL)
+	_ = c.setSourceURL(defaultSourceURL)
 
 	// Apply any given client options.
 	for _, fn := range options {
@@ -152,6 +154,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 		c.limiter = rate.NewLimiter(rate.Inf, 0)
 	}
 	c.FindPackageResource = &FindPackageResource{client: c}
+	c.DependencyResource = &DependencyInfoResource{client: c}
 	c.MetadataResource = &PackageMetadataResource{client: c}
 	c.SearchResource = &PackageSearchResource{client: c}
 	c.UpdateResource = &PackageUpdateResource{client: c}

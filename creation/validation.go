@@ -242,7 +242,7 @@ func (p *PackageBuilder) validateDependencyGroups() error {
 			key := strings.ToLower(dep.Id)
 			// Throw an error if this dependency has been defined more than once
 			if _, exists := depSet[key]; exists {
-				return fmt.Errorf(fmt.Sprintf("'%s' already has a dependency defined for '%s'.", p.Id, dep.Id))
+				return fmt.Errorf("'%s' already has a dependency defined for '%s'", p.Id, dep.Id)
 			}
 			depSet[key] = struct{}{}
 			if dep.VersionRange == nil {
@@ -251,7 +251,7 @@ func (p *PackageBuilder) validateDependencyGroups() error {
 			if dep.VersionRange.MinVersion != nil && dep.VersionRange.MaxVersion != nil {
 				if (!dep.VersionRange.IsMaxInclusive() || !dep.VersionRange.IsMinInclusive()) &&
 					dep.VersionRange.MaxVersion.Semver.Equal(dep.VersionRange.MinVersion.Semver) {
-					return fmt.Errorf(fmt.Sprintf("dependency '%s' has an invalid version.", dep.Id))
+					return fmt.Errorf("dependency '%s' has an invalid version", dep.Id)
 				}
 				if dep.VersionRange.MinVersion.Semver.GreaterThan(dep.VersionRange.MaxVersion.Semver) {
 					return fmt.Errorf("dependency '%s' has an invalid version", dep.Id)
