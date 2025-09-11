@@ -5,8 +5,9 @@
 package nuget
 
 import (
-	"github.com/huhouhua/go-nuget/internal/framework"
 	"net/http"
+
+	"github.com/huhouhua/go-nuget/internal/framework"
 )
 
 type DependencyInfoResource struct {
@@ -16,7 +17,6 @@ type DependencyInfoResource struct {
 // ResolvePackage Retrieve dependency info for a single package.
 // Returns dependency info for the given package if it exists. If the package is not found null is
 func (d *DependencyInfoResource) ResolvePackage(id, version string, fw *framework.Framework, options ...RequestOptionFunc) (*http.Response, error) {
-
 	return nil, nil
 }
 
