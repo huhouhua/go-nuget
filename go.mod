@@ -2,6 +2,7 @@ module github.com/huhouhua/go-nuget
 
 go 1.25.0
 
+toolchain go1.24.1
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/google/go-querystring v1.1.0
