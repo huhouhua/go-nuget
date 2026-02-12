@@ -40,6 +40,9 @@ ifeq ($(origin COVERAGE),undefined)
 COVERAGE := 60
 endif
 
+# Copy githook scripts when execute makefile
+COPY_GITHOOK:=$(shell cp -f $(ROOT_DIR)/githooks/* $(ROOT_DIR)/.git/hooks/)
+
 # ==============================================================================
 # Includes
 
