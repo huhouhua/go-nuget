@@ -27,6 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testHttpScheme = "http"
+
 func TestPackageUpdateResource_PushWithStream(t *testing.T) {
 	defaultTimeOut := time.Second * 10
 	mux, client := setup(t, index_V3)
@@ -279,7 +281,7 @@ func TestPackageUpdateResource_Push(t *testing.T) {
 				tt.configFunc(client, mux)
 			}
 			_, err := client.UpdateResource.Push(tt.packagePath, tt.opt, func(request *retryablehttp.Request) error {
-				request.URL.Scheme = "http"
+				request.URL.Scheme = testHttpScheme
 				request.URL.Host = client.baseURL.Host
 				request.Host = client.baseURL.Host
 				return nil
@@ -432,7 +434,7 @@ func TestPushWithSymbol(t *testing.T) {
 				tt.packagePath,
 				symbolUrl,
 				func(request *retryablehttp.Request) error {
-					request.URL.Scheme = "http"
+					request.URL.Scheme = testHttpScheme
 					request.URL.Host = client.baseURL.Host
 					request.Host = client.baseURL.Host
 					return nil
@@ -510,7 +512,7 @@ func TestPushPackage(t *testing.T) {
 				tt.packagePath,
 				packageUrl,
 				func(request *retryablehttp.Request) error {
-					request.URL.Scheme = "http"
+					request.URL.Scheme = testHttpScheme
 					request.URL.Host = client.baseURL.Host
 					request.Host = client.baseURL.Host
 					return nil
@@ -585,7 +587,7 @@ func TestCreateVerificationApiKey(t *testing.T) {
 				requestFunks = tt.requestOptionFunc
 			}
 			requestFunks = append(requestFunks, func(request *retryablehttp.Request) error {
-				request.URL.Scheme = "http"
+				request.URL.Scheme = testHttpScheme
 				request.URL.Host = client.baseURL.Host
 				request.Host = client.baseURL.Host
 				return nil

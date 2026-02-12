@@ -30,7 +30,7 @@ body:
   attributes:
     label: Go Version
     description: What version of Go are you using?
-    placeholder: "1.23"
+    placeholder: "1.25"
   validations:
     required: true
 - type: input

@@ -23,6 +23,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testInterfaceName = "%eth0"
+)
+
 func TestPackageMetadataResource_ListMetadata(t *testing.T) {
 	mux, client := setup(t, index_Baget)
 
@@ -377,7 +381,7 @@ func TestPackageSearchMetadataRegistration(t *testing.T) {
 			Owners: "Kevin Berger,test2,test3",
 		}
 		wantIdentity := &meta1.PackageIdentity{
-			Id:      input.SearchMetadata.PackageId,
+			Id:      input.PackageId,
 			Version: nugetVersion.NewVersionFrom(1, 0, 0, "beta", ""),
 		}
 		identity, err := input.Identity()
@@ -405,7 +409,7 @@ func TestParseAndReplaceURL(t *testing.T) {
 	invalidUrlTemplate.Path = invalidUrlTemplate.Path + "%%details"
 
 	unescapeUrlTemplate := createUrl(t, "")
-	unescapeUrlTemplate.Scheme = "%eth0"
+	unescapeUrlTemplate.Scheme = testInterfaceName
 
 	tests := []struct {
 		name         string
@@ -465,7 +469,7 @@ func TestParseAndReplaceURL(t *testing.T) {
 
 func TestWithReportAbuseURL(t *testing.T) {
 	unescapeUrlTemplate := createUrl(t, "")
-	unescapeUrlTemplate.Scheme = "%eth0"
+	unescapeUrlTemplate.Scheme = testInterfaceName
 	tests := []struct {
 		name        string
 		urlTemplate *url.URL
@@ -519,7 +523,7 @@ func TestWithReportAbuseURL(t *testing.T) {
 
 func TestWithPackageDetailsURL(t *testing.T) {
 	unescapeUrlTemplate := createUrl(t, "")
-	unescapeUrlTemplate.Scheme = "%eth0"
+	unescapeUrlTemplate.Scheme = testInterfaceName
 	tests := []struct {
 		name        string
 		urlTemplate *url.URL
@@ -573,7 +577,7 @@ func TestWithPackageDetailsURL(t *testing.T) {
 
 func TestWithReadmeFileURL(t *testing.T) {
 	unescapeUrlTemplate := createUrl(t, "")
-	unescapeUrlTemplate.Scheme = "%eth0"
+	unescapeUrlTemplate.Scheme = testInterfaceName
 	tests := []struct {
 		name        string
 		urlTemplate *url.URL

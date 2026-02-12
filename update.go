@@ -21,6 +21,8 @@ import (
 	"github.com/huhouhua/go-nuget/internal/util"
 )
 
+const schemeFile = "file"
+
 // PackageUpdateResource Contains logics to push or delete packages in Http server or file system
 type PackageUpdateResource struct {
 	client *Client
@@ -42,7 +44,7 @@ func (p *PackageUpdateResource) Delete(id, version string, options ...RequestOpt
 	if err != nil {
 		return nil, err
 	}
-	if sourceURL.Scheme == "file" {
+	if sourceURL.Scheme == schemeFile {
 		return nil, fmt.Errorf("no support file system delete")
 	}
 	u := fmt.Sprintf("%s/%s/%s", baseURL.Path, PathEscape(id), PathEscape(version))
@@ -168,7 +170,7 @@ func (p *PackageUpdateResource) pushPackagePath(
 		return nil, fmt.Errorf("unable to find file %s", path)
 	}
 
-	if p.client.apiKey == "" && sourceURL.Scheme != "file" {
+	if p.client.apiKey == "" && sourceURL.Scheme != schemeFile {
 		return nil, fmt.Errorf("api key is required")
 	}
 	for _, nupkgToPush := range paths {
@@ -198,7 +200,7 @@ func (p *PackageUpdateResource) pushPackageCore(
 	log.Printf("push package %s to %s", filepath.Base(packageToPush), sourceURL.String())
 
 	// TODO: file system push
-	if sourceURL.Scheme == "file" {
+	if sourceURL.Scheme == schemeFile {
 		return nil, fmt.Errorf("no support file system push")
 	}
 	return p.push(packageToPush, sourceURL, options...)
@@ -223,7 +225,7 @@ func (p *PackageUpdateResource) pushWithSymbol(
 		return nil, fmt.Errorf("unable to find file %s", path)
 	}
 	// See if the api key exists
-	if p.client.apiKey == "" && symbolURL.Scheme != "file" {
+	if p.client.apiKey == "" && symbolURL.Scheme != schemeFile {
 		log.Printf("warning symbol server not configured %s", filepath.Base(symbolPackagePath))
 	}
 	for _, packageToPush := range paths {
