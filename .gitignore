@@ -349,3 +349,4 @@ dist
 
 # config files, may contain sensitive information
 /e2e
+bin

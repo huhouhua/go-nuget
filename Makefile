@@ -13,12 +13,22 @@ all: tools tidy verify-copyright format lint cover
 
 SHELL := /bin/bash
 GO := go
-ROOT_DIR=.
+GOLANG_CI_LINT_VERSION ?= 2.9.0
 ROOT_PACKAGE=github.com/huhouhua/go-nuget
+COMMON_SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+ifeq ($(origin ROOT_DIR),undefined)
+ROOT_DIR := $(abspath $(shell cd $(COMMON_SELF_DIR) && pwd -P))
+endif
 
 ifeq ($(origin OUTPUT_DIR),undefined)
 OUTPUT_DIR := $(ROOT_DIR)/_output
 $(shell mkdir -p $(OUTPUT_DIR))
+endif
+
+ifeq ($(origin BIN_DIR),undefined)
+BIN_DIR := $(ROOT_DIR)/bin
+$(shell mkdir -p $(BIN_DIR))
 endif
 
 # Linux command settings
@@ -40,9 +50,9 @@ include scripts/Makefile.tools.mk
 
 ## lint: Check syntax and styling of go sources.
 .PHONY: lint
-lint: tools.verify.golangci-lint
+lint: tools.verify.local.golangci-lint
 	@echo "===========> Run golangci to lint source codes"
-	@golangci-lint run -c $(ROOT_DIR)/.golangci.yml $(ROOT_DIR)/...
+	@$(BIN_DIR)/golangci-lint run -c $(ROOT_DIR)/.golangci.yml $(ROOT_DIR)/...
 
 ## test: Run unit test.
 .PHONY: test
