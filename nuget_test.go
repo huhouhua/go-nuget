@@ -423,7 +423,7 @@ func TestUploadRequest(t *testing.T) {
 	})
 	t.Run("new request return error", func(t *testing.T) {
 		u := createUrl(t, "http://localhost:5000")
-		u.Scheme = "://abc"
+		u.Scheme = "://abcd"
 		_, actualErr := c.UploadRequest(http.MethodGet, "test", u,
 			strings.NewReader("test"), "", "", nil, nil)
 		wantErr := &url.Error{

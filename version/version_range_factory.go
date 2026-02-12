@@ -149,7 +149,7 @@ func TryParseRange(value string, allowFloating bool) (*VersionRange, bool) {
 			}
 		}
 		// (1.0.0] and [1.0.0),(1.0.0) are invalid.
-		if len(parts) == 1 && !(isMinInclusive && isMaxInclusive) {
+		if len(parts) == 1 && (!isMinInclusive || !isMaxInclusive) {
 			return nil, false
 		}
 

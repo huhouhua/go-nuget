@@ -154,11 +154,12 @@ func TryParseFloatRange(versionString string) (*FloatRange, bool) {
 			// replace the * with a 0
 			actualVersion += "0"
 			versionParts := calculateVersionParts(actualVersion)
-			if versionParts == 2 {
+			switch versionParts {
+			case 2:
 				behavior = Minor
-			} else if versionParts == 3 {
+			case 3:
 				behavior = Patch
-			} else if versionParts == 4 {
+			case 4:
 				behavior = Revision
 			}
 		} else {
@@ -219,45 +220,33 @@ func (f *FloatRange) string(builder *strings.Builder) {
 		appendNormalized(builder, f.MinVersion)
 	case Prerelease:
 		appendVersion(builder, f.MinVersion)
-		builder.WriteString(fmt.Sprintf("-%s*", f.OriginalReleasePrefix))
+		_, _ = fmt.Fprintf(builder, "-%s*", f.OriginalReleasePrefix)
 	case Revision:
-		builder.WriteString(
-			fmt.Sprintf(
-				"%v.%v.%v.*",
-				f.MinVersion.Semver.Major(),
-				f.MinVersion.Semver.Minor(),
-				f.MinVersion.Semver.Patch(),
-			),
-		)
+		_, _ = fmt.Fprintf(builder, "%v.%v.%v.*",
+			f.MinVersion.Semver.Major(),
+			f.MinVersion.Semver.Minor(),
+			f.MinVersion.Semver.Patch())
 	case Patch:
-		builder.WriteString(fmt.Sprintf("%v.%v.*", f.MinVersion.Semver.Major(), f.MinVersion.Semver.Minor()))
+		_, _ = fmt.Fprintf(builder, "%v.%v.*", f.MinVersion.Semver.Major(), f.MinVersion.Semver.Minor())
 	case Minor:
-		builder.WriteString(fmt.Sprintf("%v.*", f.MinVersion.Semver.Major()))
+		_, _ = fmt.Fprintf(builder, "%v.*", f.MinVersion.Semver.Major())
 	case Major:
 		builder.WriteString("*")
 	case PrereleaseRevision:
-		builder.WriteString(
-			fmt.Sprintf(
-				"%v.%v.%v.*-%s*",
-				f.MinVersion.Semver.Major(),
-				f.MinVersion.Semver.Minor(),
-				f.MinVersion.Semver.Patch(),
-				f.OriginalReleasePrefix,
-			),
-		)
+		_, _ = fmt.Fprintf(builder, "%v.%v.%v.*-%s*",
+			f.MinVersion.Semver.Major(),
+			f.MinVersion.Semver.Minor(),
+			f.MinVersion.Semver.Patch(),
+			f.OriginalReleasePrefix)
 	case PrereleasePatch:
-		builder.WriteString(
-			fmt.Sprintf(
-				"%v.%v.*-%s*",
-				f.MinVersion.Semver.Major(),
-				f.MinVersion.Semver.Minor(),
-				f.OriginalReleasePrefix,
-			),
-		)
+		_, _ = fmt.Fprintf(builder, "%v.%v.*-%s*",
+			f.MinVersion.Semver.Major(),
+			f.MinVersion.Semver.Minor(),
+			f.OriginalReleasePrefix)
 	case PrereleaseMinor:
-		builder.WriteString(fmt.Sprintf("%v.*-%s*", f.MinVersion.Semver.Major(), f.OriginalReleasePrefix))
+		_, _ = fmt.Fprintf(builder, "%v.*-%s*", f.MinVersion.Semver.Major(), f.OriginalReleasePrefix)
 	case PrereleaseMajor:
-		builder.WriteString(fmt.Sprintf("*-%s*", f.OriginalReleasePrefix))
+		_, _ = fmt.Fprintf(builder, "*-%s*", f.OriginalReleasePrefix)
 	case AbsoluteLatest:
 		builder.WriteString("*-*")
 	default:

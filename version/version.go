@@ -315,7 +315,11 @@ func isValidPart(s string, allowLeadingZeros bool) bool {
 		}
 	}
 	for i := 0; i < len(s); i++ {
-		if !((s[i] >= 48 && s[i] <= 57) || (s[i] >= 65 && s[i] <= 90) || (s[i] >= 97 && s[i] <= 122) || s[i] == 45) {
+		c := s[i]
+		if (c < '0' || c > '9') &&
+			(c < 'A' || c > 'Z') &&
+			(c < 'a' || c > 'z') &&
+			c != '-' {
 			return false
 		}
 	}
