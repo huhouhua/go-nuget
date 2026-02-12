@@ -17,7 +17,7 @@ associated repositories
 ## Reporting Security Issues
 
 Please report any security vulnerabilities or potential weaknesses in `go-nuget`
-privately via huhouhuam@outlook.com. Do not publicly disclose the
+privately via huhouhuam@gmail.com. Do not publicly disclose the
 details of the vulnerability until a fix has been implemented and released.
 
 During the process the project maintainers will investigate the report, so please

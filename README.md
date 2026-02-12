@@ -160,7 +160,7 @@ If you have an issue: report it on the [issue tracker](https://github.com/huhouh
 
 ## 👤&nbsp;Author
 
-Kevin Berger (<huhouhuam@outlook.com>)
+Kevin Berger (<huhouhuam@gmail.com>)
 
 ## 🧑‍💻&nbsp;Contributing
 
